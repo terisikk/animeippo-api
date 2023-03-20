@@ -1,0 +1,15 @@
+__pycache__/
+*.pyc
+conf/production.conf
+conf/lorrem.conf
+.vscode/
+.coverage
+.pytest_cache
+build/
+venv
+.venv
+.env
+.ruff_cache
+.pip_cache
+.profiling
+anime-offline-database/
