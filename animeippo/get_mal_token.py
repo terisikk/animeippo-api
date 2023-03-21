@@ -60,6 +60,8 @@ def print_user_info(access_token: str):
 
     print(f"\n>>> Greetings {user['name']}! <<<")
 
+def refresh_token(token):
+    
 
 if __name__ == "__main__":
     code_verifier = code_challenge = get_new_code_verifier()
