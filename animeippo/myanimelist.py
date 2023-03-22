@@ -31,7 +31,6 @@ def requests_get_next_page(session, page):
 def requests_get_all_pages(session, user):
     query_parameters = {
         "status": "completed",
-        "sort": "list_score",
         "limit": 50,
         "nsfw": "true",
         "fields": "id,title,nsfw,genres,my_list_status{score,tags}",

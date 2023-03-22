@@ -1,6 +1,6 @@
 import pytest
 
-from animeippo import user_anime_list
+from animeippo import myanimelist
 
 
 class SessionStub:
@@ -28,8 +28,7 @@ class ResponseStub:
 
 def test_mal_anime_list_can_be_fetched():
     user = "Janiskeisari"
-    animelist = user_anime_list.get_anime_list(user)
-    print(animelist)
+    animelist = myanimelist.get_anime_list(user)
     assert "91 Days" in [node["title"] for node in animelist]
 
 
@@ -42,9 +41,7 @@ def test_get_next_page_returns_succesfully():
 
     mock_session = SessionStub({"page1": response1, "page2": response2, "page3": response3})
 
-    final_pages = [
-        user_anime_list.requests_get_next_page(mock_session, page.json()) for page in pages
-    ]
+    final_pages = [myanimelist.requests_get_next_page(mock_session, page.json()) for page in pages]
 
     assert len(final_pages) == 3
     assert final_pages[0] == response2.json()
@@ -57,12 +54,12 @@ def test_get_all_pages_returns_all_pages():
     response2 = ResponseStub({"data": [{"test2": "test2"}], "paging": {"next": "page3"}})
     response3 = ResponseStub({"data": [{"test3": "test3"}]})
 
-    user_anime_list.MAL_API_URL = "FAKE"
+    myanimelist.MAL_API_URL = "FAKE"
     first_page_url = "FAKE/users/kamina69/animelist"
 
     mock_session = SessionStub({first_page_url: response1, "page2": response2, "page3": response3})
 
-    final_pages = list(user_anime_list.requests_get_all_pages(mock_session, "kamina69"))
+    final_pages = list(myanimelist.requests_get_all_pages(mock_session, "kamina69"))
 
     assert len(final_pages) == 3
     assert final_pages[0] == response1.json()
@@ -73,11 +70,11 @@ def test_get_all_pages_returns_all_pages():
 def test_reqest_does_not_fail_catastrophically_when_response_is_empty():
     response1 = ResponseStub(dict())
 
-    user_anime_list.MAL_API_URL = "FAKE"
+    myanimelist.MAL_API_URL = "FAKE"
     first_page_url = "FAKE/users/kamina69/animelist"
 
     mock_session = SessionStub({first_page_url: response1})
 
-    pages = list(user_anime_list.requests_get_all_pages(mock_session, "kamina69"))
+    pages = list(myanimelist.requests_get_all_pages(mock_session, "kamina69"))
 
     assert len(pages) == 0
