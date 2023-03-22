@@ -2,6 +2,8 @@ import requests
 import dotenv
 import os
 
+import animeippo.analysis as analysis
+
 dotenv.load_dotenv("conf/prod.env")
 
 MAL_API_URL = "https://api.myanimelist.net/v2"
@@ -60,3 +62,8 @@ def get_anime_list(user):
                 anime_list.append(item["node"])
 
     return anime_list
+
+def analyze_mal(user):
+    anime_list = get_anime_list(user)
+    df = analysis.transform_mal_data(anime_list)
+    return df

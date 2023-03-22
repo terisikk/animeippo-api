@@ -59,11 +59,13 @@ MAL_DATA = [
 
 
 def test_dataframe_can_be_constructed_from_mal():
-    data = analysis.data_from_mal(MAL_DATA)
+    analysis.NCLUSTERS = 2
+    data = analysis.transform_mal_data(MAL_DATA)
 
     assert type(data) == pd.DataFrame
     assert len(data) == 2
     assert data.loc[1, "title"] == "Hellsing"
+    assert data.loc[1, "cluster"] == 0
 
 
 def test_mal_genres_can_be_split():
@@ -79,6 +81,23 @@ def test_mal_genres_can_be_split():
 
     actual = analysis.split_mal_genres(original)
 
-    expected = {"Action", "Adult Cast", "Gore", "Horror", "Seinen", "Supernatural", "Vampire"}
+    expected = ["Action", "Adult Cast", "Gore", "Horror", "Seinen", "Supernatural", "Vampire"]
 
     assert actual == expected
+
+def test_clustering():
+    df = pd.DataFrame({"genres": [["Action", "Drama", "Horror"], ["Action", "Shounen", "Romance"]]})
+    actual = analysis.get_genre_clustering(df, 2)
+    expected = [1, 0]
+
+    assert list(actual) == list(expected)
+
+def test_one_hot_genre():
+    df = pd.DataFrame({"genres": [["Action", "Drama", "Horror"], ["Action", "Shounen", "Romance"]]})
+    actual = analysis.one_hot_genres(df["genres"])
+
+    expected_0 = [1, 1, 1, 0, 0]
+    expected_1 = [1, 0, 0, 1, 1]
+
+    assert actual.loc[0,:].values.flatten().tolist() == expected_0
+    assert actual.loc[1,:].values.flatten().tolist() == expected_1
