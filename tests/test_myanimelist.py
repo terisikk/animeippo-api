@@ -1,5 +1,3 @@
-import pytest
-
 from animeippo import myanimelist
 
 
@@ -46,7 +44,7 @@ def test_get_next_page_returns_succesfully():
     assert len(final_pages) == 3
     assert final_pages[0] == response2.json()
     assert final_pages[1] == response3.json()
-    assert final_pages[2] == None
+    assert final_pages[2] is None
 
 
 def test_get_all_pages_returns_all_pages():

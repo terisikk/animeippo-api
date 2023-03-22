@@ -85,12 +85,14 @@ def test_mal_genres_can_be_split():
 
     assert actual == expected
 
-def test_clustering():
+
+def test_genre_clustering():
     df = pd.DataFrame({"genres": [["Action", "Drama", "Horror"], ["Action", "Shounen", "Romance"]]})
     actual = analysis.get_genre_clustering(df, 2)
     expected = [1, 0]
 
     assert list(actual) == list(expected)
+
 
 def test_one_hot_genre():
     df = pd.DataFrame({"genres": [["Action", "Drama", "Horror"], ["Action", "Shounen", "Romance"]]})
@@ -99,5 +101,43 @@ def test_one_hot_genre():
     expected_0 = [1, 1, 1, 0, 0]
     expected_1 = [1, 0, 0, 1, 1]
 
-    assert actual.loc[0,:].values.flatten().tolist() == expected_0
-    assert actual.loc[1,:].values.flatten().tolist() == expected_1
+    assert actual.loc[0, :].values.flatten().tolist() == expected_0
+    assert actual.loc[1, :].values.flatten().tolist() == expected_1
+
+
+def test_describe_dataframe():
+    df = pd.DataFrame(
+        {
+            "genres": [
+                ["Action", "Drama", "Horror"],
+                ["Action", "Shounen", "Romance"],
+                ["Action", "Historical", "Comedy"],
+                ["Shounen", "Drama"],
+                ["Drama", "Historical"],
+            ]
+        }
+    )
+
+    actual = analysis.describe_dataframe(df)
+    expected = ["Action", "Drama"]
+
+    assert actual == expected
+
+
+def test_sort_genres_by_count():
+    df = pd.DataFrame(
+        {
+            "genres": [
+                ["Action", "Drama", "Horror"],
+                ["Action", "Shounen", "Romance"],
+                ["Action", "Historical", "Comedy"],
+                ["Shounen", "Drama"],
+                ["Drama", "Historical"],
+            ]
+        }
+    )
+
+    actual = analysis.sort_genres_by_count(df["genres"])
+
+    assert actual.head(1).index[0] == "Action"
+    assert len(actual) == 7

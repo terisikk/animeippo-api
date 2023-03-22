@@ -63,6 +63,7 @@ def get_anime_list(user):
 
     return anime_list
 
+
 def analyze_mal(user):
     anime_list = get_anime_list(user)
     df = analysis.transform_mal_data(anime_list)

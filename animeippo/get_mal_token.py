@@ -9,6 +9,8 @@ dotenv.load_dotenv("conf/prod.env")
 CLIENT_ID = os.environ.get("MAL_CLIENT_ID")
 CLIENT_SECRET = os.environ.get("MAL_CLIENT_SECRET")
 
+MAL_API_URL = "https://myanimelist.net/v1"
+
 
 # 1. Generate a new Code Verifier / Code Challenge.
 def get_new_code_verifier() -> str:
@@ -18,7 +20,8 @@ def get_new_code_verifier() -> str:
 
 # 2. Print the URL needed to authorise your application.
 def print_new_authorisation_url(code_challenge: str):
-    url = f"https://myanimelist.net/v1/oauth2/authorize?response_type=code&client_id={CLIENT_ID}&code_challenge={code_challenge}"
+    parameters = f"response_type=code&client_id={CLIENT_ID}&code_challenge={code_challenge}"
+    url = f"{MAL_API_URL}/oauth2/authorize?{parameters}"
     print(f"Authorise your application by clicking here: {url}\n")
 
 
@@ -26,7 +29,7 @@ def print_new_authorisation_url(code_challenge: str):
 #    specified in the API panel. The URL will contain a parameter named "code" (the Authorisation
 #    Code). You need to feed that code to the application.
 def generate_new_token(authorisation_code: str, code_verifier: str) -> dict:
-    url = "https://myanimelist.net/v1/oauth2/token"
+    url = f"{MAL_API_URL}/oauth2/token"
     data = {
         "client_id": CLIENT_ID,
         "client_secret": CLIENT_SECRET,
@@ -35,7 +38,7 @@ def generate_new_token(authorisation_code: str, code_verifier: str) -> dict:
         "grant_type": "authorization_code",
     }
 
-    response = requests.post(url, data)
+    response = requests.post(url, data, timeout=10)
     response.raise_for_status()  # Check whether the request contains errors
 
     token = response.json()
@@ -51,8 +54,8 @@ def generate_new_token(authorisation_code: str, code_verifier: str) -> dict:
 
 # 4. Test the API by requesting your profile information
 def print_user_info(access_token: str):
-    url = "https://api.myanimelist.net/v2/users/@me"
-    response = requests.get(url, headers={"Authorization": f"Bearer {access_token}"})
+    url = f"{MAL_API_URL}/users/@me"
+    response = requests.get(url, headers={"Authorization": f"Bearer {access_token}"}, timeout=10)
 
     response.raise_for_status()
     user = response.json()
