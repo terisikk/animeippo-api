@@ -32,10 +32,9 @@ def requests_get_next_page(session, page):
 
 def requests_get_all_pages(session, user):
     query_parameters = {
-        "status": "completed",
         "limit": 50,
         "nsfw": "true",
-        "fields": "id,title,nsfw,genres,my_list_status{score,tags}",
+        "fields": "id,title,genres,",  # my_list_status{score,tags}",
     }
 
     response = session.get(
@@ -66,5 +65,5 @@ def get_anime_list(user):
 
 def analyze_mal(user):
     anime_list = get_anime_list(user)
-    df = analysis.transform_mal_data(anime_list)
-    return df
+    df, descriptions = analysis.transform_mal_data(anime_list)
+    return df, descriptions

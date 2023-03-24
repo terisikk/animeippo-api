@@ -60,7 +60,7 @@ MAL_DATA = [
 
 def test_dataframe_can_be_constructed_from_mal():
     analysis.NCLUSTERS = 2
-    data = analysis.transform_mal_data(MAL_DATA)
+    data, _ = analysis.transform_mal_data(MAL_DATA)
 
     assert type(data) == pd.DataFrame
     assert len(data) == 2
@@ -101,8 +101,8 @@ def test_one_hot_genre():
     expected_0 = [1, 1, 1, 0, 0]
     expected_1 = [1, 0, 0, 1, 1]
 
-    assert actual.loc[0, :].values.flatten().tolist() == expected_0
-    assert actual.loc[1, :].values.flatten().tolist() == expected_1
+    assert list(actual[0]) == expected_0
+    assert list(actual[1]) == expected_1
 
 
 def test_describe_dataframe():
@@ -141,3 +141,41 @@ def test_sort_genres_by_count():
 
     assert actual.head(1).index[0] == "Action"
     assert len(actual) == 7
+
+
+def test_calculate_deviation():
+    expected = 2.5
+    actual = analysis.calculate_deviation(20, 5, 10, 5)
+    assert actual == expected
+
+
+def test_create_contingency_table():
+    df = pd.DataFrame(
+        {
+            "genres": [
+                ["Action", "Drama", "Horror"],
+                ["Action", "Shounen", "Romance"],
+                ["Action", "Historical", "Comedy"],
+                ["Shounen", "Drama"],
+                ["Drama", "Historical"],
+            ],
+            "cluster": [0, 0, 0, 1, 2],
+        }
+    )
+
+    cgtable = analysis.create_contingency_table(df, "genres", "cluster")
+
+    assert cgtable.index.values.tolist() == [
+        "Action",
+        "Drama",
+        "Horror",
+        "Shounen",
+        "Romance",
+        "Historical",
+        "Comedy",
+    ]
+
+    assert cgtable.columns.to_list() == [0, 1, 2]
+
+    assert cgtable.loc["Action", 0] == 3
+    assert cgtable.loc["Romance", 0] == 1
