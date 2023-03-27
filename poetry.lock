@@ -1084,6 +1084,27 @@ files = [
 ]
 
 [[package]]
+name = "kmodes"
+version = "0.12.2"
+description = "Python implementations of the k-modes and k-prototypes clustering algorithms for clustering categorical data."
+category = "main"
+optional = false
+python-versions = "*"
+files = [
+    {file = "kmodes-0.12.2-py2.py3-none-any.whl", hash = "sha256:b764f7166dd5fe63826135ed74df796693dc7c25fc2cb8a106e14f3bfb371004"},
+    {file = "kmodes-0.12.2.tar.gz", hash = "sha256:d840ac9f4616a668ebacba24a12ec1def87da24a9fd0a0dc2f7499a9b9a6f45b"},
+]
+
+[package.dependencies]
+joblib = ">=0.11"
+numpy = ">=1.10.4"
+scikit-learn = ">=0.22.0"
+scipy = ">=0.13.3"
+
+[package.extras]
+dev = ["pandas", "pytest", "pytest-cov"]
+
+[[package]]
 name = "markdown-it-py"
 version = "2.2.0"
 description = "Python port of markdown-it. Markdown parsing, done right!"
@@ -2427,4 +2448,4 @@ files = [
 [metadata]
 lock-version = "2.0"
 python-versions = "^3.10"
-content-hash = "5a8129e8a7e97ba75f479a2da1cebef31ccc0809c9eef0d5d420948ed54b1b6e"
+content-hash = "3c187d90172e4c35353b0f248fe472a7daaa98ff5814b312a2945005ef32da5c"
