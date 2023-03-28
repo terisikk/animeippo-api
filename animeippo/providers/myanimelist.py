@@ -124,38 +124,38 @@ def requests_get_all_pages(session, query, parameters):
         page = requests_get_next_page(session, page)
 
 
-def get_user_anime(user):
+def request_anime_list(query, parameters):
     anime_list = []
+    with requests.Session() as session:
+        for page in requests_get_all_pages(session, query, parameters):
+            for item in page["data"]:
+                anime_list.append(item["node"])
 
+    return anime_list
+
+
+def get_user_anime(user):
     query = f"{MAL_API_URL}/users/{user}/animelist"
-    query_parameters = {
+    parameters = {
         "limit": 50,
         "nsfw": "true",
         "fields": "id,title,genres,",  # my_list_status{score,tags}",
     }
 
-    with requests.Session() as session:
-        for page in requests_get_all_pages(session, query, query_parameters):
-            for item in page["data"]:
-                anime_list.append(item["node"])
+    anime_list = request_anime_list(query, parameters)
 
     return transform_to_animeippo_format(anime_list)
 
 
 def get_seasonal_anime(year=None, season=None):
-    anime_list = []
-
     query = f"{MAL_API_URL}/anime/season/{year}/{season}"
-    query_parameters = {
+    parameters = {
         "limit": 50,
         "nsfw": "true",
         "fields": "id,title,genres,media_type",  # my_list_status{score,tags}",
     }
 
-    with requests.Session() as session:
-        for page in requests_get_all_pages(session, query, query_parameters):
-            for item in page["data"]:
-                anime_list.append(item["node"])
+    anime_list = request_anime_list(query, parameters)
 
     return transform_to_animeippo_format(anime_list)
 
@@ -174,8 +174,7 @@ def split_mal_genres(genres):
         for genre in genres:
             genrenames.append(genre.get("name", None))
     except TypeError as e:
-        print(e)
-        print(f"Could not extract genres from {genres}")
+        print(f"Could not extract genres from {genres}: {e}")
 
     return genrenames
 
