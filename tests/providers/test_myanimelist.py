@@ -27,10 +27,29 @@ class ResponseStub:
         pass
 
 
-def test_mal_anime_list_can_be_fetched():
+def test_mal_user_anime_list_can_be_fetched(requests_mock):
     user = "Janiskeisari"
+
+    url = f"{myanimelist.MAL_API_URL}/users/{user}/animelist"
+    adapter = requests_mock.get(url, json=test_data.MAL_DATA)  # nosec B113
+
     animelist = myanimelist.get_user_anime(user)
-    assert "91 Days" in animelist["title"].values
+
+    assert adapter.called
+    assert "Hellsing" in animelist["title"].values
+
+
+def test_mal_seasonal_anime_list_can_be_fetched(requests_mock):
+    year = "2023"
+    season = "winter"
+
+    url = f"{myanimelist.MAL_API_URL}/anime/season/{year}/{season}"
+    adapter = requests_mock.get(url, json=test_data.MAL_DATA)  # nosec B113
+
+    animelist = myanimelist.get_seasonal_anime(year, season)
+
+    assert adapter.called
+    assert "Hellsing" in animelist["title"].values
 
 
 def test_get_next_page_returns_succesfully():
@@ -98,7 +117,9 @@ def test_mal_genres_can_be_split():
 
 
 def test_dataframe_can_be_constructed_from_mal():
-    data = myanimelist.transform_to_animeippo_format(test_data.MAL_DATA)
+    animelist = [item["node"] for item in test_data.MAL_DATA["data"]]
+
+    data = myanimelist.transform_to_animeippo_format(animelist)
 
     assert type(data) == pd.DataFrame
     assert len(data) == 2
