@@ -177,7 +177,3 @@ def split_mal_genres(genres):
         print(f"Could not extract genres from {genres}: {e}")
 
     return genrenames
-
-
-def reduce_genres_to_mal_genres(genres):
-    return [genre.capitalize() for genre in genres if genre.capitalize() in MAL_GENRES]

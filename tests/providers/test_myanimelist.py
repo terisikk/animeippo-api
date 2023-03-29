@@ -85,6 +85,15 @@ def test_get_all_pages_returns_all_pages():
     assert final_pages[0] == response1.json()
 
 
+def test_request_page_succesfully_exists_with_blank_page():
+    page = None
+    mock_session = SessionStub({})
+
+    actual = myanimelist.requests_get_next_page(mock_session, page)
+
+    assert actual == None
+
+
 def test_reqest_does_not_fail_catastrophically_when_response_is_empty():
     response1 = ResponseStub(dict())
 
@@ -114,6 +123,13 @@ def test_mal_genres_can_be_split():
     expected = ["Action", "Adult Cast", "Gore", "Horror", "Seinen", "Supernatural", "Vampire"]
 
     assert actual == expected
+
+
+def test_genre_splitting_does_not_fail_with_invalid_data(capsys):
+    myanimelist.split_mal_genres(None)
+
+    captured = capsys.readouterr()
+    assert captured.out.startswith("Could not extract genres from")
 
 
 def test_dataframe_can_be_constructed_from_mal():

@@ -11,7 +11,7 @@ def find_all_similar_anime(genres):
         anime = ijson.items(f, "data.item")
         similar_anime = (a for a in anime if all(genre in a["tags"] for genre in genres))
 
-    return similar_anime
+    return transform_to_animeippo_format(similar_anime)
 
 
 def find_by_titles(titles):

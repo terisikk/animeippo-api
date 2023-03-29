@@ -14,7 +14,7 @@ NCLUSTERS = 10
 def one_hot_genres(df_column):
     mlb = skpre.MultiLabelBinarizer(classes=mal.MAL_GENRES)
     mlb.fit(None)
-    return mlb.transform(df_column)
+    return np.array(mlb.transform(df_column), dtype=bool)
 
 
 def jaccard_pairwise_distance(x):
@@ -36,7 +36,7 @@ def similarity_of_anime_lists(dataframe1, dataframe2):
     similarities = jaccard_similarity(dataframe1["genres"], dataframe2["genres"])
     similarities = similarities.apply(lambda row: row.mean(axis=0), axis=1)
 
-    return similarities.sort_values(0, ascending=False)
+    return similarities.sort_values(axis=0, ascending=False)
 
 
 def create_genre_contingency_table(dataframe):
