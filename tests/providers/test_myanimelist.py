@@ -91,7 +91,7 @@ def test_request_page_succesfully_exists_with_blank_page():
 
     actual = myanimelist.requests_get_next_page(mock_session, page)
 
-    assert actual == None
+    assert actual is None
 
 
 def test_reqest_does_not_fail_catastrophically_when_response_is_empty():
