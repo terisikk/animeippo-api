@@ -40,7 +40,7 @@ source = ["animeippo"]
 branch = true
 command_line = "-m pytest tests"
 data_file = ".coverage"
-omit = ["**/get_mal_token.py"]
+omit = ["animeippo/util/**"]
 
 [tool.coverage.report]
 fail_under = 100

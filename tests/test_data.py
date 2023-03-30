@@ -27,6 +27,7 @@ MAL_DATA = {
                     "updated_at": "2013-08-09T06:11:09+00:00",
                     "tags": [],
                 },
+                "media_type": "tv",
             }
         },
         {
@@ -55,6 +56,7 @@ MAL_DATA = {
                     "updated_at": "2017-05-26T18:32:10+00:00",
                     "tags": [],
                 },
+                "media_type": "tv",
             }
         },
     ]

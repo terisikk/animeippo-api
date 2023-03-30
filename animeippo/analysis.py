@@ -29,7 +29,7 @@ def jaccard_similarity(x_orig, y_orig):
 
     distances = scdistance.cdist(encoded_x, encoded_y, metric="jaccard")
 
-    return pd.DataFrame(distances).applymap(lambda x: 1 - x)
+    return pd.DataFrame(1 - distances)
 
 
 def similarity_of_anime_lists(dataframe1, dataframe2):
