@@ -19,7 +19,7 @@ MAL_DATA = {
                     {"id": 24, "name": "Sci-Fi"},
                     {"id": 41, "name": "Suspense"},
                 ],
-                "my_list_status": {
+                "list_status": {
                     "status": "completed",
                     "score": 10,
                     "num_episodes_watched": 26,
@@ -48,7 +48,7 @@ MAL_DATA = {
                     {"id": 37, "name": "Supernatural"},
                     {"id": 32, "name": "Vampire"},
                 ],
-                "my_list_status": {
+                "list_status": {
                     "status": "completed",
                     "score": 8,
                     "num_episodes_watched": 13,

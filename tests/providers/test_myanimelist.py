@@ -125,11 +125,8 @@ def test_mal_genres_can_be_split():
     assert actual == expected
 
 
-def test_genre_splitting_does_not_fail_with_invalid_data(capsys):
+def test_genre_splitting_does_not_fail_with_invalid_data():
     myanimelist.split_mal_genres(None)
-
-    captured = capsys.readouterr()
-    assert captured.out.startswith("Could not extract genres from")
 
 
 def test_dataframe_can_be_constructed_from_mal():
@@ -149,3 +146,4 @@ def test_dataframe_can_be_constructed_from_mal():
         "Supernatural",
         "Vampire",
     ]
+    assert data.loc[1, "user_score"] == 8

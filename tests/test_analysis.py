@@ -106,7 +106,29 @@ def test_recommendation():
     actual = recommendations.iloc[0]["title"]
 
     assert actual == expected
-    assert recommendations.columns.tolist() == ["genres", "title"]
+    assert recommendations.columns.tolist() == ["genres", "title", "recommend_score"]
+
+
+def test_weighted_recommendation():
+    source_df = pd.DataFrame(
+        {
+            "genres": [["Action", "Adventure"], ["Fantasy", "Adventure"]],
+            "title": ["Bleach", "Fate/Zero"],
+            "user_score": [1, 10],
+        }
+    )
+    target_df = pd.DataFrame(
+        {
+            "genres": [["Action", "Adventure"], ["Fanatsy", "Adventure"]],
+            "title": ["Naruto", "Inuyasha"],
+        }
+    )
+
+    recommendations = analysis.order_by_recommendation(target_df, source_df, weighted=True)
+    expected = "Inuyasha"
+    actual = recommendations.iloc[0]["title"]
+
+    assert actual == expected
 
 
 def test_describe_clusters():
@@ -120,3 +142,48 @@ def test_describe_clusters():
     descriptions = analysis.describe_clusters(df, 2)
 
     assert descriptions.iloc[0].tolist() == ["Drama", "Horror"]
+
+
+def test_genre_average_scores():
+    original = pd.DataFrame(
+        {
+            "genres": [["Action"], ["Action", "Horror"], ["Action", "Horror", "Romance"]],
+            "user_score": [10, 10, 7],
+        }
+    )
+
+    avg = analysis.genre_average_scores(original)
+
+    assert avg.tolist() == [9.0, 8.5, 7.0]
+
+
+def test_similarity_weights():
+    genre_averages = pd.Series(data=[9.0, 8.0, 7.0], index=["Action", "Horror", "Romance"])
+
+    original = pd.DataFrame(
+        {"title": ["Hellsing", "Inuyasha"], "genres": [["Action", "Horror"], ["Action", "Romance"]]}
+    )
+
+    weights = original["genres"].apply(analysis.user_genre_weight, args=(genre_averages,))
+
+    assert weights.tolist() == [8.5, 8.0]
+
+
+def test_similarity_weight_ignores_genres_without_average():
+    genre_averages = pd.Series(data=[9.0], index=["Action"])
+
+    genres = ["Action", "Horror"]
+
+    weight = analysis.user_genre_weight(genres, genre_averages)
+
+    assert weight == 9.0
+
+
+def test_similarity_weight_scores_genre_list_containing_only_unseen_genres_as_zero():
+    genre_averages = pd.Series(data=[9.0], index=["Romance"])
+
+    original = ["Action", "Horror"]
+
+    weight = analysis.user_genre_weight(original, genre_averages)
+
+    assert weight == 0.0
