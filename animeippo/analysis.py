@@ -17,23 +17,23 @@ def one_hot_genres(df_column):
     return np.array(mlb.transform(df_column), dtype=bool)
 
 
-def jaccard_pairwise_distance(x):
+def pairwise_distance(x, metric="jaccard"):
     encoded = one_hot_genres(x)
 
-    return skpair.pairwise_distances(encoded, metric="jaccard")
+    return skpair.pairwise_distances(encoded, metric=metric)
 
 
-def jaccard_similarity(x_orig, y_orig):
+def similarity(x_orig, y_orig, metric="jaccard"):
     encoded_x = one_hot_genres(x_orig)
     encoded_y = one_hot_genres(y_orig)
 
-    distances = scdistance.cdist(encoded_x, encoded_y, metric="jaccard")
+    distances = scdistance.cdist(encoded_x, encoded_y, metric=metric)
 
     return pd.DataFrame(1 - distances)
 
 
 def similarity_of_anime_lists(dataframe1, dataframe2):
-    similarities = jaccard_similarity(dataframe1["genres"], dataframe2["genres"])
+    similarities = similarity(dataframe1["genres"], dataframe2["genres"])
     similarities = similarities.apply(lambda row: row.mean(axis=0), axis=1)
 
     return similarities
@@ -49,7 +49,7 @@ def get_genre_clustering(dataframe, n_clusters=NCLUSTERS):
     model = skcluster.AgglomerativeClustering(
         n_clusters=n_clusters, metric="precomputed", linkage="average"
     )
-    distance_matrix = jaccard_pairwise_distance(dataframe["genres"])
+    distance_matrix = pairwise_distance(dataframe["genres"])
 
     return model.fit(distance_matrix).labels_
 
@@ -73,7 +73,7 @@ def calculate_residuals(contingency_table, expected):
     return residuals**2
 
 
-def order_by_recommendation(target_df, source_df, weighted=False):
+def recommend_by_genre_similarity(target_df, source_df, weighted=False):
     similarities = similarity_of_anime_lists(target_df, source_df)
 
     if weighted:
@@ -87,6 +87,32 @@ def order_by_recommendation(target_df, source_df, weighted=False):
     target_df["recommend_score"] = similarities
 
     return target_df.reindex(index=similarities.index)
+
+
+def recommend_by_cluster(target_df, source_df, weighted=False):
+    source_df["cluster"] = get_genre_clustering(source_df)
+
+    scores = pd.DataFrame(index=target_df.index)
+
+    for cluster_id in source_df["cluster"].unique():
+        cluster = source_df[source_df["cluster"] == cluster_id]
+
+        similarities = similarity_of_anime_lists(target_df, cluster)
+
+        if weighted:
+            averages = cluster["user_score"].mean() / 10
+            similarities = similarities * averages
+
+        scores["cluster_" + str(cluster_id)] = similarities
+
+    target_df["cluster"] = np.nan
+    target_df["recommend_score"] = np.nan
+
+    for i, row in scores.iterrows():
+        m = row.max()
+        target_df.at[i, "recommend_score"] = m
+
+    return target_df.sort_values("recommend_score", ascending=False)
 
 
 def genre_average_scores(dataframe):

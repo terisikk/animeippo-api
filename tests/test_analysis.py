@@ -2,6 +2,8 @@ import animeippo.analysis as analysis
 import pandas as pd
 import numpy as np
 
+from unittest import mock
+
 
 def test_genre_clustering():
     df = pd.DataFrame({"genres": [["Action", "Drama", "Horror"], ["Action", "Shounen", "Romance"]]})
@@ -28,7 +30,7 @@ def test_calculate_residuals():
 def test_jaccard_pairwise_distance():
     original = pd.DataFrame({"genres": [["Action", "Adventure"], ["Action", "Fantasy"]]})
 
-    distances = analysis.jaccard_pairwise_distance(original["genres"])
+    distances = analysis.pairwise_distance(original["genres"])
 
     expected0 = 0.0
     actual0 = float(distances[0][0])
@@ -46,7 +48,7 @@ def test_jaccard_similarity():
         {"genres": [["Action", "Adventure"], ["Action", "Fantasy"], ["Comedy", "Romance"]]}
     )
 
-    distances = analysis.jaccard_similarity(x_orig["genres"], y_orig["genres"])
+    distances = analysis.similarity(x_orig["genres"], y_orig["genres"])
 
     expected0 = "1.0"
     actual0 = "{:.1f}".format(distances[0][0])
@@ -101,12 +103,13 @@ def test_recommendation():
         {"genres": [["Romance", "Comedy"], ["Action", "Adventure"]], "title": ["Kaguya", "Naruto"]}
     )
 
-    recommendations = analysis.order_by_recommendation(target_df, source_df)
+    recommendations = analysis.recommend_by_genre_similarity(target_df, source_df)
     expected = "Naruto"
     actual = recommendations.iloc[0]["title"]
 
     assert actual == expected
     assert recommendations.columns.tolist() == ["genres", "title", "recommend_score"]
+    assert not recommendations["recommend_score"].isnull().values.any()
 
 
 def test_weighted_recommendation():
@@ -124,11 +127,35 @@ def test_weighted_recommendation():
         }
     )
 
-    recommendations = analysis.order_by_recommendation(target_df, source_df, weighted=True)
+    recommendations = analysis.recommend_by_genre_similarity(target_df, source_df, weighted=True)
     expected = "Inuyasha"
     actual = recommendations.iloc[0]["title"]
 
     assert actual == expected
+    assert not recommendations["recommend_score"].isnull().values.any()
+
+
+def test_cluster_recommendation(mocker):
+    mocker.patch("animeippo.analysis.get_genre_clustering", return_value=[0, 1])
+
+    source_df = pd.DataFrame(
+        {
+            "genres": [["Action", "Adventure"], ["Action", "Fantasy"]],
+            "title": ["Bleach", "Fate/Zero"],
+            "cluster": [0, 1],
+        }
+    )
+    target_df = pd.DataFrame(
+        {"genres": [["Romance", "Comedy"], ["Action", "Adventure"]], "title": ["Kaguya", "Naruto"]}
+    )
+
+    recommendations = analysis.recommend_by_cluster(target_df, source_df)
+    expected = "Naruto"
+    actual = recommendations.iloc[0]["title"]
+
+    assert actual == expected
+    assert recommendations.columns.tolist() == ["genres", "title", "cluster", "recommend_score"]
+    assert not recommendations["recommend_score"].isnull().values.any()
 
 
 def test_describe_clusters():
