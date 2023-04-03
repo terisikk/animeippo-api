@@ -2,8 +2,6 @@ import animeippo.analysis as analysis
 import pandas as pd
 import numpy as np
 
-from unittest import mock
-
 
 def test_genre_clustering():
     df = pd.DataFrame({"genres": [["Action", "Drama", "Horror"], ["Action", "Shounen", "Romance"]]})
@@ -154,7 +152,7 @@ def test_cluster_recommendation(mocker):
     actual = recommendations.iloc[0]["title"]
 
     assert actual == expected
-    assert recommendations.columns.tolist() == ["genres", "title", "cluster", "recommend_score"]
+    assert recommendations.columns.tolist() == ["genres", "title", "recommend_score"]
     assert not recommendations["recommend_score"].isnull().values.any()
 
 

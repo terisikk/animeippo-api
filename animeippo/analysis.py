@@ -34,7 +34,7 @@ def similarity(x_orig, y_orig, metric="jaccard"):
 
 def similarity_of_anime_lists(dataframe1, dataframe2):
     similarities = similarity(dataframe1["genres"], dataframe2["genres"])
-    similarities = similarities.apply(lambda row: row.mean(axis=0), axis=1)
+    similarities = similarities.apply(np.nanmean, axis=1)
 
     return similarities
 
@@ -94,9 +94,7 @@ def recommend_by_cluster(target_df, source_df, weighted=False):
 
     scores = pd.DataFrame(index=target_df.index)
 
-    for cluster_id in source_df["cluster"].unique():
-        cluster = source_df[source_df["cluster"] == cluster_id]
-
+    for cluster_id, cluster in source_df.groupby("cluster"):
         similarities = similarity_of_anime_lists(target_df, cluster)
 
         if weighted:
@@ -105,12 +103,7 @@ def recommend_by_cluster(target_df, source_df, weighted=False):
 
         scores["cluster_" + str(cluster_id)] = similarities
 
-    target_df["cluster"] = np.nan
-    target_df["recommend_score"] = np.nan
-
-    for i, row in scores.iterrows():
-        m = row.max()
-        target_df.at[i, "recommend_score"] = m
+    target_df["recommend_score"] = scores.apply(np.max, axis=1)
 
     return target_df.sort_values("recommend_score", ascending=False)
 
