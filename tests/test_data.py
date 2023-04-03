@@ -19,16 +19,16 @@ MAL_DATA = {
                     {"id": 24, "name": "Sci-Fi"},
                     {"id": 41, "name": "Suspense"},
                 ],
-                "list_status": {
-                    "status": "completed",
-                    "score": 10,
-                    "num_episodes_watched": 26,
-                    "is_rewatching": False,
-                    "updated_at": "2013-08-09T06:11:09+00:00",
-                    "tags": [],
-                },
                 "media_type": "tv",
-            }
+            },
+            "list_status": {
+                "status": "completed",
+                "score": 10,
+                "num_episodes_watched": 26,
+                "is_rewatching": False,
+                "updated_at": "2013-08-09T06:11:09+00:00",
+                "tags": [],
+            },
         },
         {
             "node": {
@@ -48,16 +48,16 @@ MAL_DATA = {
                     {"id": 37, "name": "Supernatural"},
                     {"id": 32, "name": "Vampire"},
                 ],
-                "list_status": {
-                    "status": "completed",
-                    "score": 8,
-                    "num_episodes_watched": 13,
-                    "is_rewatching": False,
-                    "updated_at": "2017-05-26T18:32:10+00:00",
-                    "tags": [],
-                },
                 "media_type": "tv",
-            }
+            },
+            "list_status": {
+                "status": "completed",
+                "score": 8,
+                "num_episodes_watched": 13,
+                "is_rewatching": False,
+                "updated_at": "2017-05-26T18:32:10+00:00",
+                "tags": [],
+            },
         },
     ]
 }

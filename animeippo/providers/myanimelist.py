@@ -129,9 +129,7 @@ def request_anime_list(query, parameters):
     with requests.Session() as session:
         for page in requests_get_all_pages(session, query, parameters):
             for item in page["data"]:
-                anime = item["node"]
-                anime["list_status"] = item.get("list_status", None)
-                anime_list.append(anime)
+                anime_list.append(item)
 
     return anime_list
 
@@ -163,7 +161,14 @@ def get_seasonal_anime(year=None, season=None):
 
 
 def transform_to_animeippo_format(data):
-    df = pd.DataFrame(data)
+    anime_list = []
+
+    for item in data:
+        anime = item["node"]
+        anime["list_status"] = item.get("list_status", None)
+        anime_list.append(anime)
+
+    df = pd.DataFrame(anime_list)
     df["genres"] = df["genres"].apply(split_mal_genres)
 
     df["user_score"] = df["list_status"].apply(get_user_score)

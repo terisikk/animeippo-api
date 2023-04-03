@@ -83,10 +83,9 @@ def recommend_by_genre_similarity(target_df, source_df, weighted=False):
         )
         similarities = similarities / 2
 
-    similarities = similarities.sort_values(0, ascending=False)
     target_df["recommend_score"] = similarities
 
-    return target_df.reindex(index=similarities.index)
+    return target_df.sort_values("recommend_score", ascending=False)
 
 
 def recommend_by_cluster(target_df, source_df, weighted=False):

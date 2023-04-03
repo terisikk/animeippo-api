@@ -126,11 +126,35 @@ def test_mal_genres_can_be_split():
 
 
 def test_genre_splitting_does_not_fail_with_invalid_data():
+    myanimelist.split_mal_genres(1.0)
     myanimelist.split_mal_genres(None)
 
 
+def test_user_score_can_be_extracted():
+    original = {"score": 10, "status": "completed"}
+
+    expected = 10
+    actual = myanimelist.get_user_score(original)
+
+    assert actual == expected
+
+
+def test_user_score_extraction_does_not_fail_with_invalid_data():
+    myanimelist.get_user_score(1.0)
+    myanimelist.get_user_score(None)
+
+
+def test_user_score_cannot_be_zero():
+    original = {"score": 0, "status": "completed"}
+    expected = None
+
+    actual = myanimelist.get_user_score(original)
+
+    assert actual == expected
+
+
 def test_dataframe_can_be_constructed_from_mal():
-    animelist = [item["node"] for item in test_data.MAL_DATA["data"]]
+    animelist = [item for item in test_data.MAL_DATA["data"]]
 
     data = myanimelist.transform_to_animeippo_format(animelist)
 

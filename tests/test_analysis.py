@@ -1,6 +1,7 @@
 import animeippo.analysis as analysis
 import pandas as pd
 import numpy as np
+import pytest
 
 
 def test_genre_clustering():
@@ -120,7 +121,7 @@ def test_weighted_recommendation():
     )
     target_df = pd.DataFrame(
         {
-            "genres": [["Action", "Adventure"], ["Fanatsy", "Adventure"]],
+            "genres": [["Action", "Adventure"], ["Fantasy", "Adventure"]],
             "title": ["Naruto", "Inuyasha"],
         }
     )
@@ -140,7 +141,6 @@ def test_cluster_recommendation(mocker):
         {
             "genres": [["Action", "Adventure"], ["Action", "Fantasy"]],
             "title": ["Bleach", "Fate/Zero"],
-            "cluster": [0, 1],
         }
     )
     target_df = pd.DataFrame(
@@ -148,6 +148,31 @@ def test_cluster_recommendation(mocker):
     )
 
     recommendations = analysis.recommend_by_cluster(target_df, source_df)
+    expected = "Naruto"
+    actual = recommendations.iloc[0]["title"]
+
+    assert actual == expected
+    assert recommendations.columns.tolist() == ["genres", "title", "recommend_score"]
+    assert not recommendations["recommend_score"].isnull().values.any()
+
+
+def test_weighted_cluster_recommendation(mocker):
+    mocker.patch("animeippo.analysis.get_genre_clustering", return_value=[0, 1])
+
+    source_df = pd.DataFrame(
+        {
+            "genres": [["Action", "Adventure"], ["Fantasy", "Adventure"]],
+            "title": ["Bleach", "Fate/Zero"],
+            "user_score": [10, 1],
+        }
+    )
+    target_df = pd.DataFrame(
+        {
+            "genres": [["Fantasy", "Adventure"], ["Action", "Adventure"]],
+            "title": ["Inuyasha", "Naruto"],
+        }
+    )
+    recommendations = analysis.recommend_by_cluster(target_df, source_df, weighted=True)
     expected = "Naruto"
     actual = recommendations.iloc[0]["title"]
 
@@ -204,6 +229,7 @@ def test_similarity_weight_ignores_genres_without_average():
     assert weight == 9.0
 
 
+@pytest.mark.filterwarnings("ignore:Mean of empty slice:RuntimeWarning")
 def test_similarity_weight_scores_genre_list_containing_only_unseen_genres_as_zero():
     genre_averages = pd.Series(data=[9.0], index=["Romance"])
 
