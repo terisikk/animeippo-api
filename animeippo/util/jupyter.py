@@ -1,6 +1,6 @@
 import IPython.display as idisplay
 import numpy as np
-from . import pandas as pdutil
+from ..recommendation import util as pdutil
 
 
 def pandas_display_all_clusters(dataframe):

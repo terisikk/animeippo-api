@@ -2,11 +2,10 @@ import pandas as pd
 import numpy as np
 import sklearn.cluster as skcluster
 import sklearn.metrics.pairwise as skpair
-import sklearn.preprocessing as skpre
 import scipy.spatial.distance as scdistance
 
 import animeippo.providers.myanimelist as mal
-import animeippo.util.pandas as pdutil
+import animeippo.recommendation.util as pdutil
 
 NCLUSTERS = 10
 

@@ -1,4 +1,4 @@
-import animeippo.util.pandas as pdutil
+import animeippo.recommendation.util as pdutil
 import pandas as pd
 import numpy as np
 
