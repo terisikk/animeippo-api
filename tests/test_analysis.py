@@ -1,4 +1,4 @@
-import animeippo.analysis as analysis
+import animeippo.recommendation.analysis as analysis
 import pandas as pd
 import numpy as np
 import pytest
@@ -89,7 +89,7 @@ def test_weighted_recommendation():
 
 
 def test_cluster_recommendation(mocker):
-    mocker.patch("animeippo.analysis.get_genre_clustering", return_value=[0, 1])
+    mocker.patch("animeippo.recommendation.analysis.get_genre_clustering", return_value=[0, 1])
 
     source_df = pd.DataFrame(
         {
@@ -111,7 +111,7 @@ def test_cluster_recommendation(mocker):
 
 
 def test_weighted_cluster_recommendation(mocker):
-    mocker.patch("animeippo.analysis.get_genre_clustering", return_value=[0, 1])
+    mocker.patch("animeippo.recommendation.analysis.get_genre_clustering", return_value=[0, 1])
 
     source_df = pd.DataFrame(
         {

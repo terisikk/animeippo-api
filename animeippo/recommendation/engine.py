@@ -1,5 +1,6 @@
 import animeippo.providers as providers
-import animeippo.analysis as analysis
+
+from . import analysis
 
 
 def recommend_seasonal_anime_for_mal_user(user, year, season, weighted=True):
