@@ -3,8 +3,10 @@ import animeippo.analysis as analysis
 
 
 def recommend_seasonal_anime_for_mal_user(user, year, season, weighted=True):
-    seasonal_anime = providers.myanimelist.get_seasonal_anime(year, season)
-    user_anime = providers.myanimelist.get_user_anime(user)
+    provider = providers.myanimelist.MyAnimeListProvider()
+
+    seasonal_anime = provider.get_seasonal_anime_list(year, season)
+    user_anime = provider.get_user_anime_list(user)
 
     recommendations = analysis.recommend_by_genre_similarity(seasonal_anime, user_anime, weighted)
 

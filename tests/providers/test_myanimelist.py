@@ -28,25 +28,29 @@ class ResponseStub:
 
 
 def test_mal_user_anime_list_can_be_fetched(requests_mock):
+    provider = myanimelist.MyAnimeListProvider()
+
     user = "Janiskeisari"
 
     url = f"{myanimelist.MAL_API_URL}/users/{user}/animelist"
     adapter = requests_mock.get(url, json=test_data.MAL_DATA)  # nosec B113
 
-    animelist = myanimelist.get_user_anime(user)
+    animelist = provider.get_user_anime_list(user)
 
     assert adapter.called
     assert "Hellsing" in animelist["title"].values
 
 
 def test_mal_seasonal_anime_list_can_be_fetched(requests_mock):
+    provider = myanimelist.MyAnimeListProvider()
+
     year = "2023"
     season = "winter"
 
     url = f"{myanimelist.MAL_API_URL}/anime/season/{year}/{season}"
     adapter = requests_mock.get(url, json=test_data.MAL_DATA)  # nosec B113
 
-    animelist = myanimelist.get_seasonal_anime(year, season)
+    animelist = provider.get_seasonal_anime_list(year, season)
 
     assert adapter.called
     assert "Hellsing" in animelist["title"].values
@@ -154,9 +158,11 @@ def test_user_score_cannot_be_zero():
 
 
 def test_dataframe_can_be_constructed_from_mal():
+    provider = myanimelist.MyAnimeListProvider()
+
     animelist = [item for item in test_data.MAL_DATA["data"]]
 
-    data = myanimelist.transform_to_animeippo_format(animelist)
+    data = provider.transform_to_animeippo_format(animelist)
 
     assert type(data) == pd.DataFrame
     assert len(data) == 2

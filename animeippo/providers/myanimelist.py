@@ -3,6 +3,8 @@ import dotenv
 import os
 import pandas as pd
 
+from . import provider
+
 dotenv.load_dotenv("conf/prod.env")
 
 MAL_API_URL = "https://api.myanimelist.net/v2"
@@ -91,6 +93,51 @@ MAL_GENRES = [
 ]
 
 
+class MyAnimeListProvider(provider.AbstractAnimeProvider):
+    def get_user_anime_list(self, user_id):
+        query = f"{MAL_API_URL}/users/{user_id}/animelist"
+        parameters = {
+            "limit": 50,
+            "nsfw": "true",
+            "fields": "id,title,genres,list_status{score}",
+        }
+
+        anime_list = request_anime_list(query, parameters)
+
+        return self.transform_to_animeippo_format(anime_list)
+
+    def get_seasonal_anime_list(self, year, season):
+        query = f"{MAL_API_URL}/anime/season/{year}/{season}"
+        parameters = {
+            "limit": 50,
+            "nsfw": "true",
+            "fields": "id,title,genres,media_type",
+        }
+
+        anime_list = request_anime_list(query, parameters)
+
+        return self.transform_to_animeippo_format(anime_list)
+
+    def transform_to_animeippo_format(self, data):
+        anime_list = []
+
+        for item in data:
+            anime = item["node"]
+            anime["list_status"] = item.get("list_status", None)
+            anime_list.append(anime)
+
+        df = pd.DataFrame(anime_list)
+        df["genres"] = df["genres"].apply(split_mal_genres)
+
+        df["user_score"] = df["list_status"].apply(get_user_score)
+
+        df = df.drop("main_picture", axis=1)
+        return df
+
+    def get_genre_tags(self):
+        return MAL_GENRES
+
+
 def requests_get_next_page(session, page):
     if page:
         next_page = None
@@ -132,49 +179,6 @@ def request_anime_list(query, parameters):
                 anime_list.append(item)
 
     return anime_list
-
-
-def get_user_anime(user):
-    query = f"{MAL_API_URL}/users/{user}/animelist"
-    parameters = {
-        "limit": 50,
-        "nsfw": "true",
-        "fields": "id,title,genres,list_status{score}",
-    }
-
-    anime_list = request_anime_list(query, parameters)
-
-    return transform_to_animeippo_format(anime_list)
-
-
-def get_seasonal_anime(year=None, season=None):
-    query = f"{MAL_API_URL}/anime/season/{year}/{season}"
-    parameters = {
-        "limit": 50,
-        "nsfw": "true",
-        "fields": "id,title,genres,media_type",
-    }
-
-    anime_list = request_anime_list(query, parameters)
-
-    return transform_to_animeippo_format(anime_list)
-
-
-def transform_to_animeippo_format(data):
-    anime_list = []
-
-    for item in data:
-        anime = item["node"]
-        anime["list_status"] = item.get("list_status", None)
-        anime_list.append(anime)
-
-    df = pd.DataFrame(anime_list)
-    df["genres"] = df["genres"].apply(split_mal_genres)
-
-    df["user_score"] = df["list_status"].apply(get_user_score)
-
-    df = df.drop("main_picture", axis=1)
-    return df
 
 
 def get_user_score(list_status):

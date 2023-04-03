@@ -1,3 +1,3 @@
-__all__ = ["animeofflinedb", "myanimelist"]
+__all__ = ["myanimelist"]
 
-from . import myanimelist, animeofflinedb
+from . import myanimelist

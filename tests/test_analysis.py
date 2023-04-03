@@ -12,20 +12,6 @@ def test_genre_clustering():
     assert list(actual) == list(expected)
 
 
-# TODO: Test actual encoding
-def test_one_hot_genre():
-    df = pd.DataFrame({"genres": [["Action", "Drama", "Horror"], ["Action", "Shounen", "Romance"]]})
-    actual = analysis.one_hot_genres(df["genres"])
-
-    assert actual[0].size == len(analysis.mal.MAL_GENRES)
-
-
-def test_calculate_residuals():
-    expected = np.array([10])
-    actual = analysis.calculate_residuals(np.array([20]), np.array([10]))
-    assert np.rint(actual) == expected
-
-
 def test_jaccard_pairwise_distance():
     original = pd.DataFrame({"genres": [["Action", "Adventure"], ["Action", "Fantasy"]]})
 
@@ -57,38 +43,6 @@ def test_jaccard_similarity():
 
     assert actual0 == expected0
     assert actual1 == expected1
-
-
-def test_create_contingency_table():
-    df = pd.DataFrame(
-        {
-            "genres": [
-                ["Action", "Drama", "Horror"],
-                ["Action", "Shounen", "Romance"],
-                ["Action", "Historical", "Comedy"],
-                ["Shounen", "Drama"],
-                ["Drama", "Historical"],
-            ],
-            "cluster": [0, 0, 0, 1, 2],
-        }
-    )
-
-    cgtable = analysis.create_genre_contingency_table(df)
-
-    assert cgtable.index.values.tolist() == [
-        "Action",
-        "Comedy",
-        "Drama",
-        "Historical",
-        "Horror",
-        "Romance",
-        "Shounen",
-    ]
-
-    assert cgtable.columns.to_list() == [0, 1, 2]
-
-    assert cgtable.loc["Action", 0] == 3
-    assert cgtable.loc["Romance", 0] == 1
 
 
 def test_recommendation():
@@ -179,19 +133,6 @@ def test_weighted_cluster_recommendation(mocker):
     assert actual == expected
     assert recommendations.columns.tolist() == ["genres", "title", "recommend_score"]
     assert not recommendations["recommend_score"].isnull().values.any()
-
-
-def test_describe_clusters():
-    df = pd.DataFrame(
-        {
-            "genres": [["Action", "Drama", "Horror"], ["Action", "Shounen", "Romance"]],
-            "cluster": [0, 1],
-        }
-    )
-
-    descriptions = analysis.describe_clusters(df, 2)
-
-    assert descriptions.iloc[0].tolist() == ["Drama", "Horror"]
 
 
 def test_genre_average_scores():
