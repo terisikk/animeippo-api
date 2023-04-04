@@ -1,15 +1,15 @@
 import animeippo.recommendation.analysis as analysis
+import animeippo.recommendation.engine as engine
 import pandas as pd
+import numpy as np
 import pytest
 
 
 def test_jaccard_similarity():
-    x_orig = pd.DataFrame({"genres": [["Action", "Adventure"], ["Action", "Fantasy"]]})
-    y_orig = pd.DataFrame(
-        {"genres": [["Action", "Adventure"], ["Action", "Fantasy"], ["Comedy", "Romance"]]}
-    )
+    x_orig = [[True, True, False], [True, False, True]]
+    y_orig = [[True, True, False], [True, False, True]]
 
-    distances = analysis.similarity(x_orig["genres"], y_orig["genres"])
+    distances = analysis.similarity(x_orig, y_orig)
 
     expected0 = "1.0"
     actual0 = "{:.1f}".format(distances[0][0])
@@ -21,7 +21,7 @@ def test_jaccard_similarity():
     assert actual1 == expected1
 
 
-def test_recommendation():
+def test_score_by_genre_similarity():
     source_df = pd.DataFrame(
         {
             "genres": [["Action", "Adventure"], ["Action", "Fantasy"]],
@@ -32,7 +32,9 @@ def test_recommendation():
         {"genres": [["Romance", "Comedy"], ["Action", "Adventure"]], "title": ["Kaguya", "Naruto"]}
     )
 
-    recommendations = analysis.score_by_genre_similarity(target_df, source_df)
+    recommendations = analysis.score_by_genre_similarity(
+        engine.CategoricalEncoder(["Action", "Adventure", "Fantasy"]), target_df, source_df
+    )
     expected = "Naruto"
     actual = recommendations.iloc[0]["title"]
 
@@ -41,7 +43,7 @@ def test_recommendation():
     assert not recommendations["recommend_score"].isnull().values.any()
 
 
-def test_weighted_recommendation():
+def test_score_by_genre_similarity_weighted():
     source_df = pd.DataFrame(
         {
             "genres": [["Action", "Adventure"], ["Fantasy", "Adventure"]],
@@ -56,7 +58,12 @@ def test_weighted_recommendation():
         }
     )
 
-    recommendations = analysis.score_by_genre_similarity(target_df, source_df, weighted=True)
+    recommendations = analysis.score_by_genre_similarity(
+        engine.CategoricalEncoder(["Action", "Adventure", "Fantasy"]),
+        target_df,
+        source_df,
+        weighted=True,
+    )
     expected = "Inuyasha"
     actual = recommendations.iloc[0]["title"]
 
@@ -64,7 +71,7 @@ def test_weighted_recommendation():
     assert not recommendations["recommend_score"].isnull().values.any()
 
 
-def test_score_by_cluster_similarity(mocker):
+def test_score_by_cluster_similarity():
     source_df = pd.DataFrame(
         {
             "genres": [["Action", "Adventure"], ["Action", "Fantasy"]],
@@ -76,7 +83,11 @@ def test_score_by_cluster_similarity(mocker):
         {"genres": [["Romance", "Comedy"], ["Action", "Adventure"]], "title": ["Kaguya", "Naruto"]}
     )
 
-    recommendations = analysis.score_by_cluster_similarity(target_df, source_df)
+    recommendations = analysis.score_by_cluster_similarity(
+        engine.CategoricalEncoder(["Action", "Adventure", "Fantasy", "Romance", "Comedy"]),
+        target_df,
+        source_df,
+    )
     expected = "Naruto"
     actual = recommendations.iloc[0]["title"]
 
@@ -100,7 +111,12 @@ def test_score_by_cluster_similarity_weighted():
             "title": ["Inuyasha", "Naruto"],
         }
     )
-    recommendations = analysis.score_by_cluster_similarity(target_df, source_df, weighted=True)
+    recommendations = analysis.score_by_cluster_similarity(
+        engine.CategoricalEncoder(["Action", "Adventure", "Fantasy", "Romance", "Comedy"]),
+        target_df,
+        source_df,
+        weighted=True,
+    )
     expected = "Naruto"
     actual = recommendations.iloc[0]["title"]
 
