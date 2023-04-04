@@ -33,7 +33,7 @@ def test_mal_user_anime_list_can_be_fetched(requests_mock):
     user = "Janiskeisari"
 
     url = f"{myanimelist.MAL_API_URL}/users/{user}/animelist"
-    adapter = requests_mock.get(url, json=test_data.MAL_DATA)  # nosec B113
+    adapter = requests_mock.get(url, json=test_data.MAL_USER_LIST)  # nosec B113
 
     animelist = provider.get_user_anime_list(user)
 
@@ -48,7 +48,7 @@ def test_mal_seasonal_anime_list_can_be_fetched(requests_mock):
     season = "winter"
 
     url = f"{myanimelist.MAL_API_URL}/anime/season/{year}/{season}"
-    adapter = requests_mock.get(url, json=test_data.MAL_DATA)  # nosec B113
+    adapter = requests_mock.get(url, json=test_data.MAL_USER_LIST)  # nosec B113
 
     animelist = provider.get_seasonal_anime_list(year, season)
 
@@ -160,7 +160,7 @@ def test_user_score_cannot_be_zero():
 def test_dataframe_can_be_constructed_from_mal():
     provider = myanimelist.MyAnimeListProvider()
 
-    animelist = [item for item in test_data.MAL_DATA["data"]]
+    animelist = [item for item in test_data.MAL_USER_LIST["data"]]
 
     data = provider.transform_to_animeippo_format(animelist)
 

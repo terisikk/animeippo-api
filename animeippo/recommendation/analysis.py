@@ -1,21 +1,9 @@
 import pandas as pd
 import numpy as np
-import sklearn.cluster as skcluster
-import sklearn.metrics.pairwise as skpair
 import scipy.spatial.distance as scdistance
-import kmodes.kmodes as kmcluster
-import kmodes.util.dissim as kdissim
 
 import animeippo.providers.myanimelist as mal
 import animeippo.recommendation.util as pdutil
-
-NCLUSTERS = 10
-
-
-def pairwise_distance(x, metric="jaccard"):
-    encoded = pdutil.one_hot_categorical(x, mal.MAL_GENRES)
-
-    return skpair.pairwise_distances(encoded, metric=metric)
 
 
 def similarity(x_orig, y_orig, metric="jaccard"):
@@ -34,22 +22,7 @@ def similarity_of_anime_lists(dataframe1, dataframe2):
     return similarities
 
 
-def get_genre_clustering(dataframe, n_clusters=NCLUSTERS):
-    # model = skcluster.AgglomerativeClustering(
-    #   n_clusters=n_clusters, metric="precomputed", linkage="average"
-    # )
-    model = kmcluster.KModes(n_clusters=n_clusters, cat_dissim=kdissim.ng_dissim, n_init=50)
-
-    # distance_matrix = pairwise_distance(dataframe["genres"])
-
-    model.fit_predict(pdutil.one_hot_categorical(dataframe["genres"], mal.MAL_GENRES))
-
-    # model.fit(distance_matrix)
-
-    return model.labels_
-
-
-def recommend_by_genre_similarity(target_df, source_df, weighted=False):
+def score_by_genre_similarity(target_df, source_df, weighted=False):
     similarities = similarity_of_anime_lists(target_df, source_df)
 
     if weighted:
@@ -67,14 +40,10 @@ def recommend_by_genre_similarity(target_df, source_df, weighted=False):
     return target_df.sort_values("recommend_score", ascending=False)
 
 
-def recommend_by_cluster(target_df, source_df, weighted=False):
-    filter_df = source_df[~source_df["id"].isin(target_df["id"])]
-
-    filter_df["cluster"] = get_genre_clustering(filter_df)
-
+def score_by_cluster_similarity(target_df, source_df, weighted=False):
     scores = pd.DataFrame(index=target_df.index)
 
-    for cluster_id, cluster in filter_df.groupby("cluster"):
+    for cluster_id, cluster in source_df.groupby("cluster"):
         similarities = similarity_of_anime_lists(target_df, cluster)
 
         if weighted:

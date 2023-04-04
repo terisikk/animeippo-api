@@ -1,30 +1,6 @@
 import animeippo.recommendation.analysis as analysis
 import pandas as pd
-import numpy as np
 import pytest
-
-
-def test_genre_clustering():
-    df = pd.DataFrame({"genres": [["Action", "Drama", "Horror"], ["Action", "Shounen", "Romance"]]})
-    actual = analysis.get_genre_clustering(df, 2)
-    expected = [1, 0]
-
-    assert list(actual) == list(expected)
-
-
-def test_jaccard_pairwise_distance():
-    original = pd.DataFrame({"genres": [["Action", "Adventure"], ["Action", "Fantasy"]]})
-
-    distances = analysis.pairwise_distance(original["genres"])
-
-    expected0 = 0.0
-    actual0 = float(distances[0][0])
-
-    expected1 = float(2 / 3)
-    actual1 = float(distances[0][1])
-
-    assert actual0 == expected0
-    assert actual1 == expected1
 
 
 def test_jaccard_similarity():
@@ -56,7 +32,7 @@ def test_recommendation():
         {"genres": [["Romance", "Comedy"], ["Action", "Adventure"]], "title": ["Kaguya", "Naruto"]}
     )
 
-    recommendations = analysis.recommend_by_genre_similarity(target_df, source_df)
+    recommendations = analysis.score_by_genre_similarity(target_df, source_df)
     expected = "Naruto"
     actual = recommendations.iloc[0]["title"]
 
@@ -80,7 +56,7 @@ def test_weighted_recommendation():
         }
     )
 
-    recommendations = analysis.recommend_by_genre_similarity(target_df, source_df, weighted=True)
+    recommendations = analysis.score_by_genre_similarity(target_df, source_df, weighted=True)
     expected = "Inuyasha"
     actual = recommendations.iloc[0]["title"]
 
@@ -88,20 +64,19 @@ def test_weighted_recommendation():
     assert not recommendations["recommend_score"].isnull().values.any()
 
 
-def test_cluster_recommendation(mocker):
-    mocker.patch("animeippo.recommendation.analysis.get_genre_clustering", return_value=[0, 1])
-
+def test_score_by_cluster_similarity(mocker):
     source_df = pd.DataFrame(
         {
             "genres": [["Action", "Adventure"], ["Action", "Fantasy"]],
             "title": ["Bleach", "Fate/Zero"],
+            "cluster": [0, 1],
         }
     )
     target_df = pd.DataFrame(
         {"genres": [["Romance", "Comedy"], ["Action", "Adventure"]], "title": ["Kaguya", "Naruto"]}
     )
 
-    recommendations = analysis.recommend_by_cluster(target_df, source_df)
+    recommendations = analysis.score_by_cluster_similarity(target_df, source_df)
     expected = "Naruto"
     actual = recommendations.iloc[0]["title"]
 
@@ -110,14 +85,13 @@ def test_cluster_recommendation(mocker):
     assert not recommendations["recommend_score"].isnull().values.any()
 
 
-def test_weighted_cluster_recommendation(mocker):
-    mocker.patch("animeippo.recommendation.analysis.get_genre_clustering", return_value=[0, 1])
-
+def test_score_by_cluster_similarity_weighted():
     source_df = pd.DataFrame(
         {
             "genres": [["Action", "Adventure"], ["Fantasy", "Adventure"]],
             "title": ["Bleach", "Fate/Zero"],
             "user_score": [10, 1],
+            "cluster": [0, 1],
         }
     )
     target_df = pd.DataFrame(
@@ -126,7 +100,7 @@ def test_weighted_cluster_recommendation(mocker):
             "title": ["Inuyasha", "Naruto"],
         }
     )
-    recommendations = analysis.recommend_by_cluster(target_df, source_df, weighted=True)
+    recommendations = analysis.score_by_cluster_similarity(target_df, source_df, weighted=True)
     expected = "Naruto"
     actual = recommendations.iloc[0]["title"]
 
