@@ -131,7 +131,7 @@ class MyAnimeListProvider(provider.AbstractAnimeProvider):
 
         df["user_score"] = df["list_status"].apply(get_user_score)
 
-        df = df.drop("main_picture", axis=1)
+        df = df.drop(["main_picture", "list_status"], axis=1)
         return df
 
     def get_genre_tags(self):

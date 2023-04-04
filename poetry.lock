@@ -778,6 +778,27 @@ docs = ["myst-parser", "sphinx-autodoc-typehints", "sphinxcontrib-github-alt", "
 test = ["ipykernel", "pre-commit", "pytest", "pytest-cov", "pytest-timeout"]
 
 [[package]]
+name = "kmodes"
+version = "0.12.2"
+description = "Python implementations of the k-modes and k-prototypes clustering algorithms for clustering categorical data."
+category = "main"
+optional = false
+python-versions = "*"
+files = [
+    {file = "kmodes-0.12.2-py2.py3-none-any.whl", hash = "sha256:b764f7166dd5fe63826135ed74df796693dc7c25fc2cb8a106e14f3bfb371004"},
+    {file = "kmodes-0.12.2.tar.gz", hash = "sha256:d840ac9f4616a668ebacba24a12ec1def87da24a9fd0a0dc2f7499a9b9a6f45b"},
+]
+
+[package.dependencies]
+joblib = ">=0.11"
+numpy = ">=1.10.4"
+scikit-learn = ">=0.22.0"
+scipy = ">=0.13.3"
+
+[package.extras]
+dev = ["pandas", "pytest", "pytest-cov"]
+
+[[package]]
 name = "markdown-it-py"
 version = "2.2.0"
 description = "Python port of markdown-it. Markdown parsing, done right!"
@@ -1732,4 +1753,4 @@ files = [
 [metadata]
 lock-version = "2.0"
 python-versions = "^3.10"
-content-hash = "4adb9c026a0445a5861c3e306ef907d624ad9c2a9ae738cdde94281f9a4f758c"
+content-hash = "1102c6b02773416f7fecd6a934f51011abf6b4a8f11111c349d2c6f98bac4487"
