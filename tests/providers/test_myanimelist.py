@@ -73,12 +73,12 @@ def test_get_next_page_returns_succesfully():
     assert final_pages[2] is None
 
 
-def test_get_all_pages_returns_all_pages():
+def test_get_all_pages_returns_all_pages(mocker):
     response1 = ResponseStub({"data": [{"test": "test"}], "paging": {"next": "page2"}})
     response2 = ResponseStub({"data": [{"test2": "test2"}], "paging": {"next": "page3"}})
     response3 = ResponseStub({"data": [{"test3": "test3"}]})
 
-    myanimelist.MAL_API_URL = "FAKE"
+    mocker.patch("animeippo.providers.myanimelist.MAL_API_URL", "FAKE")
     first_page_url = "FAKE/users/kamina69/animelist"
 
     mock_session = SessionStub({first_page_url: response1, "page2": response2, "page3": response3})
@@ -98,10 +98,10 @@ def test_request_page_succesfully_exists_with_blank_page():
     assert actual is None
 
 
-def test_reqest_does_not_fail_catastrophically_when_response_is_empty():
+def test_reqest_does_not_fail_catastrophically_when_response_is_empty(mocker):
     response1 = ResponseStub(dict())
 
-    myanimelist.MAL_API_URL = "FAKE"
+    mocker.patch("animeippo.providers.myanimelist.MAL_API_URL", "FAKE")
     first_page_url = "FAKE/users/kamina69/animelist"
 
     mock_session = SessionStub({first_page_url: response1})

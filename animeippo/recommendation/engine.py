@@ -1,65 +1,48 @@
-import kmodes.kmodes as kmcluster
-import kmodes.util.dissim as kdissim
-import animeippo.recommendation.util as pdutil
 import sklearn.preprocessing as skpre
-import scipy.spatial.distance as scdistance
 
 import numpy as np
 
 from . import analysis
+from . import filters
 
 
-class ClusteringAnimeRecommendationEngine:
-    NCLUSTERS = 10
-    model = None
+class AnimeRecommendationEngine:
     provider = None
     encoder = None
+    scorer = None
+    rec_filters = []
 
-    def __init__(self, provider, clusters=NCLUSTERS):
+    def __init__(self, provider, scorer, encoder):
         self.provider = provider
-
-        self.encoder = CategoricalEncoder(classes=self.provider.get_genre_tags())
-
-        self.model = kmcluster.KModes(n_clusters=clusters, cat_dissim=kdissim.ng_dissim, n_init=50)
+        self.scorer = scorer
+        self.encoder = encoder
 
     def recommend_seasonal_anime_for_user(self, user, year, season, weighted=True):
         seasonal_anime = self.provider.get_seasonal_anime_list(year, season)
         user_anime = self.provider.get_user_anime_list(user)
 
-        filter_df = self.filter_seasonal_anime_from_user_anime(user_anime, seasonal_anime)
-
-        self.model.fit_predict(self.encoder.encode(filter_df["genres"]))
-
-        filter_df["cluster"] = self.model.labels_
-
-        recommendations = analysis.score_by_cluster_similarity(
-            self.encoder, seasonal_anime, filter_df, weighted
+        user_anime_filtered = filters.IdFilter(*seasonal_anime["id"], negative=True).filter(
+            user_anime
         )
 
-        return recommendations[recommendations["media_type"] == "tv"]
+        seasonal_anime_filtered = self.filter_anime(seasonal_anime)
 
-    def filter_seasonal_anime_from_user_anime(self, user_anime, seasonal_anime):
-        return user_anime[~user_anime["id"].isin(seasonal_anime["id"])]
-
-
-class SimilarityAnimeRecommendationEngine:
-    provider = None
-    encoder = None
-
-    def __init__(self, provider):
-        self.provider = provider
-
-        self.encoder = CategoricalEncoder(classes=self.provider.get_genre_tags())
-
-    def recommend_seasonal_anime_for_user(self, user, year, season, weighted=True):
-        seasonal_anime = self.provider.get_seasonal_anime_list(year, season)
-        user_anime = self.provider.get_user_anime_list(user)
-
-        recommendations = analysis.score_by_genre_similarity(
-            self.encoder, seasonal_anime, user_anime, weighted
+        recommendations = self.scorer.score(
+            seasonal_anime_filtered, user_anime_filtered, self.encoder, weighted
         )
 
-        return recommendations[recommendations["media_type"] == "tv"]
+        return recommendations
+
+    def filter_anime(self, anime):
+        filtered_df = anime
+
+        for filter in self.rec_filters:
+            filtered_df = filter.filter(filtered_df)
+
+        return filtered_df
+
+    def add_recommendation_filter(self, filter):
+        self.rec_filters.append(filter)
 
 
 class CategoricalEncoder:
