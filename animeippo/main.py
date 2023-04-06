@@ -4,12 +4,12 @@ from animeippo.recommendation import engine, filters, scoring
 
 def create_recommender():
     provider = mal.MyAnimeListProvider()
-    encoder = engine.CategoricalEncoder(provider.get_genre_tags())
-    # scorer = scoring.ClusterSimilarityScorer(weighted=True)
+    encoder = scoring.CategoricalEncoder(provider.get_genre_tags())
+    scorer = scoring.ClusterSimilarityScorer(encoder, weighted=True)
 
-    scorer = scoring.StudioSimilarityScorer(weighted=False)
+    # scorer = scoring.StudioSimilarityScorer(weighted=False)
 
-    recommender = engine.AnimeRecommendationEngine(provider, scorer, encoder)
+    recommender = engine.AnimeRecommendationEngine(provider, scorer)
 
     recommender.add_recommendation_filter(filters.GenreFilter("Kids", negative=True))
     recommender.add_recommendation_filter(filters.MediaTypeFilter("tv"))

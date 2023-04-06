@@ -21,9 +21,9 @@ def test_recommend_seasonal_anime_for_user_by_genre(requests_mock):
     year = "2023"
     season = "winter"
 
-    encoder = engine.CategoricalEncoder(mal.MAL_GENRES)
-    scorer = scoring.GenreSimilarityScorer()
-    recengine = engine.AnimeRecommendationEngine(ProviderStub(), scorer, encoder)
+    encoder = scoring.CategoricalEncoder(mal.MAL_GENRES)
+    scorer = scoring.GenreSimilarityScorer(encoder)
+    recengine = engine.AnimeRecommendationEngine(ProviderStub(), scorer)
 
     recommendations = recengine.recommend_seasonal_anime_for_user(user, year, season)
 
@@ -38,9 +38,9 @@ def test_recommend_seasonal_anime_for_user_by_cluster():
     year = "2023"
     season = "winter"
 
-    encoder = engine.CategoricalEncoder(mal.MAL_GENRES)
-    scorer = scoring.ClusterSimilarityScorer(2)
-    recengine = engine.AnimeRecommendationEngine(ProviderStub(), scorer, encoder)
+    encoder = scoring.CategoricalEncoder(mal.MAL_GENRES)
+    scorer = scoring.ClusterSimilarityScorer(encoder, 2)
+    recengine = engine.AnimeRecommendationEngine(ProviderStub(), scorer)
     recommendations = recengine.recommend_seasonal_anime_for_user(user, year, season)
 
     assert recommendations["title"].tolist() == [
@@ -54,9 +54,9 @@ def test_filters_work():
     year = "2023"
     season = "winter"
 
-    encoder = engine.CategoricalEncoder(mal.MAL_GENRES)
-    scorer = scoring.ClusterSimilarityScorer(2)
-    recengine = engine.AnimeRecommendationEngine(ProviderStub(), scorer, encoder)
+    encoder = scoring.CategoricalEncoder(mal.MAL_GENRES)
+    scorer = scoring.ClusterSimilarityScorer(encoder, 2)
+    recengine = engine.AnimeRecommendationEngine(ProviderStub(), scorer)
     recengine.add_recommendation_filter(filters.GenreFilter("Gore", negative=True))
 
     recommendations = recengine.recommend_seasonal_anime_for_user(user, year, season)

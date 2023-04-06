@@ -1,15 +1,14 @@
 import animeippo.recommendation.scoring as scoring
-import animeippo.recommendation.engine as engine
 import pandas as pd
 
 
 def test_abstract_scorer_can_be_instantiated():
     class ConcreteScorer(scoring.AbstractScorer):
-        def score(self, scoring_target_df, compare_df, encoder):
-            return super().score(scoring_target_df, compare_df, encoder)
+        def score(self, scoring_target_df, compare_df):
+            return super().score(scoring_target_df, compare_df)
 
     filter = ConcreteScorer()
-    filter.score(None, None, None)
+    filter.score(None, None)
 
     assert issubclass(filter.__class__, scoring.AbstractScorer)
 
@@ -25,12 +24,13 @@ def test_genre_similarity_scorer():
         {"genres": [["Romance", "Comedy"], ["Action", "Adventure"]], "title": ["Kaguya", "Naruto"]}
     )
 
-    scorer = scoring.GenreSimilarityScorer()
+    scorer = scoring.GenreSimilarityScorer(
+        scoring.CategoricalEncoder(["Action", "Adventure", "Fantasy", "Romance", "Comedy"])
+    )
 
     recommendations = scorer.score(
         target_df,
         source_df,
-        engine.CategoricalEncoder(["Action", "Adventure", "Fantasy"]),
     )
 
     expected = "Naruto"
@@ -56,12 +56,13 @@ def test_genre_similarity_scorer_weighted():
         }
     )
 
-    scorer = scoring.GenreSimilarityScorer(weighted=True)
+    scorer = scoring.GenreSimilarityScorer(
+        scoring.CategoricalEncoder(["Action", "Adventure", "Fantasy"]), weighted=True
+    )
 
     recommendations = scorer.score(
         target_df,
         source_df,
-        engine.CategoricalEncoder(["Action", "Adventure", "Fantasy"]),
     )
 
     expected = "Inuyasha"
@@ -83,12 +84,13 @@ def test_cluster_similarity_scorer():
         {"genres": [["Romance", "Comedy"], ["Action", "Adventure"]], "title": ["Kaguya", "Naruto"]}
     )
 
-    scorer = scoring.ClusterSimilarityScorer(2)
+    scorer = scoring.ClusterSimilarityScorer(
+        scoring.CategoricalEncoder(["Action", "Adventure", "Fantasy", "Romance", "Comedy"]), 2
+    )
 
     recommendations = scorer.score(
         target_df,
         source_df,
-        engine.CategoricalEncoder(["Action", "Adventure", "Fantasy", "Romance", "Comedy"]),
     )
     expected = "Naruto"
     actual = recommendations.iloc[0]["title"]
@@ -114,12 +116,15 @@ def test_cluster_similarity_scorer_weighted():
         }
     )
 
-    scorer = scoring.ClusterSimilarityScorer(2, weighted=True)
+    scorer = scoring.ClusterSimilarityScorer(
+        scoring.CategoricalEncoder(["Action", "Adventure", "Fantasy", "Romance", "Comedy"]),
+        2,
+        weighted=True,
+    )
 
     recommendations = scorer.score(
         target_df,
         source_df,
-        engine.CategoricalEncoder(["Action", "Adventure", "Fantasy", "Romance", "Comedy"]),
     )
     expected = "Naruto"
     actual = recommendations.iloc[0]["title"]
@@ -148,7 +153,6 @@ def test_studio_similarity_scorer():
     recommendations = scorer.score(
         target_df,
         source_df,
-        engine.CategoricalEncoder([]),
     )
     expected = "Jujutsu Kaisen"
     actual = recommendations.iloc[0]["title"]
@@ -173,12 +177,13 @@ def test_studio_similarity_scorer_weighted():
         }
     )
 
-    scorer = scoring.StudioSimilarityScorer(weighted=True)
+    scorer = scoring.StudioSimilarityScorer(
+        weighted=True,
+    )
 
     recommendations = scorer.score(
         target_df,
         source_df,
-        engine.CategoricalEncoder(["Action", "Adventure", "Fantasy", "Romance", "Comedy"]),
     )
     expected = "Jujutsu Kaisen"
     actual = recommendations.iloc[0]["title"]
