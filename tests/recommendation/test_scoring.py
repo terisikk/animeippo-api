@@ -28,10 +28,12 @@ def test_genre_similarity_scorer():
         scoring.CategoricalEncoder(["Action", "Adventure", "Fantasy", "Romance", "Comedy"])
     )
 
-    recommendations = scorer.score(
+    target_df["recommend_score"] = scorer.score(
         target_df,
         source_df,
     )
+
+    recommendations = target_df.sort_values("recommend_score", ascending=False)
 
     expected = "Naruto"
     actual = recommendations.iloc[0]["title"]
@@ -60,10 +62,12 @@ def test_genre_similarity_scorer_weighted():
         scoring.CategoricalEncoder(["Action", "Adventure", "Fantasy"]), weighted=True
     )
 
-    recommendations = scorer.score(
+    target_df["recommend_score"] = scorer.score(
         target_df,
         source_df,
     )
+
+    recommendations = target_df.sort_values("recommend_score", ascending=False)
 
     expected = "Inuyasha"
     actual = recommendations.iloc[0]["title"]
@@ -88,10 +92,13 @@ def test_cluster_similarity_scorer():
         scoring.CategoricalEncoder(["Action", "Adventure", "Fantasy", "Romance", "Comedy"]), 2
     )
 
-    recommendations = scorer.score(
+    target_df["recommend_score"] = scorer.score(
         target_df,
         source_df,
     )
+
+    recommendations = target_df.sort_values("recommend_score", ascending=False)
+
     expected = "Naruto"
     actual = recommendations.iloc[0]["title"]
 
@@ -122,10 +129,13 @@ def test_cluster_similarity_scorer_weighted():
         weighted=True,
     )
 
-    recommendations = scorer.score(
+    target_df["recommend_score"] = scorer.score(
         target_df,
         source_df,
     )
+
+    recommendations = target_df.sort_values("recommend_score", ascending=False)
+
     expected = "Naruto"
     actual = recommendations.iloc[0]["title"]
 
@@ -150,10 +160,13 @@ def test_studio_similarity_scorer():
 
     scorer = scoring.StudioSimilarityScorer()
 
-    recommendations = scorer.score(
+    target_df["recommend_score"] = scorer.score(
         target_df,
         source_df,
     )
+
+    recommendations = target_df.sort_values("recommend_score", ascending=False)
+
     expected = "Jujutsu Kaisen"
     actual = recommendations.iloc[0]["title"]
 
@@ -181,10 +194,13 @@ def test_studio_similarity_scorer_weighted():
         weighted=True,
     )
 
-    recommendations = scorer.score(
+    target_df["recommend_score"] = scorer.score(
         target_df,
         source_df,
     )
+
+    recommendations = target_df.sort_values("recommend_score", ascending=False)
+
     expected = "Jujutsu Kaisen"
     actual = recommendations.iloc[0]["title"]
 

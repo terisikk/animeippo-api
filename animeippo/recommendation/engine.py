@@ -20,9 +20,11 @@ class AnimeRecommendationEngine:
 
         seasonal_anime_filtered = self.filter_anime(seasonal_anime)
 
-        recommendations = self.scorer.score(seasonal_anime_filtered, user_anime_filtered)
+        seasonal_anime_filtered["recommend_score"] = self.scorer.score(
+            seasonal_anime_filtered, user_anime_filtered
+        )
 
-        return recommendations
+        return seasonal_anime_filtered.sort_values("recommend_score", ascending=False)
 
     def filter_anime(self, anime):
         filtered_df = anime
@@ -30,7 +32,7 @@ class AnimeRecommendationEngine:
         for filter in self.rec_filters:
             filtered_df = filter.filter(filtered_df)
 
-        return filtered_df
+        return filtered_df.reset_index(drop=True)
 
     def add_recommendation_filter(self, filter):
         self.rec_filters.append(filter)

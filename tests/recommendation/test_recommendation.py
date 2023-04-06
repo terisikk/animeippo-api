@@ -16,7 +16,7 @@ class ProviderStub:
         return pd.DataFrame(test_data.FORMATTED_MAL_USER_LIST)
 
 
-def test_recommend_seasonal_anime_for_user_by_genre(requests_mock):
+def test_recommend_seasonal_anime_for_user_by_genre():
     user = "Janiskeisari"
     year = "2023"
     season = "winter"
