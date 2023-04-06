@@ -64,10 +64,8 @@ class StudioSimilarityScorer(AbstractScorer):
 
 
 class ClusterSimilarityScorer(AbstractScorer):
-    def __init__(self, encoder, n_clusters=10, weighted=False):
-        self.model = kmcluster.KModes(
-            n_clusters=n_clusters, cat_dissim=kdissim.ng_dissim, n_init=50
-        )
+    def __init__(self, encoder, clusters=10, weighted=False):
+        self.model = kmcluster.KModes(n_clusters=clusters, cat_dissim=kdissim.ng_dissim, n_init=50)
 
         self.weighted = weighted
         self.encoder = encoder

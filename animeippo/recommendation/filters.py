@@ -8,9 +8,6 @@ class AbstractFilter(abc.ABC):
 
 
 class MediaTypeFilter(AbstractFilter):
-    media_types = []
-    negative = False
-
     def __init__(self, *media_types, negative=False):
         self.media_types = media_types
         self.negative = negative
@@ -25,9 +22,6 @@ class MediaTypeFilter(AbstractFilter):
 
 
 class GenreFilter(AbstractFilter):
-    genres = []
-    negative = False
-
     def __init__(self, *genres, negative=False):
         self.genres = genres
         self.negative = negative
@@ -44,9 +38,6 @@ class GenreFilter(AbstractFilter):
 
 
 class IdFilter(AbstractFilter):
-    ids = []
-    negative = False
-
     def __init__(self, *ids, negative=False):
         self.ids = ids
         self.negative = negative

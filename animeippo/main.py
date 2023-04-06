@@ -9,7 +9,9 @@ def create_recommender():
 
     # scorer = scoring.StudioSimilarityScorer(weighted=False)
 
-    recommender = engine.AnimeRecommendationEngine(provider, scorer)
+    recommender = engine.AnimeRecommendationEngine(provider)
+
+    recommender.add_scorer(scorer)
 
     recommender.add_recommendation_filter(filters.GenreFilter("Kids", negative=True))
     recommender.add_recommendation_filter(filters.MediaTypeFilter("tv"))

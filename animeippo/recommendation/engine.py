@@ -2,13 +2,10 @@ from . import filters
 
 
 class AnimeRecommendationEngine:
-    provider = None
-    scorer = None
-    rec_filters = []
-
-    def __init__(self, provider, scorer):
+    def __init__(self, provider):
         self.provider = provider
-        self.scorer = scorer
+        self.scorers = []
+        self.rec_filters = []
 
     def recommend_seasonal_anime_for_user(self, user, year, season):
         seasonal_anime = self.provider.get_seasonal_anime_list(year, season)
@@ -20,11 +17,9 @@ class AnimeRecommendationEngine:
 
         seasonal_anime_filtered = self.filter_anime(seasonal_anime)
 
-        seasonal_anime_filtered["recommend_score"] = self.scorer.score(
-            seasonal_anime_filtered, user_anime_filtered
-        )
+        recommendations = self.score_anime(seasonal_anime_filtered, user_anime_filtered)
 
-        return seasonal_anime_filtered.sort_values("recommend_score", ascending=False)
+        return recommendations.sort_values("recommend_score", ascending=False)
 
     def filter_anime(self, anime):
         filtered_df = anime
@@ -34,5 +29,26 @@ class AnimeRecommendationEngine:
 
         return filtered_df.reset_index(drop=True)
 
+    def score_anime(self, scoring_target_df, compare_df):
+        if len(self.scorers) > 0:
+            scoring_target_df["recommend_score"] = 0
+
+            for scorer in self.scorers:
+                scoring_target_df["recommend_score"] = (
+                    scoring_target_df["recommend_score"]
+                    + scorer.score(scoring_target_df, compare_df)[0]
+                )
+
+            scoring_target_df["recommend_score"] = scoring_target_df["recommend_score"] / len(
+                self.scorers
+            )
+        else:
+            raise RuntimeError("No scorers added for engine. Please add at least one.")
+
+        return scoring_target_df
+
     def add_recommendation_filter(self, filter):
         self.rec_filters.append(filter)
+
+    def add_scorer(self, scorer):
+        self.scorers.append(scorer)
