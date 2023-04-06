@@ -2,10 +2,12 @@ from animeippo.providers import myanimelist as mal
 from animeippo.recommendation import engine, filters, scoring
 
 
-def create_engine():
+def create_recommender():
     provider = mal.MyAnimeListProvider()
-    encoder = engine.CategoricalEncoder(mal.MAL_GENRES)
-    scorer = scoring.ClusterSimilarityScorer()
+    encoder = engine.CategoricalEncoder(provider.get_genre_tags())
+    # scorer = scoring.ClusterSimilarityScorer(weighted=True)
+
+    scorer = scoring.StudioSimilarityScorer(weighted=False)
 
     recommender = engine.AnimeRecommendationEngine(provider, scorer, encoder)
 
@@ -16,7 +18,7 @@ def create_engine():
 
 
 if __name__ == "__main__":
-    recommender = create_engine()
+    recommender = create_recommender()
 
     recommendations = recommender.recommend_seasonal_anime_for_user(
         "Janiskeisari", "2023", "winter"

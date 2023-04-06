@@ -127,3 +127,62 @@ def test_cluster_similarity_scorer_weighted():
     assert actual == expected
     assert recommendations.columns.tolist() == ["genres", "title", "recommend_score"]
     assert not recommendations["recommend_score"].isnull().values.any()
+
+
+def test_studio_similarity_scorer():
+    source_df = pd.DataFrame(
+        {
+            "studios": [["MAPPA"], ["Kinema Citrus", "GIFTanimation", "Studio Jemi"]],
+            "title": ["Vinland Saga", "Cardfight!! Vanguard"],
+        }
+    )
+    target_df = pd.DataFrame(
+        {
+            "studios": [["Bones"], ["MAPPA"]],
+            "title": ["Bungou Stray Dogs", "Jujutsu Kaisen"],
+        }
+    )
+
+    scorer = scoring.StudioSimilarityScorer()
+
+    recommendations = scorer.score(
+        target_df,
+        source_df,
+        engine.CategoricalEncoder([]),
+    )
+    expected = "Jujutsu Kaisen"
+    actual = recommendations.iloc[0]["title"]
+
+    assert actual == expected
+    assert "recommend_score" in recommendations.columns.tolist()
+    assert not recommendations["recommend_score"].isnull().values.any()
+
+
+def test_studio_similarity_scorer_weighted():
+    source_df = pd.DataFrame(
+        {
+            "studios": [["MAPPA"], ["Bones"]],
+            "title": ["Vinland Saga", "Boku no Hero Academia"],
+            "user_score": [10, 1],
+        }
+    )
+    target_df = pd.DataFrame(
+        {
+            "studios": [["Bones"], ["MAPPA"]],
+            "title": ["Bungou Stray Dogs", "Jujutsu Kaisen"],
+        }
+    )
+
+    scorer = scoring.StudioSimilarityScorer(weighted=True)
+
+    recommendations = scorer.score(
+        target_df,
+        source_df,
+        engine.CategoricalEncoder(["Action", "Adventure", "Fantasy", "Romance", "Comedy"]),
+    )
+    expected = "Jujutsu Kaisen"
+    actual = recommendations.iloc[0]["title"]
+
+    assert actual == expected
+    assert "recommend_score" in recommendations.columns.tolist()
+    assert not recommendations["recommend_score"].isnull().values.any()

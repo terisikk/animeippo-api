@@ -19,6 +19,10 @@ MAL_USER_LIST = {
                     {"id": 24, "name": "Sci-Fi"},
                     {"id": 41, "name": "Suspense"},
                 ],
+                "studios": [
+                    {"id": 1, "name": "Test Studio 1"},
+                    {"id": 5, "name": "Test Studio 2"},
+                ],
                 "media_type": "tv",
             },
             "list_status": {
@@ -47,6 +51,10 @@ MAL_USER_LIST = {
                     {"id": 42, "name": "Seinen"},
                     {"id": 37, "name": "Supernatural"},
                     {"id": 32, "name": "Vampire"},
+                ],
+                "studios": [
+                    {"id": 1, "name": "Test Studio 1"},
+                    {"id": 5, "name": "Test Studio 2"},
                 ],
                 "media_type": "tv",
             },
@@ -80,6 +88,10 @@ MAL_SEASONAL_LIST = {
                     {"id": 38, "name": "Military"},
                     {"id": 42, "name": "Seinen"},
                 ],
+                "studios": [
+                    {"id": 1, "name": "Test Studio 1"},
+                    {"id": 5, "name": "Test Studio 2"},
+                ],
                 "media_type": "tv",
             }
         },
@@ -100,8 +112,94 @@ MAL_SEASONAL_LIST = {
                     {"id": 76, "name": "Survival"},
                     {"id": 41, "name": "Suspense"},
                 ],
+                "studios": [
+                    {"id": 1, "name": "Test Studio 1"},
+                    {"id": 5, "name": "Test Studio 2"},
+                ],
                 "media_type": "tv",
             }
         },
     ]
 }
+
+FORMATTED_MAL_USER_LIST = [
+    {
+        "id": 30,
+        "title": "Neon Genesis Evangelion",
+        "nsfw": "white",
+        "genres": [
+            "Action",
+            "Avant Garde",
+            "Award Winning",
+            "Drama",
+            "Mecha",
+            "Psychological",
+            "Sci-Fi",
+            "Suspense",
+        ],
+        "studios": [
+            "Test Studio 1",
+            "Test Studio 2",
+        ],
+        "media_type": "tv",
+        "score": 10,
+    },
+    {
+        "id": 270,
+        "title": "Hellsing",
+        "nsfw": "white",
+        "genres": [
+            "Action",
+            "Adult Cast",
+            "Gore",
+            "Horror",
+            "Seinen",
+            "Supernatural",
+            "Vampire",
+        ],
+        "studios": [
+            "Test Studio 1",
+            "Test Studio 2",
+        ],
+        "media_type": "tv",
+        "score": 8,
+    },
+]
+
+FORMATTED_MAL_SEASONAL_LIST = [
+    {
+        "id": 50528,
+        "title": "Golden Kamuy 4th Season",
+        "genres": [
+            "Action",
+            "Adult Cast",
+            "Adventure",
+            "Historical",
+            "Military",
+            "Seinen",
+        ],
+        "studios": [
+            "Test Studio 1",
+            "Test Studio 2",
+        ],
+        "media_type": "tv",
+    },
+    {
+        "id": 51535,
+        "title": "Shingeki no Kyojin: The Final Season",
+        "genres": [
+            "Action",
+            "Drama",
+            "Gore",
+            "Military",
+            "Shounen",
+            "Survival",
+            "Suspense",
+        ],
+        "studios": [
+            "Test Studio 1",
+            "Test Studio 2",
+        ],
+        "media_type": "tv",
+    },
+]

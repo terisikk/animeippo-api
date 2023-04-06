@@ -2,9 +2,6 @@ import pandas as pd
 import numpy as np
 import scipy.spatial.distance as scdistance
 
-import animeippo.providers.myanimelist as mal
-import animeippo.recommendation.util as pdutil
-
 
 def similarity(x_orig, y_orig, metric="jaccard"):
     distances = scdistance.cdist(x_orig, y_orig, metric=metric)
@@ -21,14 +18,14 @@ def similarity_of_anime_lists(dataframe1, dataframe2, encoder):
     return similarities
 
 
-def genre_average_scores(dataframe):
-    gdf = dataframe.explode("genres")
+def mean_score_for_categorical_values(dataframe, field):
+    gdf = dataframe.explode(field)
 
-    return gdf.groupby("genres")["user_score"].mean()
+    return gdf.groupby(field)["user_score"].mean()
 
 
-def user_genre_weight(genres, averages):
-    mean = np.nanmean([averages.get(genre, np.nan) for genre in genres])
+def weigh_by_user_score(categoricals, averages):
+    mean = np.nanmean([averages.get(categorical, np.nan) for categorical in categoricals])
     mean = mean if not np.isnan(mean) else 0.0
 
     return mean

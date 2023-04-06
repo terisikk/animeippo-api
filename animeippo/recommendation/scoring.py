@@ -20,19 +20,63 @@ class GenreSimilarityScorer(AbstractScorer):
         self.weighted = weighted
 
     def score(self, scoring_target_df, compare_df, encoder):
+        scoring_target_df = scoring_target_df.reset_index(drop=True)
+        compare_df = compare_df.reset_index(drop=True)
+
         similarities = analysis.similarity_of_anime_lists(scoring_target_df, compare_df, encoder)
 
         if self.weighted:
-            averages = analysis.genre_average_scores(compare_df)
+            averages = analysis.mean_score_for_categorical_values(compare_df, "genres")
             similarities = pdutil.normalize_column(similarities) + (
                 1.5
                 * pdutil.normalize_column(
-                    scoring_target_df["genres"].apply(analysis.user_genre_weight, args=(averages,))
+                    scoring_target_df["genres"].apply(
+                        analysis.weigh_by_user_score, args=(averages,)
+                    )
                 )
             )
             similarities = similarities / 2
 
         scoring_target_df["recommend_score"] = similarities
+
+        return scoring_target_df.sort_values("recommend_score", ascending=False)
+
+
+class StudioSimilarityScorer(AbstractScorer):
+    def __init__(self, weighted=False):
+        self.weighted = weighted
+
+    def score(self, scoring_target_df, compare_df, encoder):
+        scoring_target_df = scoring_target_df.reset_index(drop=True)
+        compare_df = compare_df.reset_index(drop=True)
+
+        counts = compare_df.explode("studios")["studios"].value_counts()
+        # averages = analysis.mean_score_for_categorical_values(compare_df, "studios")
+
+        scores = []
+
+        for i, row in scoring_target_df.iterrows():
+            max = 0
+
+            for studio in row["studios"]:
+                count = counts.get(studio, 0.0)
+                if count > max:
+                    max = count
+
+            scores.append(max)
+
+        if self.weighted:
+            averages = analysis.mean_score_for_categorical_values(compare_df, "studios")
+            weigths = scoring_target_df["studios"].apply(
+                analysis.weigh_by_user_score, args=(averages,)
+            )
+
+            scores = scores * weigths
+
+        scoring_target_df["recommend_score"] = scores
+        scoring_target_df["recommend_score"] = pdutil.normalize_column(
+            scoring_target_df["recommend_score"]
+        )
 
         return scoring_target_df.sort_values("recommend_score", ascending=False)
 
@@ -46,6 +90,9 @@ class ClusterSimilarityScorer(AbstractScorer):
         self.weighted = weighted
 
     def score(self, scoring_target_df, compare_df, encoder):
+        scoring_target_df = scoring_target_df.reset_index(drop=True)
+        compare_df = compare_df.reset_index(drop=True)
+
         scores = pd.DataFrame(index=scoring_target_df.index)
 
         compare_df["cluster"] = self.model.fit_predict(encoder.encode(compare_df["genres"]))

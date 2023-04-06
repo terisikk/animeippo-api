@@ -122,7 +122,7 @@ def test_mal_genres_can_be_split():
         {"id": 32, "name": "Vampire"},
     ]
 
-    actual = myanimelist.split_mal_genres(original)
+    actual = myanimelist.split_id_name_field(original)
 
     expected = ["Action", "Adult Cast", "Gore", "Horror", "Seinen", "Supernatural", "Vampire"]
 
@@ -130,8 +130,8 @@ def test_mal_genres_can_be_split():
 
 
 def test_genre_splitting_does_not_fail_with_invalid_data():
-    myanimelist.split_mal_genres(1.0)
-    myanimelist.split_mal_genres(None)
+    myanimelist.split_id_name_field(1.0)
+    myanimelist.split_id_name_field(None)
 
 
 def test_user_score_can_be_extracted():

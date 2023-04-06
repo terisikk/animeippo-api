@@ -2,7 +2,6 @@ import sklearn.preprocessing as skpre
 
 import numpy as np
 
-from . import analysis
 from . import filters
 
 
@@ -17,7 +16,7 @@ class AnimeRecommendationEngine:
         self.scorer = scorer
         self.encoder = encoder
 
-    def recommend_seasonal_anime_for_user(self, user, year, season, weighted=True):
+    def recommend_seasonal_anime_for_user(self, user, year, season):
         seasonal_anime = self.provider.get_seasonal_anime_list(year, season)
         user_anime = self.provider.get_user_anime_list(user)
 
@@ -28,7 +27,7 @@ class AnimeRecommendationEngine:
         seasonal_anime_filtered = self.filter_anime(seasonal_anime)
 
         recommendations = self.scorer.score(
-            seasonal_anime_filtered, user_anime_filtered, self.encoder, weighted
+            seasonal_anime_filtered, user_anime_filtered, self.encoder
         )
 
         return recommendations

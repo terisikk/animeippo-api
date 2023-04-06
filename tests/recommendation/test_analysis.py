@@ -1,5 +1,4 @@
 import animeippo.recommendation.analysis as analysis
-import animeippo.recommendation.engine as engine
 import pandas as pd
 import pytest
 
@@ -28,7 +27,7 @@ def test_genre_average_scores():
         }
     )
 
-    avg = analysis.genre_average_scores(original)
+    avg = analysis.mean_score_for_categorical_values(original, "genres")
 
     assert avg.tolist() == [9.0, 8.5, 7.0]
 
@@ -40,7 +39,7 @@ def test_similarity_weights():
         {"title": ["Hellsing", "Inuyasha"], "genres": [["Action", "Horror"], ["Action", "Romance"]]}
     )
 
-    weights = original["genres"].apply(analysis.user_genre_weight, args=(genre_averages,))
+    weights = original["genres"].apply(analysis.weigh_by_user_score, args=(genre_averages,))
 
     assert weights.tolist() == [8.5, 8.0]
 
@@ -50,7 +49,7 @@ def test_similarity_weight_ignores_genres_without_average():
 
     genres = ["Action", "Horror"]
 
-    weight = analysis.user_genre_weight(genres, genre_averages)
+    weight = analysis.weigh_by_user_score(genres, genre_averages)
 
     assert weight == 9.0
 
@@ -61,6 +60,6 @@ def test_similarity_weight_scores_genre_list_containing_only_unseen_genres_as_ze
 
     original = ["Action", "Horror"]
 
-    weight = analysis.user_genre_weight(original, genre_averages)
+    weight = analysis.weigh_by_user_score(original, genre_averages)
 
     assert weight == 0.0

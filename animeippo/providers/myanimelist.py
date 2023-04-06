@@ -99,7 +99,7 @@ class MyAnimeListProvider(provider.AbstractAnimeProvider):
         parameters = {
             "limit": 50,
             "nsfw": "true",
-            "fields": "id,title,genres,list_status{score}",
+            "fields": "id,title,genres,list_status{score},studios",
         }
 
         anime_list = request_anime_list(query, parameters)
@@ -111,7 +111,7 @@ class MyAnimeListProvider(provider.AbstractAnimeProvider):
         parameters = {
             "limit": 50,
             "nsfw": "true",
-            "fields": "id,title,genres,media_type",
+            "fields": "id,title,genres,media_type,studios",
         }
 
         anime_list = request_anime_list(query, parameters)
@@ -127,7 +127,8 @@ class MyAnimeListProvider(provider.AbstractAnimeProvider):
             anime_list.append(anime)
 
         df = pd.DataFrame(anime_list)
-        df["genres"] = df["genres"].apply(split_mal_genres)
+        df["genres"] = df["genres"].apply(split_id_name_field)
+        df["studios"] = df["studios"].apply(split_id_name_field)
 
         df["user_score"] = df["list_status"].apply(get_user_score)
 
@@ -196,14 +197,14 @@ def get_user_score(list_status):
     return score
 
 
-def split_mal_genres(genres):
-    genrenames = []
+def split_id_name_field(field):
+    names = []
 
-    if genres:
+    if field:
         try:
-            for genre in genres:
-                genrenames.append(genre.get("name", None))
+            for item in field:
+                names.append(item.get("name", None))
         except TypeError as e:
-            print(f"Could not extract genres from {genres}: {e}")
+            print(f"Could not extract items from {field}: {e}")
 
-    return genrenames
+    return names
