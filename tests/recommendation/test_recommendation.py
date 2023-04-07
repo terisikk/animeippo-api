@@ -79,7 +79,7 @@ def test_multiple_scorers_can_be_added():
 
     encoder = scoring.CategoricalEncoder(mal.MAL_GENRES)
     scorer = scoring.GenreSimilarityScorer(encoder)
-    scorer2 = scoring.StudioSimilarityScorer()
+    scorer2 = scoring.StudioCountScorer()
     recengine = engine.AnimeRecommendationEngine(ProviderStub())
 
     recengine.add_scorer(scorer)

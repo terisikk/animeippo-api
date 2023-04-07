@@ -158,7 +158,7 @@ def test_studio_similarity_scorer():
         }
     )
 
-    scorer = scoring.StudioSimilarityScorer()
+    scorer = scoring.StudioCountScorer()
 
     target_df["recommend_score"] = scorer.score(
         target_df,
@@ -190,7 +190,7 @@ def test_studio_similarity_scorer_weighted():
         }
     )
 
-    scorer = scoring.StudioSimilarityScorer(
+    scorer = scoring.StudioCountScorer(
         weighted=True,
     )
 

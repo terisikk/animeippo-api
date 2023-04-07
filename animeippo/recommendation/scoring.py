@@ -15,8 +15,15 @@ class AbstractScorer(abc.ABC):
     def score(self, scoring_target_df, compare_df):
         pass
 
+    @property
+    @abc.abstractmethod
+    def name(self):
+        pass
+
 
 class GenreSimilarityScorer(AbstractScorer):
+    name = "genrescore"
+
     def __init__(self, encoder, weighted=False):
         self.encoder = encoder
         self.weighted = weighted
@@ -34,13 +41,12 @@ class GenreSimilarityScorer(AbstractScorer):
         return pdutil.normalize_column(scores)
 
 
-class StudioSimilarityScorer(AbstractScorer):
-    def __init__(self, weighted=False):
-        self.weighted = weighted
+class StudioCountScorer(AbstractScorer):
+    name = "studiocountscore"
 
     def score(self, scoring_target_df, compare_df):
         counts = compare_df.explode("studios")["studios"].value_counts()
-        scores = []
+        scores = pd.Series(index=scoring_target_df.index)
 
         for i, row in scoring_target_df.iterrows():
             max = 0
@@ -50,20 +56,27 @@ class StudioSimilarityScorer(AbstractScorer):
                 if count > max:
                     max = count
 
-            scores.append(max)
+            scores.at[i] = max
 
-        if self.weighted:
-            averages = analysis.mean_score_for_categorical_values(compare_df, "studios")
-            weigths = scoring_target_df["studios"].apply(
-                analysis.weigh_by_user_score, args=(averages,)
-            )
+        return pdutil.normalize_column(scores)
 
-            scores = scores * weigths
 
-        return pdutil.normalize_column(pd.Series(scores))
+class StudioAverageScorer:
+    name = "studioaveragescore"
+
+    def score(self, scoring_target_df, compare_df):
+        averages = analysis.mean_score_for_categorical_values(compare_df, "studios")
+        scores = pd.Series(
+            scoring_target_df["studios"].apply(analysis.weigh_by_user_score, args=(averages,)),
+            index=scoring_target_df.index,
+        )
+
+        return pdutil.normalize_column(scores)
 
 
 class ClusterSimilarityScorer(AbstractScorer):
+    name = "clusterscore"
+
     def __init__(self, encoder, clusters=10, weighted=False):
         self.model = kmcluster.KModes(n_clusters=clusters, cat_dissim=kdissim.ng_dissim, n_init=50)
 
