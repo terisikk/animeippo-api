@@ -111,7 +111,7 @@ class MyAnimeListProvider(provider.AbstractAnimeProvider):
         parameters = {
             "limit": 50,
             "nsfw": "true",
-            "fields": "id,title,genres,media_type,studios",
+            "fields": "id,title,genres,media_type,studios,popularity,rank,mean,num_list_users",
         }
 
         anime_list = request_anime_list(query, parameters)
