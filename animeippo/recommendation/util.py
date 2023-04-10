@@ -6,7 +6,7 @@ import scipy.stats as scstats
 
 def normalize_column(df_column):
     shaped = df_column.to_numpy().reshape(-1, 1)
-    return pd.DataFrame(skpre.MinMaxScaler().fit_transform(shaped))
+    return pd.DataFrame(skpre.MinMaxScaler().fit_transform(shaped), index=df_column.index)
 
 
 def extract_features(features, columns, n_features):
@@ -28,7 +28,7 @@ def calculate_residuals(contingency_table, expected):
     return residuals
 
 
-def one_hot_categorical(df_column, classes):
+def one_hot_categorical(df_column, classes, dtype=bool):
     mlb = skpre.MultiLabelBinarizer(classes=classes)
     mlb.fit(None)
-    return np.array(mlb.transform(df_column), dtype=bool)
+    return np.array(mlb.transform(df_column), dtype=dtype)

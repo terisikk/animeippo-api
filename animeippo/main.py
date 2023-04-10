@@ -9,10 +9,11 @@ def create_recommender():
     recommender = engine.AnimeRecommendationEngine(provider)
 
     scorers = [
+        scoring.GenreAverageScorer(encoder),
         scoring.GenreSimilarityScorer(encoder, weighted=True),
         scoring.ClusterSimilarityScorer(encoder, weighted=True),
-        # scoring.StudioCountScorer(),
-        scoring.StudioAverageScorer(),
+        scoring.StudioCountScorer(),
+        scoring.StudioAverageScorer(weighted=True),
     ]
 
     for scorer in scorers:
@@ -29,7 +30,5 @@ def create_recommender():
 if __name__ == "__main__":
     recommender = create_recommender()
 
-    recommendations = recommender.recommend_seasonal_anime_for_user(
-        "Janiskeisari", "2023", "winter"
-    )
-    print(recommendations[0:25])
+    recommendations = recommender.recommend_seasonal_anime_for_user("Nemoria", "2023", "winter")
+    print(recommendations[0:25].drop(["media_type", "id", "user_score"], axis=1))
