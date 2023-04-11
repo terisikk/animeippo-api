@@ -1,4 +1,5 @@
-from . import filters
+import pandas as pd
+from . import filters, analysis
 
 
 class AnimeRecommendationEngine:
@@ -15,7 +16,8 @@ class AnimeRecommendationEngine:
             user_anime
         )
 
-        seasonal_anime_filtered = self.filter_anime(seasonal_anime)
+        seasonal_anime_filtered = pd.DataFrame(self.filter_anime(seasonal_anime))
+        analysis.fill_status_data_from_user_list(seasonal_anime_filtered, user_anime_filtered)
 
         recommendations = self.score_anime(seasonal_anime_filtered, user_anime_filtered)
 
@@ -29,14 +31,15 @@ class AnimeRecommendationEngine:
         for filter in self.rec_filters:
             filtered_df = filter.filter(filtered_df)
 
-        return filtered_df.reset_index(drop=True)
+        return filtered_df
 
     def score_anime(self, scoring_target_df, compare_df):
         if len(self.scorers) > 0:
             names = []
 
             for scorer in self.scorers:
-                scoring_target_df[scorer.name] = scorer.score(scoring_target_df, compare_df)[0]
+                scoring = scorer.score(scoring_target_df, compare_df)
+                scoring_target_df.loc[:, scorer.name] = scoring
                 names.append(scorer.name)
 
             scoring_target_df["recommend_score"] = scoring_target_df[names].mean(axis=1)

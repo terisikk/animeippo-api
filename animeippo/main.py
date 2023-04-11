@@ -38,8 +38,4 @@ if __name__ == "__main__":
     recommendations = recommender.recommend_seasonal_anime_for_user(
         "Janiskeisari", "2023", "winter"
     )
-    print(
-        recommendations[0:25].drop(
-            ["media_type", "id", "user_score", "popularity", "num_list_users", "rank"], axis=1
-        )
-    )
+    print(recommendations[0:25].drop(["media_type", "id", "user_score", "num_list_users"], axis=1))

@@ -109,9 +109,7 @@ class MyAnimeListProvider(provider.AbstractAnimeProvider):
 
     def get_seasonal_anime_list(self, year, season):
         query = f"{MAL_API_URL}/anime/season/{year}/{season}"
-        fields = (
-            "id,title,genres,media_type,studios,mean,num_list_users,my_list_status{status,score}",
-        )
+        fields = ("id,title,genres,media_type,studios,mean,num_list_users",)
         parameters = {"limit": 50, "nsfw": "true", "fields": fields}
 
         anime_list = request_anime_list(query, parameters)
@@ -137,12 +135,10 @@ class MyAnimeListProvider(provider.AbstractAnimeProvider):
         df["status"] = df["list_status"].apply(get_user_anime_status)
         df = df.drop("list_status", axis=1)
 
-        if "my_list_status" in df.columns:
-            df["user_score"] = df["my_list_status"].apply(get_user_score)
-            df["status"] = df["my_list_status"].apply(get_user_anime_status)
-            df = df.drop("my_list_status", axis=1)
-
         df = df.drop(["main_picture"], axis=1)
+
+        df.set_index("id")
+
         return df
 
     def get_genre_tags(self):

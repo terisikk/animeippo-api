@@ -34,7 +34,7 @@ class GenreSimilarityScorer(AbstractScorer):
         if self.weighted:
             averages = analysis.mean_score_for_categorical_values(compare_df, "genres")
             weights = scoring_target_df["genres"].apply(
-                analysis.weigh_by_user_score, args=(averages,)
+                analysis.weight_genres_by_user_score, args=(averages,)
             )
             scores = scores * weights
 
@@ -121,7 +121,9 @@ class StudioAverageScorer:
             averages = pd.Series(weights, index=averages.index)
 
         scores = pd.Series(
-            scoring_target_df["studios"].apply(analysis.weigh_by_user_score, args=(averages,)),
+            scoring_target_df["studios"].apply(
+                analysis.weight_studios_by_user_score, args=(averages,)
+            ),
             index=scoring_target_df.index,
         )
 

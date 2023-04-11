@@ -25,8 +25,21 @@ def mean_score_for_categorical_values(dataframe, field):
     return gdf.groupby(field)["user_score"].mean()
 
 
-def weigh_by_user_score(categoricals, averages):
+def weight_genres_by_user_score(categoricals, averages):
     mean = np.nanmean([averages.get(categorical, np.nan) for categorical in categoricals])
     mean = mean if not np.isnan(mean) else 0.0
 
     return mean
+
+
+def weight_studios_by_user_score(categoricals, averages):
+    mode = averages.mode()[0]
+
+    mean = np.nanmean([averages.get(categorical, mode) for categorical in categoricals])
+    mean = mean if not np.isnan(mean) else 0.0
+
+    return mean
+
+
+def fill_status_data_from_user_list(dataframe, user_dataframe):
+    dataframe["status"].update(user_dataframe["status"])
