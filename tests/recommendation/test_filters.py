@@ -49,6 +49,20 @@ def test_id_filter():
     assert filter.filter(original)["id"].tolist() == [2, 4]
 
 
+def test_status_filter():
+    original = pd.DataFrame(
+        {"status": ["dropped", "completed", "on_hold", "completed", "unwatched"]}
+    )
+
+    filter = filters.StatusFilter("completed")
+
+    assert filter.filter(original)["status"].tolist() == ["completed", "completed"]
+
+    filter.negative = True
+
+    assert filter.filter(original)["status"].tolist() == ["dropped", "on_hold", "unwatched"]
+
+
 def test_filters_work_with_lists():
     original = pd.DataFrame({"id": [1, 2, 3, 4]})
 

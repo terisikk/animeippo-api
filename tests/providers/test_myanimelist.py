@@ -1,4 +1,5 @@
 import pandas as pd
+import numpy as np
 
 from animeippo.providers import myanimelist
 from tests import test_data
@@ -48,12 +49,12 @@ def test_mal_seasonal_anime_list_can_be_fetched(requests_mock):
     season = "winter"
 
     url = f"{myanimelist.MAL_API_URL}/anime/season/{year}/{season}"
-    adapter = requests_mock.get(url, json=test_data.MAL_USER_LIST)  # nosec B113
+    adapter = requests_mock.get(url, json=test_data.MAL_SEASONAL_LIST)  # nosec B113
 
     animelist = provider.get_seasonal_anime_list(year, season)
 
     assert adapter.called
-    assert "Hellsing" in animelist["title"].values
+    assert "Shingeki no Kyojin: The Final Season" in animelist["title"].values
 
 
 def test_get_next_page_returns_succesfully():
@@ -130,8 +131,9 @@ def test_mal_genres_can_be_split():
 
 
 def test_genre_splitting_does_not_fail_with_invalid_data():
-    myanimelist.split_id_name_field(1.0)
     myanimelist.split_id_name_field(None)
+    myanimelist.split_id_name_field(1.0)
+    myanimelist.split_id_name_field([1.0])
 
 
 def test_user_score_can_be_extracted():
@@ -148,13 +150,27 @@ def test_user_score_extraction_does_not_fail_with_invalid_data():
     myanimelist.get_user_score(None)
 
 
+def test_anime_status_can_be_extracted():
+    original = {"score": 10, "status": "completed"}
+
+    expected = "completed"
+    actual = myanimelist.get_user_anime_status(original)
+
+    assert actual == expected
+
+
+def test_anime_status_extraction_does_not_fail_with_invalid_data():
+    myanimelist.get_user_anime_status(1.0)
+    myanimelist.get_user_anime_status(None)
+
+
 def test_user_score_cannot_be_zero():
     original = {"score": 0, "status": "completed"}
-    expected = None
+    expected = np.nan
 
     actual = myanimelist.get_user_score(original)
 
-    assert actual == expected
+    assert actual is expected
 
 
 def test_dataframe_can_be_constructed_from_mal():
@@ -177,3 +193,37 @@ def test_dataframe_can_be_constructed_from_mal():
         "Vampire",
     ]
     assert data.loc[1, "user_score"] == 8
+
+
+def test_dataframe_can_be_constructed_from_incomplete_data():
+    provider = myanimelist.MyAnimeListProvider()
+
+    animelist = [item for item in test_data.MAL_USER_LIST["data"]]
+
+    del animelist[0]["list_status"]
+    del animelist[1]["list_status"]
+
+    data = provider.transform_to_animeippo_format(animelist)
+
+    assert type(data) == pd.DataFrame
+    assert len(data) == 2
+    assert data.loc[1, "title"] == "Hellsing"
+    assert data.loc[1, "genres"] == [
+        "Action",
+        "Adult Cast",
+        "Gore",
+        "Horror",
+        "Seinen",
+        "Supernatural",
+        "Vampire",
+    ]
+    assert pd.isnull(data.loc[1, "user_score"])
+    assert "list_status" not in data.columns and "my_list_status" not in data.columns
+
+
+def test_asdf():
+    asdf = np.nan
+
+    assert pd.isnull(asdf)
+    assert pd.isnull(np.nan)
+    assert pd.isnull(None)

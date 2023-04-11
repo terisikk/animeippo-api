@@ -109,11 +109,10 @@ class MyAnimeListProvider(provider.AbstractAnimeProvider):
 
     def get_seasonal_anime_list(self, year, season):
         query = f"{MAL_API_URL}/anime/season/{year}/{season}"
-        parameters = {
-            "limit": 50,
-            "nsfw": "true",
-            "fields": "id,title,genres,media_type,studios,popularity,rank,mean,num_list_users,my_list_status{status,score}",
-        }
+        fields = (
+            "id,title,genres,media_type,studios,mean,num_list_users,my_list_status{status,score}",
+        )
+        parameters = {"limit": 50, "nsfw": "true", "fields": fields}
 
         anime_list = request_anime_list(query, parameters)
 
@@ -124,19 +123,19 @@ class MyAnimeListProvider(provider.AbstractAnimeProvider):
 
         for item in data:
             anime = item["node"]
+
             list_status = item.get("list_status", np.nan)
-            if list_status:
-                anime["list_status"] = list_status
+            anime["list_status"] = list_status
+
             anime_list.append(anime)
 
         df = pd.DataFrame(anime_list)
         df["genres"] = df["genres"].apply(split_id_name_field)
         df["studios"] = df["studios"].apply(split_id_name_field)
 
-        if "list_status" in df.columns:
-            df["user_score"] = df["list_status"].apply(get_user_score)
-            df["status"] = df["list_status"].apply(get_user_anime_status)
-            df = df.drop("list_status", axis=1)
+        df["user_score"] = df["list_status"].apply(get_user_score)
+        df["status"] = df["list_status"].apply(get_user_anime_status)
+        df = df.drop("list_status", axis=1)
 
         if "my_list_status" in df.columns:
             df["user_score"] = df["my_list_status"].apply(get_user_score)
@@ -197,13 +196,10 @@ def get_user_score(list_status):
     score = np.nan
 
     if list_status and isinstance(list_status, dict):
-        try:
-            score = list_status.get("score", np.nan)
+        score = list_status.get("score", np.nan)
 
-            if score == 0:
-                score = np.nan
-        except AttributeError as e:
-            print(f"Could not extract genres from {list_status}: {e}")
+        if score == 0:
+            score = np.nan
 
     return score
 
@@ -212,10 +208,7 @@ def get_user_anime_status(list_status):
     status = np.nan
 
     if list_status and isinstance(list_status, dict):
-        try:
-            status = list_status.get("status", np.nan)
-        except AttributeError as e:
-            print(f"Could not extract statuses from {list_status}: {e}")
+        status = list_status.get("status", np.nan)
 
     return status
 

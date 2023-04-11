@@ -93,6 +93,14 @@ MAL_SEASONAL_LIST = {
                     {"id": 5, "name": "Test Studio 2"},
                 ],
                 "media_type": "tv",
+                "my_list_status": {
+                    "status": "not_watched",
+                    "score": 0,
+                    "num_episodes_watched": 0,
+                    "is_rewatching": False,
+                    "updated_at": "2013-08-09T06:11:09+00:00",
+                    "tags": [],
+                },
             }
         },
         {
