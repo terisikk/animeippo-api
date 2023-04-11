@@ -100,7 +100,7 @@ class MyAnimeListProvider(provider.AbstractAnimeProvider):
         parameters = {
             "limit": 50,
             "nsfw": "true",
-            "fields": "id,title,genres,list_status{score,status},studios",
+            "fields": "id,title,genres,list_status{score,status},studios,rating{value}",
         }
 
         anime_list = request_anime_list(query, parameters)
@@ -109,7 +109,7 @@ class MyAnimeListProvider(provider.AbstractAnimeProvider):
 
     def get_seasonal_anime_list(self, year, season):
         query = f"{MAL_API_URL}/anime/season/{year}/{season}"
-        fields = ("id,title,genres,media_type,studios,mean,num_list_users",)
+        fields = ("id,title,genres,media_type,studios,mean,num_list_users,rating{value}",)
         parameters = {"limit": 50, "nsfw": "true", "fields": fields}
 
         anime_list = request_anime_list(query, parameters)
@@ -137,7 +137,7 @@ class MyAnimeListProvider(provider.AbstractAnimeProvider):
 
         df = df.drop(["main_picture"], axis=1)
 
-        df.set_index("id")
+        df = df.set_index("id")
 
         return df
 

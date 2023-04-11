@@ -57,7 +57,7 @@ class IdFilter(AbstractFilter):
         self.negative = negative
 
     def filter(self, dataframe):
-        mask = dataframe["id"].isin(self.ids)
+        mask = dataframe.index.isin(self.ids)
 
         if self.negative:
             mask = ~mask

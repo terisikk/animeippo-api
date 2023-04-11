@@ -38,15 +38,16 @@ def test_genre_filter():
 
 
 def test_id_filter():
-    original = pd.DataFrame({"id": [1, 2, 3, 4]})
+    original = pd.DataFrame({"id": [1, 2, 3, 4], "data": ["a", "b", "c", "d"]})
+    original = original.set_index("id")
 
     filter = filters.IdFilter(1, 3)
 
-    assert filter.filter(original)["id"].tolist() == [1, 3]
+    assert filter.filter(original).index.tolist() == [1, 3]
 
     filter.negative = True
 
-    assert filter.filter(original)["id"].tolist() == [2, 4]
+    assert filter.filter(original).index.tolist() == [2, 4]
 
 
 def test_status_filter():

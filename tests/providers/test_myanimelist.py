@@ -182,8 +182,8 @@ def test_dataframe_can_be_constructed_from_mal():
 
     assert type(data) == pd.DataFrame
     assert len(data) == 2
-    assert data.loc[1, "title"] == "Hellsing"
-    assert data.loc[1, "genres"] == [
+    assert data.iloc[1]["title"] == "Hellsing"
+    assert data.iloc[1]["genres"] == [
         "Action",
         "Adult Cast",
         "Gore",
@@ -192,7 +192,7 @@ def test_dataframe_can_be_constructed_from_mal():
         "Supernatural",
         "Vampire",
     ]
-    assert data.loc[1, "user_score"] == 8
+    assert data.iloc[1]["user_score"] == 8
 
 
 def test_dataframe_can_be_constructed_from_incomplete_data():
@@ -207,8 +207,8 @@ def test_dataframe_can_be_constructed_from_incomplete_data():
 
     assert type(data) == pd.DataFrame
     assert len(data) == 2
-    assert data.loc[1, "title"] == "Hellsing"
-    assert data.loc[1, "genres"] == [
+    assert data.iloc[1]["title"] == "Hellsing"
+    assert data.iloc[1]["genres"] == [
         "Action",
         "Adult Cast",
         "Gore",
@@ -217,13 +217,5 @@ def test_dataframe_can_be_constructed_from_incomplete_data():
         "Supernatural",
         "Vampire",
     ]
-    assert pd.isnull(data.loc[1, "user_score"])
+    assert pd.isnull(data.iloc[1]["user_score"])
     assert "list_status" not in data.columns
-
-
-def test_asdf():
-    asdf = np.nan
-
-    assert pd.isnull(asdf)
-    assert pd.isnull(np.nan)
-    assert pd.isnull(None)

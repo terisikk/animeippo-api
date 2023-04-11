@@ -9,7 +9,7 @@ def create_recommender():
     recommender = engine.AnimeRecommendationEngine(provider)
 
     scorers = [
-        # scoring.GenreAverageScorer(encoder),
+        scoring.GenreAverageScorer(encoder),
         # scoring.GenreSimilarityScorer(encoder, weighted=True),
         scoring.ClusterSimilarityScorer(encoder, weighted=True),
         # scoring.StudioCountScorer(),
