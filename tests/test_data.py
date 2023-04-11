@@ -93,14 +93,6 @@ MAL_SEASONAL_LIST = {
                     {"id": 5, "name": "Test Studio 2"},
                 ],
                 "media_type": "tv",
-                "my_list_status": {
-                    "status": "not_watched",
-                    "score": 0,
-                    "num_episodes_watched": 0,
-                    "is_rewatching": False,
-                    "updated_at": "2013-08-09T06:11:09+00:00",
-                    "tags": [],
-                },
             }
         },
         {
@@ -151,6 +143,7 @@ FORMATTED_MAL_USER_LIST = [
         ],
         "media_type": "tv",
         "score": 10,
+        "status": "completed",
     },
     {
         "id": 270,
@@ -171,6 +164,7 @@ FORMATTED_MAL_USER_LIST = [
         ],
         "media_type": "tv",
         "score": 8,
+        "status": "watching",
     },
 ]
 
@@ -191,6 +185,7 @@ FORMATTED_MAL_SEASONAL_LIST = [
             "Test Studio 2",
         ],
         "media_type": "tv",
+        "status": None,
     },
     {
         "id": 51535,
@@ -209,5 +204,6 @@ FORMATTED_MAL_SEASONAL_LIST = [
             "Test Studio 2",
         ],
         "media_type": "tv",
+        "status": None,
     },
 ]

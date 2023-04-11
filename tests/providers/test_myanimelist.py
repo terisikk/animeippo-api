@@ -218,7 +218,7 @@ def test_dataframe_can_be_constructed_from_incomplete_data():
         "Vampire",
     ]
     assert pd.isnull(data.loc[1, "user_score"])
-    assert "list_status" not in data.columns and "my_list_status" not in data.columns
+    assert "list_status" not in data.columns
 
 
 def test_asdf():

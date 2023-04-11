@@ -39,7 +39,7 @@ def test_similarity_weights():
         {"title": ["Hellsing", "Inuyasha"], "genres": [["Action", "Horror"], ["Action", "Romance"]]}
     )
 
-    weights = original["genres"].apply(analysis.weigh_by_user_score, args=(genre_averages,))
+    weights = original["genres"].apply(analysis.weight_genres_by_user_score, args=(genre_averages,))
 
     assert weights.tolist() == [8.5, 8.0]
 
@@ -49,7 +49,7 @@ def test_similarity_weight_ignores_genres_without_average():
 
     genres = ["Action", "Horror"]
 
-    weight = analysis.weigh_by_user_score(genres, genre_averages)
+    weight = analysis.weight_genres_by_user_score(genres, genre_averages)
 
     assert weight == 9.0
 
@@ -60,6 +60,6 @@ def test_similarity_weight_scores_genre_list_containing_only_unseen_genres_as_ze
 
     original = ["Action", "Horror"]
 
-    weight = analysis.weigh_by_user_score(original, genre_averages)
+    weight = analysis.weight_genres_by_user_score(original, genre_averages)
 
     assert weight == 0.0
