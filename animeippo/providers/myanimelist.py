@@ -2,6 +2,7 @@ import requests
 import dotenv
 import os
 import pandas as pd
+import numpy as np
 
 from . import provider
 
@@ -99,7 +100,7 @@ class MyAnimeListProvider(provider.AbstractAnimeProvider):
         parameters = {
             "limit": 50,
             "nsfw": "true",
-            "fields": "id,title,genres,list_status{score},studios",
+            "fields": "id,title,genres,list_status{score,status},studios",
         }
 
         anime_list = request_anime_list(query, parameters)
@@ -111,7 +112,7 @@ class MyAnimeListProvider(provider.AbstractAnimeProvider):
         parameters = {
             "limit": 50,
             "nsfw": "true",
-            "fields": "id,title,genres,media_type,studios,popularity,rank,mean,num_list_users",
+            "fields": "id,title,genres,media_type,studios,popularity,rank,mean,num_list_users,my_list_status{status,score}",
         }
 
         anime_list = request_anime_list(query, parameters)
@@ -123,16 +124,26 @@ class MyAnimeListProvider(provider.AbstractAnimeProvider):
 
         for item in data:
             anime = item["node"]
-            anime["list_status"] = item.get("list_status", None)
+            list_status = item.get("list_status", np.nan)
+            if list_status:
+                anime["list_status"] = list_status
             anime_list.append(anime)
 
         df = pd.DataFrame(anime_list)
         df["genres"] = df["genres"].apply(split_id_name_field)
         df["studios"] = df["studios"].apply(split_id_name_field)
 
-        df["user_score"] = df["list_status"].apply(get_user_score)
+        if "list_status" in df.columns:
+            df["user_score"] = df["list_status"].apply(get_user_score)
+            df["status"] = df["list_status"].apply(get_user_anime_status)
+            df = df.drop("list_status", axis=1)
 
-        df = df.drop(["main_picture", "list_status"], axis=1)
+        if "my_list_status" in df.columns:
+            df["user_score"] = df["my_list_status"].apply(get_user_score)
+            df["status"] = df["my_list_status"].apply(get_user_anime_status)
+            df = df.drop("my_list_status", axis=1)
+
+        df = df.drop(["main_picture"], axis=1)
         return df
 
     def get_genre_tags(self):
@@ -183,18 +194,30 @@ def request_anime_list(query, parameters):
 
 
 def get_user_score(list_status):
-    score = None
+    score = np.nan
 
-    if list_status:
+    if list_status and isinstance(list_status, dict):
         try:
-            score = list_status.get("score", None)
+            score = list_status.get("score", np.nan)
 
             if score == 0:
-                score = None
+                score = np.nan
         except AttributeError as e:
             print(f"Could not extract genres from {list_status}: {e}")
 
     return score
+
+
+def get_user_anime_status(list_status):
+    status = np.nan
+
+    if list_status and isinstance(list_status, dict):
+        try:
+            status = list_status.get("status", np.nan)
+        except AttributeError as e:
+            print(f"Could not extract statuses from {list_status}: {e}")
+
+    return status
 
 
 def split_id_name_field(field):
@@ -203,7 +226,8 @@ def split_id_name_field(field):
     if field:
         try:
             for item in field:
-                names.append(item.get("name", None))
+                if isinstance(item, dict):
+                    names.append(item.get("name", np.nan))
         except TypeError as e:
             print(f"Could not extract items from {field}: {e}")
 

@@ -173,6 +173,15 @@ class ClusterSimilarityScorer(AbstractScorer):
         return pdutil.normalize_column(scores.apply(np.max, axis=1))
 
 
+class PopularityScorer(AbstractScorer):
+    name = "popularityscorer"
+
+    def score(self, scoring_target_df, compare_df):
+        scores = scoring_target_df["num_list_users"]
+
+        return pdutil.normalize_column(scores)
+
+
 class CategoricalEncoder:
     def __init__(self, classes):
         self.classes = classes

@@ -37,6 +37,20 @@ class GenreFilter(AbstractFilter):
         return dataframe[mask]
 
 
+class StatusFilter(AbstractFilter):
+    def __init__(self, *statuses, negative=False):
+        self.statuses = statuses
+        self.negative = negative
+
+    def filter(self, dataframe):
+        mask = dataframe["status"].isin(self.statuses)
+
+        if self.negative:
+            mask = ~mask
+
+        return dataframe[mask]
+
+
 class IdFilter(AbstractFilter):
     def __init__(self, *ids, negative=False):
         self.ids = ids

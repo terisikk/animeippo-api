@@ -9,17 +9,22 @@ def create_recommender():
     recommender = engine.AnimeRecommendationEngine(provider)
 
     scorers = [
-        scoring.GenreAverageScorer(encoder),
-        scoring.GenreSimilarityScorer(encoder, weighted=True),
+        # scoring.GenreAverageScorer(encoder),
+        # scoring.GenreSimilarityScorer(encoder, weighted=True),
         scoring.ClusterSimilarityScorer(encoder, weighted=True),
-        scoring.StudioCountScorer(),
+        # scoring.StudioCountScorer(),
         scoring.StudioAverageScorer(weighted=True),
+        scoring.PopularityScorer(),
     ]
 
     for scorer in scorers:
         recommender.add_scorer(scorer)
 
-    recfilters = [filters.GenreFilter("Kids", negative=True), filters.MediaTypeFilter("tv")]
+    recfilters = [
+        filters.GenreFilter("Kids", negative=True),
+        filters.MediaTypeFilter("tv"),
+        filters.StatusFilter("dropped", "on_hold", negative=True),
+    ]
 
     for filter in recfilters:
         recommender.add_recommendation_filter(filter)
@@ -30,5 +35,11 @@ def create_recommender():
 if __name__ == "__main__":
     recommender = create_recommender()
 
-    recommendations = recommender.recommend_seasonal_anime_for_user("Nemoria", "2023", "winter")
-    print(recommendations[0:25].drop(["media_type", "id", "user_score"], axis=1))
+    recommendations = recommender.recommend_seasonal_anime_for_user(
+        "Janiskeisari", "2023", "winter"
+    )
+    print(
+        recommendations[0:25].drop(
+            ["media_type", "id", "user_score", "popularity", "num_list_users", "rank"], axis=1
+        )
+    )
