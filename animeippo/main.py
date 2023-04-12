@@ -24,6 +24,8 @@ def create_recommender():
         filters.GenreFilter("Kids", negative=True),
         filters.MediaTypeFilter("tv"),
         filters.StatusFilter("dropped", "on_hold", negative=True),
+        filters.RatingFilter("g", "rx", negative=True),
+        filters.StartSeasonFilter(("2023", "spring")),
     ]
 
     for filter in recfilters:

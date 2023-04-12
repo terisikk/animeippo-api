@@ -63,3 +63,31 @@ class IdFilter(AbstractFilter):
             mask = ~mask
 
         return dataframe[mask]
+
+
+class RatingFilter(AbstractFilter):
+    def __init__(self, *ratings, negative=False):
+        self.ratings = ratings
+        self.negative = negative
+
+    def filter(self, dataframe):
+        mask = dataframe["rating"].isin(self.ratings)
+
+        if self.negative:
+            mask = ~mask
+
+        return dataframe[mask]
+
+
+class StartSeasonFilter(AbstractFilter):
+    def __init__(self, *seasons, negative=False):
+        self.seasons = ["/".join(season) for season in seasons]
+        self.negative = negative
+
+    def filter(self, dataframe):
+        mask = dataframe["start_season"].isin(self.seasons)
+
+        if self.negative:
+            mask = ~mask
+
+        return dataframe[mask]

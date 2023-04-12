@@ -100,7 +100,7 @@ class MyAnimeListProvider(provider.AbstractAnimeProvider):
         parameters = {
             "limit": 50,
             "nsfw": "true",
-            "fields": "id,title,genres,list_status{score,status},studios,rating{value}",
+            "fields": "id,title,genres,list_status{score,status},studios,rating{value},start_season",
         }
 
         anime_list = request_anime_list(query, parameters)
@@ -109,8 +109,18 @@ class MyAnimeListProvider(provider.AbstractAnimeProvider):
 
     def get_seasonal_anime_list(self, year, season):
         query = f"{MAL_API_URL}/anime/season/{year}/{season}"
-        fields = ("id,title,genres,media_type,studios,mean,num_list_users,rating{value}",)
-        parameters = {"limit": 50, "nsfw": "true", "fields": fields}
+        fields = [
+            "id",
+            "title",
+            "genres",
+            "media_type",
+            "studios",
+            "mean",
+            "num_list_users",
+            "start_season",
+            "rating{value}",
+        ]
+        parameters = {"limit": 50, "nsfw": "true", "fields": ",".join(fields)}
 
         anime_list = request_anime_list(query, parameters)
 
@@ -130,6 +140,8 @@ class MyAnimeListProvider(provider.AbstractAnimeProvider):
         df = pd.DataFrame(anime_list)
         df["genres"] = df["genres"].apply(split_id_name_field)
         df["studios"] = df["studios"].apply(split_id_name_field)
+
+        df["start_season"] = df["start_season"].apply(split_season)
 
         df["user_score"] = df["list_status"].apply(get_user_score)
         df["status"] = df["list_status"].apply(get_user_anime_status)
@@ -221,3 +233,15 @@ def split_id_name_field(field):
             print(f"Could not extract items from {field}: {e}")
 
     return names
+
+
+def split_season(season_field):
+    season_ret = np.nan
+
+    if season_field and isinstance(season_field, dict):
+        year = season_field.get("year", "?")
+        season = season_field.get("season", "?")
+
+        season_ret = f"{year}/{season}"
+
+    return season_ret

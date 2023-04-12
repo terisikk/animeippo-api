@@ -160,8 +160,13 @@ def test_anime_status_can_be_extracted():
 
 
 def test_anime_status_extraction_does_not_fail_with_invalid_data():
-    myanimelist.get_user_anime_status(1.0)
-    myanimelist.get_user_anime_status(None)
+    assert pd.isnull(myanimelist.get_user_anime_status(1.0))
+    assert pd.isnull(myanimelist.get_user_anime_status(None))
+
+
+def test_anime_season_extraction_does_not_fail_with_invalid_data():
+    assert myanimelist.split_season({"year": None, "sesson": "winter"}) == "None/?"
+    assert pd.isnull(myanimelist.split_season(np.nan))
 
 
 def test_user_score_cannot_be_zero():

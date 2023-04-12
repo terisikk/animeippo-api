@@ -64,13 +64,37 @@ def test_status_filter():
     assert filter.filter(original)["status"].tolist() == ["dropped", "on_hold", "unwatched"]
 
 
-def test_filters_work_with_lists():
-    original = pd.DataFrame({"id": [1, 2, 3, 4]})
+def test_rating_filter():
+    original = pd.DataFrame({"rating": ["g", "r", "g", "pg_13", "r"]})
 
-    filter = filters.IdFilter(*[1, 3])
+    filter = filters.RatingFilter("g", "pg_13")
 
-    assert filter.filter(original)["id"].tolist() == [1, 3]
+    assert filter.filter(original)["rating"].tolist() == ["g", "g", "pg_13"]
 
     filter.negative = True
 
-    assert filter.filter(original)["id"].tolist() == [2, 4]
+    assert filter.filter(original)["rating"].tolist() == ["r", "r"]
+
+
+def test_season_filter():
+    original = pd.DataFrame({"start_season": ["2023/winter", "2023/winter", "2023/spring"]})
+
+    filter = filters.StartSeasonFilter(("2023", "winter"))
+
+    assert filter.filter(original)["start_season"].tolist() == ["2023/winter", "2023/winter"]
+
+    filter.negative = True
+
+    assert filter.filter(original)["start_season"].tolist() == ["2023/spring"]
+
+
+def test_filters_work_with_lists():
+    original = pd.DataFrame({"id": [1, 2, 3, 4], "data": ["a", "b", "c", "d"]}).set_index("id")
+
+    filter = filters.IdFilter(*[1, 3])
+
+    assert filter.filter(original).index.tolist() == [1, 3]
+
+    filter.negative = True
+
+    assert filter.filter(original).index.tolist() == [2, 4]
