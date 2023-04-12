@@ -3,7 +3,7 @@ from animeippo.recommendation.engine import AnimeRecommendationEngine
 
 
 def test_engine_can_be_created():
-    recommender = main.create_recommender()
+    recommender = main.create_recommender("2020", "winter")
 
     assert recommender is not None
     assert recommender.__class__ == AnimeRecommendationEngine

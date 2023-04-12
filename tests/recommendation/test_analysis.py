@@ -23,7 +23,7 @@ def test_genre_average_scores():
     original = pd.DataFrame(
         {
             "genres": [["Action"], ["Action", "Horror"], ["Action", "Horror", "Romance"]],
-            "user_score": [10, 10, 7],
+            "score": [10, 10, 7],
         }
     )
 

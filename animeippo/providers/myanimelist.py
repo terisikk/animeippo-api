@@ -97,11 +97,17 @@ MAL_GENRES = [
 class MyAnimeListProvider(provider.AbstractAnimeProvider):
     def get_user_anime_list(self, user_id):
         query = f"{MAL_API_URL}/users/{user_id}/animelist"
-        parameters = {
-            "limit": 50,
-            "nsfw": "true",
-            "fields": "id,title,genres,list_status{score,status},studios,rating{value},start_season",
-        }
+        fields = [
+            "id",
+            "title",
+            "genres",
+            "list_status{score,status}",
+            "studios",
+            "rating{value}",
+            "start_season",
+        ]
+
+        parameters = {"limit": 50, "nsfw": "true", "fields": ",".join(fields)}
 
         anime_list = request_anime_list(query, parameters)
 
@@ -117,8 +123,8 @@ class MyAnimeListProvider(provider.AbstractAnimeProvider):
             "studios",
             "mean",
             "num_list_users",
-            "start_season",
             "rating{value}",
+            "start_season",
         ]
         parameters = {"limit": 50, "nsfw": "true", "fields": ",".join(fields)}
 
@@ -127,31 +133,32 @@ class MyAnimeListProvider(provider.AbstractAnimeProvider):
         return self.transform_to_animeippo_format(anime_list)
 
     def transform_to_animeippo_format(self, data):
-        anime_list = []
+        df = pd.json_normalize(data["data"], max_level=1)
 
-        for item in data:
-            anime = item["node"]
+        for key, formatter in formatters.items():
+            if key in df.columns:
+                df[key] = df[key].apply(formatter)
 
-            list_status = item.get("list_status", np.nan)
-            anime["list_status"] = list_status
+        column_mapping = {}
 
-            anime_list.append(anime)
+        for key in df.columns:
+            new_key = key.split(".")[1]
+            column_mapping[key] = new_key
 
-        df = pd.DataFrame(anime_list)
-        df["genres"] = df["genres"].apply(split_id_name_field)
-        df["studios"] = df["studios"].apply(split_id_name_field)
+        df = df.rename(columns=column_mapping)
 
-        df["start_season"] = df["start_season"].apply(split_season)
+        dropped = [
+            "main_picture",
+            "num_episodes_watched",
+            "is_rewatching",
+            "updated_at",
+            "start_date",
+            "finish_date",
+        ]
 
-        df["user_score"] = df["list_status"].apply(get_user_score)
-        df["status"] = df["list_status"].apply(get_user_anime_status)
-        df = df.drop("list_status", axis=1)
+        df = df.drop(dropped, errors="ignore", axis=1)
 
-        df = df.drop(["main_picture"], axis=1)
-
-        df = df.set_index("id")
-
-        return df
+        return df.set_index("id")
 
     def get_genre_tags(self):
         return MAL_GENRES
@@ -191,34 +198,20 @@ def requests_get_all_pages(session, query, parameters):
 
 
 def request_anime_list(query, parameters):
-    anime_list = []
+    anime_list = {"data": []}
     with requests.Session() as session:
         for page in requests_get_all_pages(session, query, parameters):
             for item in page["data"]:
-                anime_list.append(item)
+                anime_list["data"].append(item)
 
     return anime_list
 
 
-def get_user_score(list_status):
-    score = np.nan
-
-    if list_status and isinstance(list_status, dict):
-        score = list_status.get("score", np.nan)
-
-        if score == 0:
-            score = np.nan
+def get_user_score(score):
+    if score == 0:
+        score = np.nan
 
     return score
-
-
-def get_user_anime_status(list_status):
-    status = np.nan
-
-    if list_status and isinstance(list_status, dict):
-        status = list_status.get("status", np.nan)
-
-    return status
 
 
 def split_id_name_field(field):
@@ -245,3 +238,11 @@ def split_season(season_field):
         season_ret = f"{year}/{season}"
 
     return season_ret
+
+
+formatters = {
+    "node.genres": split_id_name_field,
+    "node.studios": split_id_name_field,
+    "node.start_season": split_season,
+    "list_status.score": get_user_score,
+}

@@ -52,7 +52,7 @@ def test_genre_similarity_scorer_weighted():
         {
             "genres": [["Action", "Adventure"], ["Fantasy", "Adventure"]],
             "title": ["Bleach", "Fate/Zero"],
-            "user_score": [1, 10],
+            "score": [1, 10],
         }
     )
     target_df = pd.DataFrame(
@@ -85,7 +85,7 @@ def test_genre_average_scorer():
         {
             "genres": [["Action", "Adventure"], ["Fantasy", "Adventure"]],
             "title": ["Bleach", "Fate/Zero"],
-            "user_score": [1, 10],
+            "score": [1, 10],
         }
     )
     target_df = pd.DataFrame(
@@ -149,7 +149,7 @@ def test_cluster_similarity_scorer_weighted():
         {
             "genres": [["Action", "Adventure"], ["Fantasy", "Adventure"]],
             "title": ["Bleach", "Fate/Zero"],
-            "user_score": [10, 1],
+            "score": [10, 1],
             "cluster": [0, 1],
         }
     )
@@ -217,7 +217,7 @@ def test_studio_average_scorer():
         {
             "studios": [["MAPPA"], ["Bones"]],
             "title": ["Vinland Saga", "Fullmetal Alchemist: Brotherhood"],
-            "user_score": [10, 1],
+            "score": [10, 1],
         }
     )
     target_df = pd.DataFrame(
@@ -249,7 +249,7 @@ def test_studio_average_scorer_weighted():
         {
             "studios": [["MAPPA"], ["Bones"]],
             "title": ["Vinland Saga", "Fullmetal Alchemist: Brotherhood"],
-            "user_score": [10, 1],
+            "score": [10, 1],
         }
     )
     target_df = pd.DataFrame(

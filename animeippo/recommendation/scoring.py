@@ -152,7 +152,7 @@ class ClusterSimilarityScorer(AbstractScorer):
             )
 
             if self.weighted:
-                averages = cluster["user_score"].mean()
+                averages = cluster["score"].mean()
                 similarities = similarities * averages
                 sizeweights.append(np.sqrt(len(cluster)))
 

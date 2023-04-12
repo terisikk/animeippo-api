@@ -2,7 +2,7 @@ from animeippo.providers import myanimelist as mal
 from animeippo.recommendation import engine, filters, scoring
 
 
-def create_recommender():
+def create_recommender(year, season):
     provider = mal.MyAnimeListProvider()
     encoder = scoring.CategoricalEncoder(provider.get_genre_tags())
 
@@ -25,7 +25,7 @@ def create_recommender():
         filters.MediaTypeFilter("tv"),
         filters.StatusFilter("dropped", "on_hold", negative=True),
         filters.RatingFilter("g", "rx", negative=True),
-        filters.StartSeasonFilter(("2023", "spring")),
+        filters.StartSeasonFilter((year, season)),
     ]
 
     for filter in recfilters:
@@ -35,9 +35,10 @@ def create_recommender():
 
 
 if __name__ == "__main__":
-    recommender = create_recommender()
+    year = "2023"
+    season = "winter"
 
-    recommendations = recommender.recommend_seasonal_anime_for_user(
-        "Janiskeisari", "2023", "winter"
-    )
-    print(recommendations[0:25].drop(["media_type", "id", "user_score", "num_list_users"], axis=1))
+    recommender = create_recommender(year, season)
+
+    recommendations = recommender.recommend_seasonal_anime_for_user("Janiskeisari", year, season)
+    print(recommendations[0:25].drop(["media_type", "id", "num_list_users"], axis=1))

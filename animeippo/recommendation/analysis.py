@@ -22,7 +22,7 @@ def similarity_of_anime_lists(dataframe1, dataframe2, encoder):
 def mean_score_for_categorical_values(dataframe, field):
     gdf = dataframe.explode(field)
 
-    return gdf.groupby(field)["user_score"].mean()
+    return gdf.groupby(field)["score"].mean()
 
 
 def weight_genres_by_user_score(categoricals, averages):
@@ -42,4 +42,5 @@ def weight_studios_by_user_score(categoricals, averages):
 
 
 def fill_status_data_from_user_list(dataframe, user_dataframe):
+    dataframe["status"] = np.nan
     dataframe["status"].update(user_dataframe["status"])

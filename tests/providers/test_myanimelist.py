@@ -57,6 +57,14 @@ def test_mal_seasonal_anime_list_can_be_fetched(requests_mock):
     assert "Shingeki no Kyojin: The Final Season" in animelist["title"].values
 
 
+# def test_mal_anime_details_can_be_fetched():
+#   provider = myanimelist.MyAnimeListProvider()
+
+#    anime_id = 30
+
+#    details = provider.get_anime_details(anime_id)
+
+
 def test_get_next_page_returns_succesfully():
     response1 = ResponseStub({"data": [{"test": "test"}], "paging": {"next": "page2"}})
     response2 = ResponseStub({"data": [{"test2": "test2"}], "paging": {"next": "page3"}})
@@ -136,32 +144,9 @@ def test_genre_splitting_does_not_fail_with_invalid_data():
     myanimelist.split_id_name_field([1.0])
 
 
-def test_user_score_can_be_extracted():
-    original = {"score": 10, "status": "completed"}
-
-    expected = 10
-    actual = myanimelist.get_user_score(original)
-
-    assert actual == expected
-
-
 def test_user_score_extraction_does_not_fail_with_invalid_data():
     myanimelist.get_user_score(1.0)
     myanimelist.get_user_score(None)
-
-
-def test_anime_status_can_be_extracted():
-    original = {"score": 10, "status": "completed"}
-
-    expected = "completed"
-    actual = myanimelist.get_user_anime_status(original)
-
-    assert actual == expected
-
-
-def test_anime_status_extraction_does_not_fail_with_invalid_data():
-    assert pd.isnull(myanimelist.get_user_anime_status(1.0))
-    assert pd.isnull(myanimelist.get_user_anime_status(None))
 
 
 def test_anime_season_extraction_does_not_fail_with_invalid_data():
@@ -170,18 +155,17 @@ def test_anime_season_extraction_does_not_fail_with_invalid_data():
 
 
 def test_user_score_cannot_be_zero():
-    original = {"score": 0, "status": "completed"}
-    expected = np.nan
+    original = 0
 
     actual = myanimelist.get_user_score(original)
 
-    assert actual is expected
+    assert np.isnan(actual)
 
 
 def test_dataframe_can_be_constructed_from_mal():
     provider = myanimelist.MyAnimeListProvider()
 
-    animelist = [item for item in test_data.MAL_USER_LIST["data"]]
+    animelist = test_data.MAL_USER_LIST
 
     data = provider.transform_to_animeippo_format(animelist)
 
@@ -197,16 +181,16 @@ def test_dataframe_can_be_constructed_from_mal():
         "Supernatural",
         "Vampire",
     ]
-    assert data.iloc[1]["user_score"] == 8
+    assert data.iloc[1]["score"] == 8
 
 
 def test_dataframe_can_be_constructed_from_incomplete_data():
     provider = myanimelist.MyAnimeListProvider()
 
-    animelist = [item for item in test_data.MAL_USER_LIST["data"]]
+    animelist = test_data.MAL_USER_LIST
 
-    del animelist[0]["list_status"]
-    del animelist[1]["list_status"]
+    del animelist["data"][0]["list_status"]
+    del animelist["data"][1]["list_status"]
 
     data = provider.transform_to_animeippo_format(animelist)
 
@@ -222,5 +206,5 @@ def test_dataframe_can_be_constructed_from_incomplete_data():
         "Supernatural",
         "Vampire",
     ]
-    assert pd.isnull(data.iloc[1]["user_score"])
+    assert pd.isnull(data.iloc[1].get("score", np.nan))
     assert "list_status" not in data.columns
