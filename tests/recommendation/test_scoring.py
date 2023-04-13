@@ -95,9 +95,7 @@ def test_genre_average_scorer():
         }
     )
 
-    scorer = scoring.GenreAverageScorer(
-        scoring.CategoricalEncoder(["Action", "Adventure", "Fantasy"])
-    )
+    scorer = scoring.GenreAverageScorer()
 
     target_df["recommend_score"] = scorer.score(
         target_df,
@@ -228,38 +226,6 @@ def test_studio_average_scorer():
     )
 
     scorer = scoring.StudioAverageScorer()
-
-    target_df["recommend_score"] = scorer.score(
-        target_df,
-        source_df,
-    )
-
-    recommendations = target_df.sort_values("recommend_score", ascending=False)
-
-    expected = "Jujutsu Kaisen"
-    actual = recommendations.iloc[0]["title"]
-
-    assert actual == expected
-    assert "recommend_score" in recommendations.columns.tolist()
-    assert not recommendations["recommend_score"].isnull().values.any()
-
-
-def test_studio_average_scorer_weighted():
-    source_df = pd.DataFrame(
-        {
-            "studios": [["MAPPA"], ["Bones"]],
-            "title": ["Vinland Saga", "Fullmetal Alchemist: Brotherhood"],
-            "score": [10, 1],
-        }
-    )
-    target_df = pd.DataFrame(
-        {
-            "studios": [["Bones"], ["MAPPA"]],
-            "title": ["Bungou Stray Dogs", "Jujutsu Kaisen"],
-        }
-    )
-
-    scorer = scoring.StudioAverageScorer(weighted=True)
 
     target_df["recommend_score"] = scorer.score(
         target_df,

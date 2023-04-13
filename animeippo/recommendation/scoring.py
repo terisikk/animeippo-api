@@ -32,9 +32,9 @@ class GenreSimilarityScorer(AbstractScorer):
         scores = analysis.similarity_of_anime_lists(scoring_target_df, compare_df, self.encoder)
 
         if self.weighted:
-            averages = analysis.mean_score_for_categorical_values(compare_df, "genres")
+            averages = analysis.mean_score_per_categorical(compare_df, "genres")
             weights = scoring_target_df["genres"].apply(
-                analysis.weight_genres_by_user_score, args=(averages,)
+                analysis.weighted_mean_for_categorical_values, args=(averages,)
             )
             scores = scores * weights
 
@@ -44,87 +44,39 @@ class GenreSimilarityScorer(AbstractScorer):
 class GenreAverageScorer(AbstractScorer):
     name = "genreaveragescore"
 
-    def __init__(self, encoder):
-        self.encoder = encoder
-
     def score(self, scoring_target_df, compare_df):
-        averages = analysis.mean_score_for_categorical_values(compare_df, "genres")
-        averages = averages / 10
+        weights = analysis.weight_categoricals(compare_df, "genres")
 
-        weights = []
+        scores = scoring_target_df["genres"].apply(
+            analysis.weighted_mean_for_categorical_values, args=(weights,)
+        )
 
-        counts = compare_df.explode("genres")["genres"].value_counts()
-        counts = counts[counts.notnull()]
-
-        for i, average in averages.items():
-            weight = np.sqrt(counts[i])
-            weights.append(weight * average)
-
-        averages = pd.Series(weights, index=averages.index)
-
-        scores = scoring_target_df.apply(self.score_from_genres, axis=1, args=(averages,))
-
-        return pdutil.normalize_column(scores)
-
-    def score_from_genres(self, row, weighted_genre_scores):
-        score = 0.0
-
-        for genre in row["genres"]:
-            score += weighted_genre_scores.get(genre, 0)
-
-        return score / len(row["genres"])
+        return pdutil.normalize_column(pd.Series(scores))
 
 
-# This gives way too much zero. Replace with mean / mode?
+# This gives way too much zero. Replace with mean / mode or just use the better averagescorer.
 class StudioCountScorer(AbstractScorer):
     name = "studiocountscore"
 
     def score(self, scoring_target_df, compare_df):
         counts = compare_df.explode("studios")["studios"].value_counts()
-        scores = pd.Series(index=scoring_target_df.index, dtype=np.float64)
 
-        for i, row in scoring_target_df.iterrows():
-            max = 0
-
-            for studio in row["studios"]:
-                count = counts.get(studio, 0.0)
-                if count > max:
-                    max = count
-
-            scores.at[i] = max
+        scores = scoring_target_df.apply(self.max_studio_count, axis=1, args=(counts,))
 
         return pdutil.normalize_column(scores)
 
+    def max_studio_count(self, row, counts):
+        return np.max([counts.get(studio, 0.0) for studio in row["studios"]])
 
-# these seem to punish studios with unranked items, do like in animeplus and use mean for them
+
 class StudioAverageScorer:
     name = "studioaveragescore"
 
-    def __init__(self, weighted=False):
-        self.weighted = weighted
-
     def score(self, scoring_target_df, compare_df):
-        averages = analysis.mean_score_for_categorical_values(compare_df, "studios")
+        weights = analysis.weight_categoricals(compare_df, "studios")
 
-        averages = averages[averages.notnull()]
-
-        if self.weighted:
-            counts = compare_df.explode("studios")["studios"].value_counts()
-            counts = counts[counts.notnull()]
-
-            weights = []
-
-            for i, average in averages.items():
-                weight = np.sqrt(counts[i])
-                weights.append(weight * average)
-
-            averages = pd.Series(weights, index=averages.index)
-
-        scores = pd.Series(
-            scoring_target_df["studios"].apply(
-                analysis.weight_studios_by_user_score, args=(averages,)
-            ),
-            index=scoring_target_df.index,
+        scores = scoring_target_df["studios"].apply(
+            analysis.weighted_mean_for_categorical_values, args=(weights, weights.mode()[0])
         )
 
         return pdutil.normalize_column(scores)

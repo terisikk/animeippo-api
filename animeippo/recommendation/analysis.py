@@ -19,26 +19,27 @@ def similarity_of_anime_lists(dataframe1, dataframe2, encoder):
     return similarities
 
 
-def mean_score_for_categorical_values(dataframe, field):
-    gdf = dataframe.explode(field)
+def mean_score_per_categorical(dataframe, column):
+    gdf = dataframe.explode(column)
 
-    return gdf.groupby(field)["score"].mean()
-
-
-def weight_genres_by_user_score(categoricals, averages):
-    mean = np.nanmean([averages.get(categorical, np.nan) for categorical in categoricals])
-    mean = mean if not np.isnan(mean) else 0.0
-
-    return mean
+    return gdf.groupby(column)["score"].mean()
 
 
-def weight_studios_by_user_score(categoricals, averages):
-    mode = averages.mode()[0]
+def weighted_mean_for_categorical_values(categoricals, averages, fillna=0.0):
+    averages = averages.fillna(fillna)
+    return np.nanmean([averages.get(categorical, fillna) for categorical in categoricals])
 
-    mean = np.nanmean([averages.get(categorical, mode) for categorical in categoricals])
-    mean = mean if not np.isnan(mean) else 0.0
 
-    return mean
+def weight_categoricals(dataframe, column):
+    averages = mean_score_per_categorical(dataframe, column)
+    averages = averages / 10
+
+    weights = dataframe.explode(column)[column].value_counts()
+    weights = weights.apply(np.sqrt)
+
+    weights = weights * averages
+
+    return weights
 
 
 def fill_status_data_from_user_list(dataframe, user_dataframe):

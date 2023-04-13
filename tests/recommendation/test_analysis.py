@@ -27,7 +27,7 @@ def test_genre_average_scores():
         }
     )
 
-    avg = analysis.mean_score_for_categorical_values(original, "genres")
+    avg = analysis.mean_score_per_categorical(original, "genres")
 
     assert avg.tolist() == [9.0, 8.5, 7.0]
 
@@ -39,19 +39,21 @@ def test_similarity_weights():
         {"title": ["Hellsing", "Inuyasha"], "genres": [["Action", "Horror"], ["Action", "Romance"]]}
     )
 
-    weights = original["genres"].apply(analysis.weight_genres_by_user_score, args=(genre_averages,))
+    weights = original["genres"].apply(
+        analysis.weighted_mean_for_categorical_values, args=(genre_averages,)
+    )
 
     assert weights.tolist() == [8.5, 8.0]
 
 
-def test_similarity_weight_ignores_genres_without_average():
+def test_similarity_weight_uses_zero_to_subsitute_nan():
     genre_averages = pd.Series(data=[9.0], index=["Action"])
 
     genres = ["Action", "Horror"]
 
-    weight = analysis.weight_genres_by_user_score(genres, genre_averages)
+    weight = analysis.weighted_mean_for_categorical_values(genres, genre_averages)
 
-    assert weight == 9.0
+    assert weight == 4.5
 
 
 @pytest.mark.filterwarnings("ignore:Mean of empty slice:RuntimeWarning")
@@ -60,6 +62,6 @@ def test_similarity_weight_scores_genre_list_containing_only_unseen_genres_as_ze
 
     original = ["Action", "Horror"]
 
-    weight = analysis.weight_genres_by_user_score(original, genre_averages)
+    weight = analysis.weighted_mean_for_categorical_values(original, genre_averages)
 
     assert weight == 0.0
