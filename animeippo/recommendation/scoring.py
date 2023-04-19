@@ -5,7 +5,6 @@ import kmodes.kmodes as kmcluster
 import kmodes.util.dissim as kdissim
 import sklearn.preprocessing as skpre
 
-import animeippo.recommendation.util as pdutil
 
 from animeippo.recommendation import analysis
 
@@ -38,7 +37,7 @@ class GenreSimilarityScorer(AbstractScorer):
             )
             scores = scores * weights
 
-        return pdutil.normalize_column(scores)
+        return analysis.normalize_column(scores)
 
 
 class GenreAverageScorer(AbstractScorer):
@@ -51,7 +50,7 @@ class GenreAverageScorer(AbstractScorer):
             analysis.weighted_mean_for_categorical_values, args=(weights,)
         )
 
-        return pdutil.normalize_column(pd.Series(scores))
+        return analysis.normalize_column(scores)
 
 
 # This gives way too much zero. Replace with mean / mode or just use the better averagescorer.
@@ -63,7 +62,7 @@ class StudioCountScorer(AbstractScorer):
 
         scores = scoring_target_df.apply(self.max_studio_count, axis=1, args=(counts,))
 
-        return pdutil.normalize_column(scores)
+        return analysis.normalize_column(scores)
 
     def max_studio_count(self, row, counts):
         return np.max([counts.get(studio, 0.0) for studio in row["studios"]])
@@ -79,7 +78,7 @@ class StudioAverageScorer:
             analysis.weighted_mean_for_categorical_values, args=(weights, weights.mode()[0])
         )
 
-        return pdutil.normalize_column(scores)
+        return analysis.normalize_column(scores)
 
 
 class ClusterSimilarityScorer(AbstractScorer):
@@ -96,8 +95,6 @@ class ClusterSimilarityScorer(AbstractScorer):
 
         compare_df["cluster"] = self.model.fit_predict(self.encoder.encode(compare_df["genres"]))
 
-        sizeweights = []
-
         for cluster_id, cluster in compare_df.groupby("cluster"):
             similarities = analysis.similarity_of_anime_lists(
                 scoring_target_df, cluster, self.encoder
@@ -106,15 +103,14 @@ class ClusterSimilarityScorer(AbstractScorer):
             if self.weighted:
                 averages = cluster["score"].mean()
                 similarities = similarities * averages
-                sizeweights.append(np.sqrt(len(cluster)))
 
-            scores["cluster_" + str(cluster_id)] = similarities
+            scores[cluster_id] = similarities
 
         if self.weighted:
-            sizeweights /= np.sum(sizeweights)
-            scores = scores.mul(sizeweights, axis=1)
+            weights = np.sqrt(compare_df["cluster"].value_counts())
+            scores = scores * weights
 
-        return pdutil.normalize_column(scores.apply(np.max, axis=1))
+        return analysis.normalize_column(scores.apply(np.max, axis=1))
 
 
 class PopularityScorer(AbstractScorer):
@@ -123,7 +119,7 @@ class PopularityScorer(AbstractScorer):
     def score(self, scoring_target_df, compare_df):
         scores = scoring_target_df["num_list_users"]
 
-        return pdutil.normalize_column(scores)
+        return analysis.normalize_column(scores)
 
 
 class CategoricalEncoder:

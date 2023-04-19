@@ -2,16 +2,6 @@ import animeippo.recommendation.util as pdutil
 import pandas as pd
 import numpy as np
 
-from animeippo.providers import myanimelist
-
-
-# TODO: Test actual encoding
-def test_one_hot_genre():
-    df = pd.DataFrame({"genres": [["Action", "Drama", "Horror"], ["Action", "Shounen", "Romance"]]})
-    actual = pdutil.one_hot_categorical(df["genres"], myanimelist.MAL_GENRES)
-
-    assert actual[0].size == len(myanimelist.MAL_GENRES)
-
 
 def test_calculate_residuals():
     expected = np.array([np.sqrt(10)])

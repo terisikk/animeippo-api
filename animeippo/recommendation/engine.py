@@ -3,10 +3,10 @@ from . import filters, analysis
 
 
 class AnimeRecommendationEngine:
-    def __init__(self, provider):
+    def __init__(self, provider, filters=None, scorers=None):
         self.provider = provider
-        self.scorers = []
-        self.rec_filters = []
+        self.scorers = scorers or []
+        self.rec_filters = filters or []
 
     def recommend_seasonal_anime_for_user(self, user, year, season):
         seasonal_anime = self.provider.get_seasonal_anime_list(year, season)

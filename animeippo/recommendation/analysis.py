@@ -1,6 +1,7 @@
 import pandas as pd
 import numpy as np
 import scipy.spatial.distance as scdistance
+import sklearn.preprocessing as skpre
 
 
 def similarity(x_orig, y_orig, metric="jaccard"):
@@ -34,8 +35,7 @@ def weight_categoricals(dataframe, column):
     averages = mean_score_per_categorical(dataframe, column)
     averages = averages / 10
 
-    weights = dataframe.explode(column)[column].value_counts()
-    weights = weights.apply(np.sqrt)
+    weights = np.sqrt(dataframe.explode(column)[column].value_counts())
 
     weights = weights * averages
 
@@ -45,3 +45,8 @@ def weight_categoricals(dataframe, column):
 def fill_status_data_from_user_list(dataframe, user_dataframe):
     dataframe["status"] = np.nan
     dataframe["status"].update(user_dataframe["status"])
+
+
+def normalize_column(df_column):
+    shaped = df_column.to_numpy().reshape(-1, 1)
+    return pd.DataFrame(skpre.MinMaxScaler().fit_transform(shaped), index=df_column.index)
