@@ -20,3 +20,7 @@ class AbstractAnimeProvider(abc.ABC):
     @abc.abstractmethod
     def get_genre_tags(self):
         pass
+
+    @abc.abstractmethod
+    def get_related_anime(self, id):
+        pass

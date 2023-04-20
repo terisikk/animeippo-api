@@ -20,11 +20,15 @@ def test_new_provider_can_be_instantiated():
         def get_genre_tags(self):
             super().get_genre_tags()
 
+        def get_related_anime(self, id):
+            super().get_related_anime(id)
+
     actual = ConcreteAnimeProvider()
     actual.get_user_anime_list(None)
     actual.get_seasonal_anime_list(None, None)
     actual.transform_to_animeippo_format(None)
     actual.get_genre_tags()
+    actual.get_related_anime(None)
 
     assert issubclass(actual.__class__, provider.AbstractAnimeProvider)
 

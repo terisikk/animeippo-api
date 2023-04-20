@@ -18,6 +18,16 @@ class AnimeRecommendationEngine:
 
         seasonal_anime_filtered = pd.DataFrame(self.filter_anime(seasonal_anime))
 
+        related_anime = []
+        for i, row in seasonal_anime_filtered.iterrows():
+            related_anime.append(self.provider.get_related_anime(i))
+
+        seasonal_anime_filtered["related_anime"] = related_anime
+
+        seasonal_anime_filtered = filters.ContinuationFilter(user_anime).filter(
+            seasonal_anime_filtered
+        )
+
         recommendations = self.score_anime(seasonal_anime_filtered, user_anime_filtered)
 
         return recommendations.sort_values("recommend_score", ascending=False).reset_index()

@@ -91,3 +91,23 @@ class StartSeasonFilter(AbstractFilter):
             mask = ~mask
 
         return dataframe[mask]
+
+
+class ContinuationFilter(AbstractFilter):
+    def __init__(self, compare_df, negative=False):
+        self.compare_df = compare_df
+        self.negative = negative
+
+    def filter(self, dataframe):
+        ids = self.compare_df.index.values
+
+        mask = dataframe.apply(
+            lambda row: any([i in row["related_anime"] for i in ids])
+            or len(row["related_anime"]) == 0,
+            axis=1,
+        )
+
+        if self.negative:
+            mask = ~mask
+
+        return dataframe[mask]

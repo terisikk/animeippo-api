@@ -3,6 +3,7 @@ import dotenv
 import os
 import pandas as pd
 import numpy as np
+import contextlib
 
 from . import provider
 
@@ -94,6 +95,12 @@ MAL_GENRES = [
 ]
 
 
+@contextlib.contextmanager
+def mal_session():
+    with requests.Session() as session:
+        yield session
+
+
 class MyAnimeListProvider(provider.AbstractAnimeProvider):
     def get_user_anime_list(self, user_id):
         query = f"{MAL_API_URL}/users/{user_id}/animelist"
@@ -132,6 +139,33 @@ class MyAnimeListProvider(provider.AbstractAnimeProvider):
 
         return self.transform_to_animeippo_format(anime_list)
 
+    def get_genre_tags(self):
+        return MAL_GENRES
+
+    def get_related_anime(self, anime_id):
+        query = f"{MAL_API_URL}/anime/{anime_id}"
+
+        fields = [
+            "id",
+            "title",
+            "source",
+            "related_anime",
+        ]
+        parameters = {"fields": ",".join(fields)}
+
+        anime_list = request_related_anime(query, parameters)
+
+        meaningful_relations = ["parent_story", "prequel"]
+
+        related_anime = pd.DataFrame()
+
+        if len(anime_list["data"]) > 0:
+            related_anime = self.transform_to_animeippo_format(anime_list)
+
+            related_anime = related_anime[related_anime["relation_type"].isin(meaningful_relations)]
+
+        return related_anime.index.tolist()
+
     def transform_to_animeippo_format(self, data):
         df = pd.json_normalize(data["data"], max_level=1)
 
@@ -142,8 +176,9 @@ class MyAnimeListProvider(provider.AbstractAnimeProvider):
         column_mapping = {}
 
         for key in df.columns:
-            new_key = key.split(".")[1]
-            column_mapping[key] = new_key
+            if "." in key:
+                new_key = key.split(".")[-1]
+                column_mapping[key] = new_key
 
         df = df.rename(columns=column_mapping)
 
@@ -158,10 +193,12 @@ class MyAnimeListProvider(provider.AbstractAnimeProvider):
 
         df = df.drop(dropped, errors="ignore", axis=1)
 
-        return df.set_index("id")
+        df["related_anime"] = np.empty((len(df.index), 0)).tolist()
 
-    def get_genre_tags(self):
-        return MAL_GENRES
+        if "id" in df.columns:
+            df = df.set_index("id")
+
+        return df
 
 
 def requests_get_next_page(session, page):
@@ -199,12 +236,30 @@ def requests_get_all_pages(session, query, parameters):
 
 def request_anime_list(query, parameters):
     anime_list = {"data": []}
-    with requests.Session() as session:
+    with mal_session() as session:
         for page in requests_get_all_pages(session, query, parameters):
             for item in page["data"]:
                 anime_list["data"].append(item)
 
-    return anime_list
+        return anime_list
+
+
+def request_related_anime(query, parameters):
+    anime = {"data": []}
+
+    with mal_session() as session:
+        response = session.get(
+            query,
+            headers=HEADERS,
+            timeout=REQUEST_TIMEOUT,
+            params=parameters,
+        )
+
+        response.raise_for_status()
+        details = response.json()
+        anime["data"] = details["related_anime"]
+
+    return anime
 
 
 def get_user_score(score):

@@ -36,9 +36,9 @@ def create_recommender(year, season):
 
 if __name__ == "__main__":
     year = "2023"
-    season = "spring"
+    season = "winter"
 
     recommender = create_recommender(year, season)
 
-    recommendations = recommender.recommend_seasonal_anime_for_user("Janiskeisari", year, season)
+    recommendations = recommender.recommend_seasonal_anime_for_user("Nemoria", year, season)
     print(recommendations[0:25].drop(["media_type", "id", "studios", "num_list_users"], axis=1))

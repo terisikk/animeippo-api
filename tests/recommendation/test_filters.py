@@ -88,6 +88,30 @@ def test_season_filter():
     assert filter.filter(original)["start_season"].tolist() == ["2023/spring"]
 
 
+def test_continuation_filter():
+    compare = pd.DataFrame(
+        {"id": [1, 2, 3, 4], "title": ["Anime A", "Anime B", "Anime B Spinoff", "Anime C"]}
+    )
+    compare = compare.set_index("id")
+
+    filter = filters.ContinuationFilter(compare)
+
+    original = pd.DataFrame(
+        {
+            "id": [5, 6, 7, 8],
+            "title": ["Anime A Season 2", "Anime E Season 2", "Anime B Season 2", "Anime F"],
+            "related_anime": [[1], [9], [2, 3], []],
+        }
+    )
+    original = original.set_index("id")
+
+    assert filter.filter(original).index.tolist() == [5, 7, 8]
+
+    filter.negative = True
+
+    assert filter.filter(original).index.tolist() == [6]
+
+
 def test_filters_work_with_lists():
     original = pd.DataFrame({"id": [1, 2, 3, 4], "data": ["a", "b", "c", "d"]}).set_index("id")
 

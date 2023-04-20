@@ -219,3 +219,22 @@ FORMATTED_MAL_SEASONAL_LIST = [
         "start_season": "2022/fall",
     },
 ]
+
+MAL_RELATED_ANIME = {
+    "id": 30,
+    "title": "Neon Genesis Evangelion",
+    "main_picture": {
+        "medium": "https://api-cdn.myanimelist.net/images/anime/1314/108941.jpg",
+        "large": "https://api-cdn.myanimelist.net/images/anime/1314/108941l.jpg",
+    },
+    "related_anime": [
+        {
+            "node": {
+                "id": 31,
+                "title": "Neon Genesis Evangelion Season 0",
+            },
+            "relation_type": "prequel",
+            "relation_type_formatted": "prequel",
+        }
+    ],
+}

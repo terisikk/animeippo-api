@@ -57,12 +57,32 @@ def test_mal_seasonal_anime_list_can_be_fetched(requests_mock):
     assert "Shingeki no Kyojin: The Final Season" in animelist["title"].values
 
 
-# def test_mal_anime_details_can_be_fetched():
-#   provider = myanimelist.MyAnimeListProvider()
+def test_mal_related_anime_can_be_fetched(requests_mock):
+    provider = myanimelist.MyAnimeListProvider()
 
-#    anime_id = 30
+    anime_id = 30
 
-#    details = provider.get_anime_details(anime_id)
+    url = f"{myanimelist.MAL_API_URL}/anime/{anime_id}"
+    adapter = requests_mock.get(url, json=test_data.MAL_RELATED_ANIME)  # nosec B113
+
+    details = provider.get_related_anime(anime_id)
+
+    assert adapter.called
+    assert details == [31]
+
+
+def test_mal_related_anime_does_not_fail_with_invalid_data(requests_mock):
+    provider = myanimelist.MyAnimeListProvider()
+
+    anime_id = 30
+
+    url = f"{myanimelist.MAL_API_URL}/anime/{anime_id}"
+    adapter = requests_mock.get(url, json={"related_anime": []})  # nosec B113
+
+    details = provider.get_related_anime(anime_id)
+
+    assert adapter.called
+    assert details == []
 
 
 def test_get_next_page_returns_succesfully():
@@ -191,6 +211,8 @@ def test_dataframe_can_be_constructed_from_incomplete_data():
 
     del animelist["data"][0]["list_status"]
     del animelist["data"][1]["list_status"]
+    del animelist["data"][0]["node"]["id"]
+    del animelist["data"][1]["node"]["id"]
 
     data = provider.transform_to_animeippo_format(animelist)
 

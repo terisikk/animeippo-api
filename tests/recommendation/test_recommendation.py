@@ -16,6 +16,9 @@ class ProviderStub:
     def get_user_anime_list(self, *args, **kwargs):
         return pd.DataFrame(test_data.FORMATTED_MAL_USER_LIST)
 
+    def get_related_anime(self, *args, **kwargs):
+        return []
+
 
 def test_recommend_seasonal_anime_for_user_by_genre():
     user = "Janiskeisari"

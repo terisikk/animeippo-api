@@ -5,7 +5,6 @@ import kmodes.kmodes as kmcluster
 import kmodes.util.dissim as kdissim
 import sklearn.preprocessing as skpre
 
-
 from animeippo.recommendation import analysis
 
 
