@@ -90,7 +90,11 @@ def test_season_filter():
 
 def test_continuation_filter():
     compare = pd.DataFrame(
-        {"id": [1, 2, 3, 4], "title": ["Anime A", "Anime B", "Anime B Spinoff", "Anime C"]}
+        {
+            "id": [1, 2, 3, 4],
+            "title": ["Anime A", "Anime B", "Anime B Spinoff", "Anime C"],
+            "status": ["completed", "completed", "completed", "completed"],
+        }
     )
     compare = compare.set_index("id")
 

@@ -5,6 +5,8 @@ import pandas as pd
 import numpy as np
 import contextlib
 
+from functools import lru_cache
+
 from . import provider
 
 dotenv.load_dotenv("conf/prod.env")
@@ -102,6 +104,7 @@ def mal_session():
 
 
 class MyAnimeListProvider(provider.AbstractAnimeProvider):
+    @lru_cache(maxsize=10)
     def get_user_anime_list(self, user_id):
         query = f"{MAL_API_URL}/users/{user_id}/animelist"
         fields = [
@@ -120,6 +123,7 @@ class MyAnimeListProvider(provider.AbstractAnimeProvider):
 
         return self.transform_to_animeippo_format(anime_list)
 
+    @lru_cache(maxsize=10)
     def get_seasonal_anime_list(self, year, season):
         query = f"{MAL_API_URL}/anime/season/{year}/{season}"
         fields = [
@@ -142,6 +146,7 @@ class MyAnimeListProvider(provider.AbstractAnimeProvider):
     def get_genre_tags(self):
         return MAL_GENRES
 
+    @lru_cache(maxsize=128)
     def get_related_anime(self, anime_id):
         query = f"{MAL_API_URL}/anime/{anime_id}"
 
@@ -183,7 +188,6 @@ class MyAnimeListProvider(provider.AbstractAnimeProvider):
         df = df.rename(columns=column_mapping)
 
         dropped = [
-            "main_picture",
             "num_episodes_watched",
             "is_rewatching",
             "updated_at",

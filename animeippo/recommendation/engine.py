@@ -16,6 +16,7 @@ class AnimeRecommendationEngine:
 
         user_anime_filtered = filters.IdFilter(*seasonal_anime, negative=True).filter(user_anime)
 
+        self.add_recommendation_filter(filters.StartSeasonFilter((year, season)))
         seasonal_anime_filtered = pd.DataFrame(self.filter_anime(seasonal_anime))
 
         related_anime = []
@@ -30,7 +31,7 @@ class AnimeRecommendationEngine:
 
         recommendations = self.score_anime(seasonal_anime_filtered, user_anime_filtered)
 
-        return recommendations.sort_values("recommend_score", ascending=False).reset_index()
+        return recommendations.sort_values("recommend_score", ascending=False)
 
     def filter_anime(self, anime):
         filtered_df = anime
