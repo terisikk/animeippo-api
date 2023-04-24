@@ -1,9 +1,8 @@
 import abc
 import numpy as np
 import pandas as pd
-import kmodes.kmodes as kmcluster
-import kmodes.util.dissim as kdissim
 import sklearn.preprocessing as skpre
+import sklearn.cluster as skcluster
 
 from animeippo.recommendation import analysis
 
@@ -39,6 +38,7 @@ class GenreSimilarityScorer(AbstractScorer):
         return analysis.normalize_column(scores)
 
 
+# Better than GenreSimilarityScorer
 class GenreAverageScorer(AbstractScorer):
     name = "genreaveragescore"
 
@@ -64,6 +64,9 @@ class StudioCountScorer(AbstractScorer):
         return analysis.normalize_column(scores)
 
     def max_studio_count(self, row, counts):
+        if len(row["studios"]) == 0:
+            return 0.0
+
         return np.max([counts.get(studio, 0.0) for studio in row["studios"]])
 
 
@@ -83,8 +86,10 @@ class StudioAverageScorer:
 class ClusterSimilarityScorer(AbstractScorer):
     name = "clusterscore"
 
-    def __init__(self, encoder, clusters=10, weighted=False):
-        self.model = kmcluster.KModes(n_clusters=clusters, cat_dissim=kdissim.ng_dissim, n_init=50)
+    def __init__(self, encoder, weighted=False):
+        self.model = skcluster.AgglomerativeClustering(
+            n_clusters=None, metric="precomputed", linkage="average", distance_threshold=0.8
+        )
 
         self.weighted = weighted
         self.encoder = encoder
@@ -92,7 +97,10 @@ class ClusterSimilarityScorer(AbstractScorer):
     def score(self, scoring_target_df, compare_df):
         scores = pd.DataFrame(index=scoring_target_df.index)
 
-        compare_df["cluster"] = self.model.fit_predict(self.encoder.encode(compare_df["genres"]))
+        encoded = self.encoder.encode(compare_df["genres"])
+        distances = pd.DataFrame(1 - analysis.similarity(encoded, encoded), index=compare_df.index)
+
+        compare_df["cluster"] = self.model.fit_predict(distances)
 
         for cluster_id, cluster in compare_df.groupby("cluster"):
             similarities = analysis.similarity_of_anime_lists(
@@ -113,7 +121,7 @@ class ClusterSimilarityScorer(AbstractScorer):
 
 
 class PopularityScorer(AbstractScorer):
-    name = "popularityscorer"
+    name = "popularityscore"
 
     def score(self, scoring_target_df, compare_df):
         scores = scoring_target_df["num_list_users"]

@@ -97,7 +97,7 @@ MAL_SEASONAL_LIST = {
                     {"id": 5, "name": "Test Studio 2"},
                 ],
                 "media_type": "tv",
-                "start_season": {"year": 2020, "season": "winter"},
+                "start_season": {"year": 2023, "season": "winter"},
                 "rating": "r+",
             }
         },
@@ -123,7 +123,7 @@ MAL_SEASONAL_LIST = {
                     {"id": 5, "name": "Test Studio 2"},
                 ],
                 "media_type": "tv",
-                "start_season": {"year": 2022, "season": "fall"},
+                "start_season": {"year": 2023, "season": "winter"},
                 "rating": "r",
             }
         },
@@ -196,7 +196,7 @@ FORMATTED_MAL_SEASONAL_LIST = [
         ],
         "media_type": "tv",
         "status": None,
-        "start_season": "2020/winter",
+        "start_season": "2023/winter",
     },
     {
         "id": 51535,
@@ -216,7 +216,7 @@ FORMATTED_MAL_SEASONAL_LIST = [
         ],
         "media_type": "tv",
         "status": None,
-        "start_season": "2022/fall",
+        "start_season": "2023/winter",
     },
 ]
 

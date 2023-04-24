@@ -116,7 +116,6 @@ def test_cluster_similarity_scorer():
         {
             "genres": [["Action", "Adventure"], ["Action", "Fantasy"]],
             "title": ["Bleach", "Fate/Zero"],
-            "cluster": [0, 1],
         }
     )
     target_df = pd.DataFrame(
@@ -124,7 +123,7 @@ def test_cluster_similarity_scorer():
     )
 
     scorer = scoring.ClusterSimilarityScorer(
-        scoring.CategoricalEncoder(["Action", "Adventure", "Fantasy", "Romance", "Comedy"]), 2
+        scoring.CategoricalEncoder(["Action", "Adventure", "Fantasy", "Romance", "Comedy"])
     )
 
     target_df["recommend_score"] = scorer.score(
@@ -148,7 +147,6 @@ def test_cluster_similarity_scorer_weighted():
             "genres": [["Action", "Adventure"], ["Fantasy", "Adventure"]],
             "title": ["Bleach", "Fate/Zero"],
             "score": [10, 1],
-            "cluster": [0, 1],
         }
     )
     target_df = pd.DataFrame(
@@ -160,7 +158,6 @@ def test_cluster_similarity_scorer_weighted():
 
     scorer = scoring.ClusterSimilarityScorer(
         scoring.CategoricalEncoder(["Action", "Adventure", "Fantasy", "Romance", "Comedy"]),
-        2,
         weighted=True,
     )
 
@@ -171,7 +168,7 @@ def test_cluster_similarity_scorer_weighted():
 
     recommendations = target_df.sort_values("recommend_score", ascending=False)
 
-    expected = "Naruto"
+    expected = "Inuyasha"
     actual = recommendations.iloc[0]["title"]
 
     assert actual == expected
@@ -206,6 +203,33 @@ def test_studio_count_scorer():
     actual = recommendations.iloc[0]["title"]
 
     assert actual == expected
+    assert "recommend_score" in recommendations.columns.tolist()
+    assert not recommendations["recommend_score"].isnull().values.any()
+
+
+def test_studio_count_scorer_does_not_fail_with_zero_studios():
+    source_df = pd.DataFrame(
+        {
+            "studios": [["MAPPA"], ["Kinema Citrus", "GIFTanimation", "Studio Jemi"]],
+            "title": ["Vinland Saga", "Cardfight!! Vanguard"],
+        }
+    )
+    target_df = pd.DataFrame(
+        {
+            "studios": [[], ["MAPPA"]],
+            "title": ["Bungou Stray Dogs", "Jujutsu Kaisen"],
+        }
+    )
+
+    scorer = scoring.StudioCountScorer()
+
+    target_df["recommend_score"] = scorer.score(
+        target_df,
+        source_df,
+    )
+
+    recommendations = target_df.sort_values("recommend_score", ascending=False)
+
     assert "recommend_score" in recommendations.columns.tolist()
     assert not recommendations["recommend_score"].isnull().values.any()
 

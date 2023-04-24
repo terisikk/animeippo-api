@@ -11,10 +11,10 @@ from tests import test_data
 # Figure out how to provide correct data from this, mal data is not formatted
 class ProviderStub:
     def get_seasonal_anime_list(self, *args, **kwargs):
-        return pd.DataFrame(test_data.FORMATTED_MAL_SEASONAL_LIST)
+        return pd.DataFrame(test_data.FORMATTED_MAL_SEASONAL_LIST).set_index("id")
 
     def get_user_anime_list(self, *args, **kwargs):
-        return pd.DataFrame(test_data.FORMATTED_MAL_USER_LIST)
+        return pd.DataFrame(test_data.FORMATTED_MAL_USER_LIST).set_index("id")
 
     def get_related_anime(self, *args, **kwargs):
         return []
@@ -45,7 +45,7 @@ def test_recommend_seasonal_anime_for_user_by_cluster():
     season = "winter"
 
     encoder = scoring.CategoricalEncoder(mal.MAL_GENRES)
-    scorer = scoring.ClusterSimilarityScorer(encoder, clusters=2)
+    scorer = scoring.ClusterSimilarityScorer(encoder)
 
     recengine = engine.AnimeRecommendationEngine(ProviderStub())
     recengine.add_scorer(scorer)
@@ -64,7 +64,7 @@ def test_filters_work():
     season = "winter"
 
     encoder = scoring.CategoricalEncoder(mal.MAL_GENRES)
-    scorer = scoring.ClusterSimilarityScorer(encoder, clusters=2)
+    scorer = scoring.ClusterSimilarityScorer(encoder)
     recengine = engine.AnimeRecommendationEngine(ProviderStub())
 
     recengine.add_scorer(scorer)

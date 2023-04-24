@@ -3,4 +3,6 @@
 
 Cannot process people with no scores added
 
-flask --app animeippo.main run --host 0.0.0.0
+# How to run locally
+
+flask --app app run --host 0.0.0.0

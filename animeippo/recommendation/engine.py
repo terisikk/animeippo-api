@@ -14,7 +14,9 @@ class AnimeRecommendationEngine:
 
         analysis.fill_status_data_from_user_list(seasonal_anime, user_anime)
 
-        user_anime_filtered = filters.IdFilter(*seasonal_anime, negative=True).filter(user_anime)
+        user_anime_filtered = filters.IdFilter(
+            *seasonal_anime.index.to_list(), negative=True
+        ).filter(user_anime)
 
         self.add_recommendation_filter(filters.StartSeasonFilter((year, season)))
         seasonal_anime_filtered = pd.DataFrame(self.filter_anime(seasonal_anime))
