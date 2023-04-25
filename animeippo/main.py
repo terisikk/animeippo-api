@@ -1,13 +1,10 @@
 from animeippo.providers import myanimelist as mal
-from animeippo.recommendation import engine, filters, scoring
+from animeippo.recommendation import engine, filters, scoring, dataset
 from animeippo.cache import redis_cache
 
 
-def create_recommender():
-    provider = mal.MyAnimeListProvider(cache=redis_cache.RedisCache())
-    encoder = scoring.CategoricalEncoder(provider.get_genre_tags())
-
-    recommender = engine.AnimeRecommendationEngine(provider)
+def create_recommender(encoder):
+    recommender = engine.AnimeRecommendationEngine()
 
     scorers = [
         # redundant
@@ -23,23 +20,50 @@ def create_recommender():
     for scorer in scorers:
         recommender.add_scorer(scorer)
 
-    recfilters = [
+    return recommender
+
+
+def create_user_dataset(user, year, season, provider):
+    data = dataset.UserDataSet(
+        provider.get_user_anime_list(user), provider.get_seasonal_anime_list(year, season)
+    )
+
+    watchlist_filters = [filters.IdFilter(*data.seasonal.index.to_list(), negative=True)]
+
+    for f in watchlist_filters:
+        data.watchlist = f.filter(data.watchlist)
+
+    seasonal_filters = [
         filters.GenreFilter("Kids", negative=True),
         filters.MediaTypeFilter("tv", "movie"),
         filters.RatingFilter("g", "rx", negative=True),
+        filters.StartSeasonFilter((year, season)),
     ]
 
-    for filter in recfilters:
-        recommender.add_recommendation_filter(filter)
+    for f in seasonal_filters:
+        data.seasonal = f.filter(data.seasonal)
 
-    return recommender
+    related_anime = []
+    for i, row in data.seasonal.iterrows():
+        related_anime.append(provider.get_related_anime(i).index.tolist())
+
+    data.seasonal["related_anime"] = related_anime
+    data.seasonal = filters.ContinuationFilter(data.watchlist).filter(data.seasonal)
+
+    return data
 
 
 if __name__ == "__main__":
     year = "2023"
     season = "spring"
+    user = "Janiskeisari"
 
-    recommender = create_recommender()
+    provider = mal.MyAnimeListProvider(cache=redis_cache.RedisCache())
 
-    recommendations = recommender.recommend_seasonal_anime_for_user("Janiskeisari", year, season)
+    encoder = scoring.CategoricalEncoder(provider.get_genre_tags())
+
+    data = create_user_dataset(user, year, season, provider)
+    recommender = create_recommender(encoder)
+
+    recommendations = recommender.fit_predict(data)
     print(recommendations.reset_index().loc[0:25, ["title", "genres", "mean", "recommend_score"]])

@@ -3,7 +3,7 @@ import abc
 
 class AbstractFilter(abc.ABC):
     @abc.abstractmethod
-    def filter(self, dataframe):
+    def filter(self, dataset):
         pass
 
 

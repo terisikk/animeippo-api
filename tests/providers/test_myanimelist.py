@@ -239,3 +239,12 @@ def test_dataframe_can_be_constructed_from_incomplete_data():
     ]
     assert pd.isnull(data.iloc[1].get("score", np.nan))
     assert "list_status" not in data.columns
+
+
+def test_genre_tags_can_be_fetched():
+    provider = myanimelist.MyAnimeListProvider()
+
+    genre_tags = provider.get_genre_tags()
+
+    assert len(genre_tags) > 0
+    assert "Action" in genre_tags

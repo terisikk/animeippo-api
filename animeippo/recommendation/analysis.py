@@ -42,11 +42,6 @@ def weight_categoricals(dataframe, column):
     return weights
 
 
-def fill_status_data_from_user_list(dataframe, user_dataframe):
-    dataframe["status"] = np.nan
-    dataframe["status"].update(user_dataframe["status"])
-
-
 def normalize_column(df_column):
     shaped = df_column.to_numpy().reshape(-1, 1)
     return pd.DataFrame(skpre.MinMaxScaler().fit_transform(shaped), index=df_column.index)

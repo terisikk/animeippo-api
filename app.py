@@ -3,13 +3,20 @@ import time
 from flask import Flask, Response, request, g
 from flask_cors import CORS
 
-from animeippo.main import create_recommender
+from animeippo.main import create_recommender, create_user_dataset
+from animeippo.recommendation.scoring import CategoricalEncoder
+from animeippo.providers import myanimelist as mal
+from animeippo.cache import redis_cache
 from animeippo.recommendation import filters
 
 
 app = Flask(__name__)
 app.config["JSON_AS_ASCII"] = False
 cors = CORS(app, origins="http://localhost:3000")
+
+provider = mal.MyAnimeListProvider(cache=redis_cache.RedisCache())
+encoder = CategoricalEncoder(provider.get_genre_tags())
+recommender_engine = create_recommender(encoder)
 
 
 @app.before_request
@@ -24,9 +31,6 @@ def after_request(response):
     return response
 
 
-recommender_engine = create_recommender()
-
-
 @app.route("/api/seasonal")
 def seasonal_anime():
     year = request.args.get("year", None)
@@ -35,13 +39,11 @@ def seasonal_anime():
     if not all([year, season]):
         return "Validation error", 400
 
-    seasonal = recommender_engine.provider.get_seasonal_anime_list(year, season)
+    seasonal = provider.get_seasonal_anime_list(year, season)
 
     seasonal_filters = [
-        filters.GenreFilter("Kids", negative=True),
         filters.MediaTypeFilter("tv", "movie"),
-        filters.RatingFilter("g", "rx", negative=True),
-        filters.StartSeasonFilter((year, season)),
+        filters.RatingFilter("rx", negative=True),
     ]
 
     for f in seasonal_filters:
@@ -62,7 +64,9 @@ def recommend_anime():
     if not all([user, year, season]):
         return "Validation error", 400
 
-    recommendations = recommender_engine.recommend_seasonal_anime_for_user(user, year, season)
+    dataset = create_user_dataset(user, year, season, provider)
+
+    recommendations = recommender_engine.fit_predict(dataset)
 
     recommendations["id"] = recommendations.index
 
