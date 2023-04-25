@@ -1,4 +1,3 @@
-import pandas as pd
 from . import filters, analysis
 
 
@@ -18,18 +17,19 @@ class AnimeRecommendationEngine:
             *seasonal_anime.index.to_list(), negative=True
         ).filter(user_anime)
 
-        self.add_recommendation_filter(filters.StartSeasonFilter((year, season)))
-        seasonal_anime_filtered = pd.DataFrame(self.filter_anime(seasonal_anime))
+        seasonal_anime_filtered = filters.StartSeasonFilter((year, season)).filter(seasonal_anime)
 
         related_anime = []
         for i, row in seasonal_anime_filtered.iterrows():
-            related_anime.append(self.provider.get_related_anime(i))
+            related_anime.append(self.provider.get_related_anime(i).index.tolist())
 
         seasonal_anime_filtered["related_anime"] = related_anime
 
         seasonal_anime_filtered = filters.ContinuationFilter(user_anime).filter(
             seasonal_anime_filtered
         )
+
+        seasonal_anime_filtered = self.filter_anime(seasonal_anime_filtered)
 
         recommendations = self.score_anime(seasonal_anime_filtered, user_anime_filtered)
 

@@ -68,7 +68,7 @@ def test_mal_related_anime_can_be_fetched(requests_mock):
     details = provider.get_related_anime(anime_id)
 
     assert adapter.called
-    assert details == [31]
+    assert details.index.tolist() == [31]
 
 
 def test_mal_related_anime_does_not_fail_with_invalid_data(requests_mock):
@@ -82,7 +82,7 @@ def test_mal_related_anime_does_not_fail_with_invalid_data(requests_mock):
     details = provider.get_related_anime(anime_id)
 
     assert adapter.called
-    assert details == []
+    assert details.index.tolist() == []
 
 
 def test_get_next_page_returns_succesfully():
@@ -94,7 +94,10 @@ def test_get_next_page_returns_succesfully():
 
     mock_session = SessionStub({"page1": response1, "page2": response2, "page3": response3})
 
-    final_pages = [myanimelist.requests_get_next_page(mock_session, page.json()) for page in pages]
+    final_pages = [
+        myanimelist.MyAnimeListProvider().requests_get_next_page(mock_session, page.json())
+        for page in pages
+    ]
 
     assert len(final_pages) == 3
     assert final_pages[0] == response2.json()
@@ -108,11 +111,15 @@ def test_get_all_pages_returns_all_pages(mocker):
     response3 = ResponseStub({"data": [{"test3": "test3"}]})
 
     mocker.patch("animeippo.providers.myanimelist.MAL_API_URL", "FAKE")
-    first_page_url = "FAKE/users/kamina69/animelist"
+    first_page_url = "/users/kamina69/animelist"
 
-    mock_session = SessionStub({first_page_url: response1, "page2": response2, "page3": response3})
+    mock_session = SessionStub(
+        {"FAKE" + first_page_url: response1, "page2": response2, "page3": response3}
+    )
 
-    final_pages = list(myanimelist.requests_get_all_pages(mock_session, first_page_url, None))
+    final_pages = list(
+        myanimelist.MyAnimeListProvider().requests_get_all_pages(mock_session, first_page_url, None)
+    )
 
     assert len(final_pages) == 3
     assert final_pages[0] == response1.json()
@@ -122,7 +129,7 @@ def test_request_page_succesfully_exists_with_blank_page():
     page = None
     mock_session = SessionStub({})
 
-    actual = myanimelist.requests_get_next_page(mock_session, page)
+    actual = myanimelist.MyAnimeListProvider().requests_get_next_page(mock_session, page)
 
     assert actual is None
 
@@ -131,11 +138,13 @@ def test_reqest_does_not_fail_catastrophically_when_response_is_empty(mocker):
     response1 = ResponseStub(dict())
 
     mocker.patch("animeippo.providers.myanimelist.MAL_API_URL", "FAKE")
-    first_page_url = "FAKE/users/kamina69/animelist"
+    first_page_url = "/users/kamina69/animelist"
 
-    mock_session = SessionStub({first_page_url: response1})
+    mock_session = SessionStub({"FAKE" + first_page_url: response1})
 
-    pages = list(myanimelist.requests_get_all_pages(mock_session, first_page_url, None))
+    pages = list(
+        myanimelist.MyAnimeListProvider().requests_get_all_pages(mock_session, first_page_url, None)
+    )
 
     assert len(pages) == 0
 

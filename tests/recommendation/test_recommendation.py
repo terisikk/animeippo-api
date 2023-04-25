@@ -17,7 +17,7 @@ class ProviderStub:
         return pd.DataFrame(test_data.FORMATTED_MAL_USER_LIST).set_index("id")
 
     def get_related_anime(self, *args, **kwargs):
-        return []
+        return pd.DataFrame()
 
 
 def test_recommend_seasonal_anime_for_user_by_genre():

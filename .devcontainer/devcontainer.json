@@ -34,5 +34,8 @@
 				"mikestead.dotenv"
 			]
 		}
-	}
+	},
+	"runArgs": [
+		"--network=animeippo-network"
+	]
 }

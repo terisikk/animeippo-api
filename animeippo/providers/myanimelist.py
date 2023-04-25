@@ -5,7 +5,7 @@ import pandas as pd
 import numpy as np
 import contextlib
 
-from functools import lru_cache
+from datetime import timedelta
 
 from . import provider
 
@@ -104,9 +104,11 @@ def mal_session():
 
 
 class MyAnimeListProvider(provider.AbstractAnimeProvider):
-    @lru_cache(maxsize=10)
+    def __init__(self, cache=None):
+        self.cache = cache
+
     def get_user_anime_list(self, user_id):
-        query = f"{MAL_API_URL}/users/{user_id}/animelist"
+        query = f"/users/{user_id}/animelist"
         fields = [
             "id",
             "title",
@@ -117,15 +119,14 @@ class MyAnimeListProvider(provider.AbstractAnimeProvider):
             "start_season",
         ]
 
-        parameters = {"limit": 50, "nsfw": "true", "fields": ",".join(fields)}
+        parameters = {"nsfw": "true", "fields": ",".join(fields)}
 
-        anime_list = request_anime_list(query, parameters)
+        anime_list = self.request_anime_list(query, parameters)
 
         return self.transform_to_animeippo_format(anime_list)
 
-    @lru_cache(maxsize=10)
     def get_seasonal_anime_list(self, year, season):
-        query = f"{MAL_API_URL}/anime/season/{year}/{season}"
+        query = f"/anime/season/{year}/{season}"
         fields = [
             "id",
             "title",
@@ -137,18 +138,14 @@ class MyAnimeListProvider(provider.AbstractAnimeProvider):
             "rating{value}",
             "start_season",
         ]
-        parameters = {"limit": 50, "nsfw": "true", "fields": ",".join(fields)}
+        parameters = {"nsfw": "true", "fields": ",".join(fields)}
 
-        anime_list = request_anime_list(query, parameters)
+        anime_list = self.request_anime_list(query, parameters)
 
         return self.transform_to_animeippo_format(anime_list)
 
-    def get_genre_tags(self):
-        return MAL_GENRES
-
-    @lru_cache(maxsize=128)
     def get_related_anime(self, anime_id):
-        query = f"{MAL_API_URL}/anime/{anime_id}"
+        query = f"/anime/{anime_id}"
 
         fields = [
             "id",
@@ -158,7 +155,7 @@ class MyAnimeListProvider(provider.AbstractAnimeProvider):
         ]
         parameters = {"fields": ",".join(fields)}
 
-        anime_list = request_related_anime(query, parameters)
+        anime_list = self.request_related_anime(query, parameters)
 
         meaningful_relations = ["parent_story", "prequel"]
 
@@ -169,7 +166,10 @@ class MyAnimeListProvider(provider.AbstractAnimeProvider):
 
             related_anime = related_anime[related_anime["relation_type"].isin(meaningful_relations)]
 
-        return related_anime.index.tolist()
+        return related_anime
+
+    def get_genre_tags(self):
+        return MAL_GENRES
 
     def transform_to_animeippo_format(self, data):
         df = pd.json_normalize(data["data"], max_level=1)
@@ -204,66 +204,83 @@ class MyAnimeListProvider(provider.AbstractAnimeProvider):
 
         return df
 
+    def request_anime_list(self, query, parameters):
+        anime_list = {"data": []}
+        cached_data = None
 
-def requests_get_next_page(session, page):
-    if page:
-        next_page = None
-        next_page_url = page.get("paging", dict()).get("next", None)
+        if self.cache:
+            cached_data = self.cache.get_json(query + str(parameters))
 
-        if next_page_url:
-            response = session.get(
-                next_page_url,
-                headers=HEADERS,
-                timeout=REQUEST_TIMEOUT,
-            )
+        if cached_data:
+            anime_list = cached_data
+        else:
+            with mal_session() as session:
+                for page in self.requests_get_all_pages(session, query, parameters):
+                    for item in page["data"]:
+                        anime_list["data"].append(item)
 
-            response.raise_for_status()
-            next_page = response.json()
-            return next_page
-
-
-def requests_get_all_pages(session, query, parameters):
-    response = session.get(
-        query,
-        headers=HEADERS,
-        timeout=REQUEST_TIMEOUT,
-        params=parameters,
-    )
-
-    response.raise_for_status()
-    page = response.json()
-
-    while page:
-        yield page
-        page = requests_get_next_page(session, page)
-
-
-def request_anime_list(query, parameters):
-    anime_list = {"data": []}
-    with mal_session() as session:
-        for page in requests_get_all_pages(session, query, parameters):
-            for item in page["data"]:
-                anime_list["data"].append(item)
+            if self.cache:
+                self.cache.set_json(query + str(parameters), anime_list, ttl=timedelta(days=1))
 
         return anime_list
 
+    def request_related_anime(self, query, parameters):
+        anime = {"data": []}
+        cached_data = None
 
-def request_related_anime(query, parameters):
-    anime = {"data": []}
+        if self.cache:
+            cached_data = self.cache.get_json(query + str(parameters))
 
-    with mal_session() as session:
+        if cached_data:
+            anime = cached_data
+        else:
+            with mal_session() as session:
+                response = session.get(
+                    MAL_API_URL + query,
+                    headers=HEADERS,
+                    timeout=REQUEST_TIMEOUT,
+                    params=parameters,
+                )
+
+                response.raise_for_status()
+                details = response.json()
+                anime["data"] = details["related_anime"]
+
+                if self.cache:
+                    self.cache.set_json(query + str(parameters), anime, ttl=timedelta(days=7))
+
+        return anime
+
+    def requests_get_next_page(self, session, page):
+        if page:
+            next_page = None
+            next_page_url = page.get("paging", dict()).get("next", None)
+
+            if next_page_url:
+                response = session.get(
+                    next_page_url,
+                    headers=HEADERS,
+                    timeout=REQUEST_TIMEOUT,
+                )
+
+                response.raise_for_status()
+                next_page = response.json()
+                return next_page
+
+    def requests_get_all_pages(self, session, query, parameters):
         response = session.get(
-            query,
+            MAL_API_URL + query,
             headers=HEADERS,
             timeout=REQUEST_TIMEOUT,
             params=parameters,
         )
 
         response.raise_for_status()
-        details = response.json()
-        anime["data"] = details["related_anime"]
+        page = response.json()
 
-    return anime
+        while page:
+            yield page
+            page = self.requests_get_next_page(session, page)
 
 
 def get_user_score(score):

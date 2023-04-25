@@ -1,9 +1,10 @@
 from animeippo.providers import myanimelist as mal
 from animeippo.recommendation import engine, filters, scoring
+from animeippo.cache import redis_cache
 
 
 def create_recommender():
-    provider = mal.MyAnimeListProvider()
+    provider = mal.MyAnimeListProvider(cache=redis_cache.RedisCache())
     encoder = scoring.CategoricalEncoder(provider.get_genre_tags())
 
     recommender = engine.AnimeRecommendationEngine(provider)
@@ -38,5 +39,7 @@ if __name__ == "__main__":
     year = "2023"
     season = "spring"
 
-    recommendations = engine.recommend_seasonal_anime_for_user("Janiskeisari", year, season)
+    recommender = create_recommender()
+
+    recommendations = recommender.recommend_seasonal_anime_for_user("Janiskeisari", year, season)
     print(recommendations.reset_index().loc[0:25, ["title", "genres", "mean", "recommend_score"]])

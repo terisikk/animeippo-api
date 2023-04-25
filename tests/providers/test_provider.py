@@ -6,6 +6,7 @@ from animeippo.providers import provider
 def test_new_provider_can_be_instantiated():
     class ConcreteAnimeProvider(provider.AbstractAnimeProvider):
         def __init__(self):
+            super().__init__()
             pass
 
         def get_user_anime_list(self, user_id):
