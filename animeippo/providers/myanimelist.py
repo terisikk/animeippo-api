@@ -106,7 +106,7 @@ def mal_session():
 
 class MyAnimeListProvider(provider.AbstractAnimeProvider):
     def __init__(self, cache=None):
-        self.cache = cache
+        self.connection = MyAnimeListConnection(cache)
 
     def get_user_anime_list(self, user_id):
         query = f"/users/{user_id}/animelist"
@@ -122,7 +122,7 @@ class MyAnimeListProvider(provider.AbstractAnimeProvider):
 
         parameters = {"nsfw": "true", "fields": ",".join(fields)}
 
-        anime_list = self.request_anime_list(query, parameters)
+        anime_list = self.connection.request_anime_list(query, parameters)
 
         return mal_formatter.transform_to_animeippo_format(anime_list)
 
@@ -141,7 +141,7 @@ class MyAnimeListProvider(provider.AbstractAnimeProvider):
         ]
         parameters = {"nsfw": "true", "fields": ",".join(fields)}
 
-        anime_list = self.request_anime_list(query, parameters)
+        anime_list = self.connection.request_anime_list(query, parameters)
 
         return mal_formatter.transform_to_animeippo_format(anime_list)
 
@@ -156,12 +156,17 @@ class MyAnimeListProvider(provider.AbstractAnimeProvider):
         ]
         parameters = {"fields": ",".join(fields)}
 
-        anime_list = self.request_related_anime(query, parameters)
+        anime_list = self.connection.request_related_anime(query, parameters)
 
         return mal_formatter.transform_to_animeippo_format(anime_list)
 
     def get_genre_tags(self):
         return MAL_GENRES
+
+
+class MyAnimeListConnection:
+    def __init__(self, cache=None):
+        self.cache = cache
 
     @animecache.cached_query(ttl=timedelta(days=1))
     def request_anime_list(self, query, parameters):

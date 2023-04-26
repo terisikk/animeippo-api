@@ -92,7 +92,7 @@ def test_get_next_page_returns_succesfully():
     mock_session = SessionStub({"page1": response1, "page2": response2, "page3": response3})
 
     final_pages = [
-        myanimelist.MyAnimeListProvider().requests_get_next_page(mock_session, page.json())
+        myanimelist.MyAnimeListConnection().requests_get_next_page(mock_session, page.json())
         for page in pages
     ]
 
@@ -115,7 +115,9 @@ def test_get_all_pages_returns_all_pages(mocker):
     )
 
     final_pages = list(
-        myanimelist.MyAnimeListProvider().requests_get_all_pages(mock_session, first_page_url, None)
+        myanimelist.MyAnimeListConnection().requests_get_all_pages(
+            mock_session, first_page_url, None
+        )
     )
 
     assert len(final_pages) == 3
@@ -126,7 +128,7 @@ def test_request_page_succesfully_exists_with_blank_page():
     page = None
     mock_session = SessionStub({})
 
-    actual = myanimelist.MyAnimeListProvider().requests_get_next_page(mock_session, page)
+    actual = myanimelist.MyAnimeListConnection().requests_get_next_page(mock_session, page)
 
     assert actual is None
 
@@ -140,7 +142,9 @@ def test_reqest_does_not_fail_catastrophically_when_response_is_empty(mocker):
     mock_session = SessionStub({"FAKE" + first_page_url: response1})
 
     pages = list(
-        myanimelist.MyAnimeListProvider().requests_get_all_pages(mock_session, first_page_url, None)
+        myanimelist.MyAnimeListConnection().requests_get_all_pages(
+            mock_session, first_page_url, None
+        )
     )
 
     assert len(pages) == 0
