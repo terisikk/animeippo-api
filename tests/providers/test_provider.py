@@ -15,9 +15,6 @@ def test_new_provider_can_be_instantiated():
         def get_seasonal_anime_list(self, year, season):
             super().get_seasonal_anime_list(year, season)
 
-        def transform_to_animeippo_format(self, anime_list):
-            super().transform_to_animeippo_format(anime_list)
-
         def get_genre_tags(self):
             super().get_genre_tags()
 
@@ -27,7 +24,6 @@ def test_new_provider_can_be_instantiated():
     actual = ConcreteAnimeProvider()
     actual.get_user_anime_list(None)
     actual.get_seasonal_anime_list(None, None)
-    actual.transform_to_animeippo_format(None)
     actual.get_genre_tags()
     actual.get_related_anime(None)
 

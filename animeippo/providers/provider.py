@@ -14,10 +14,6 @@ class AbstractAnimeProvider(abc.ABC):
         pass
 
     @abc.abstractmethod
-    def transform_to_animeippo_format(self, anime_list):
-        pass
-
-    @abc.abstractmethod
     def get_genre_tags(self):
         pass
 
