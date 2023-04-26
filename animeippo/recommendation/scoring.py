@@ -21,8 +21,8 @@ class AbstractScorer(abc.ABC):
 class GenreSimilarityScorer(AbstractScorer):
     name = "genresimilarityscore"
 
-    def __init__(self, encoder, weighted=False):
-        self.encoder = encoder
+    def __init__(self, genre_tags, weighted=False):
+        self.encoder = CategoricalEncoder(genre_tags)
         self.weighted = weighted
 
     def score(self, scoring_target_df, compare_df):
@@ -86,13 +86,13 @@ class StudioAverageScorer:
 class ClusterSimilarityScorer(AbstractScorer):
     name = "clusterscore"
 
-    def __init__(self, encoder, weighted=False):
+    def __init__(self, genre_tags, weighted=False):
         self.model = skcluster.AgglomerativeClustering(
             n_clusters=None, metric="precomputed", linkage="average", distance_threshold=0.8
         )
 
         self.weighted = weighted
-        self.encoder = encoder
+        self.encoder = CategoricalEncoder(genre_tags)
 
     def score(self, scoring_target_df, compare_df):
         scores = pd.DataFrame(index=scoring_target_df.index)

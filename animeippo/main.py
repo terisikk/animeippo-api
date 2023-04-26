@@ -3,14 +3,14 @@ from animeippo.recommendation import engine, filters, scoring, dataset
 from animeippo.cache import redis_cache
 
 
-def create_recommender(encoder):
+def create_recommender(genre_tags):
     recommender = engine.AnimeRecommendationEngine()
 
     scorers = [
         # redundant
-        # scoring.GenreSimilarityScorer(encoder, weighted=True),
+        # scoring.GenreSimilarityScorer(genre_tags, weighted=True),
         scoring.GenreAverageScorer(),
-        scoring.ClusterSimilarityScorer(encoder, weighted=True),
+        scoring.ClusterSimilarityScorer(genre_tags, weighted=True),
         # redundant
         # scoring.StudioCountScorer(),
         scoring.StudioAverageScorer(),
@@ -60,10 +60,8 @@ if __name__ == "__main__":
 
     provider = mal.MyAnimeListProvider(cache=redis_cache.RedisCache())
 
-    encoder = scoring.CategoricalEncoder(provider.get_genre_tags())
-
     data = create_user_dataset(user, year, season, provider)
-    recommender = create_recommender(encoder)
+    recommender = create_recommender(provider.get_genre_tags())
 
     recommendations = recommender.fit_predict(data)
     print(recommendations.reset_index().loc[0:25, ["title", "genres", "mean", "recommend_score"]])

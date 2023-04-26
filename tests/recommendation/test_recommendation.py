@@ -20,8 +20,7 @@ class ProviderStub:
 
 
 def test_recommend_seasonal_anime_for_user_by_genre():
-    encoder = scoring.CategoricalEncoder(mal.MAL_GENRES)
-    scorer = scoring.GenreSimilarityScorer(encoder)
+    scorer = scoring.GenreSimilarityScorer(mal.MAL_GENRES)
     recengine = engine.AnimeRecommendationEngine()
 
     recengine.add_scorer(scorer)
@@ -38,8 +37,7 @@ def test_recommend_seasonal_anime_for_user_by_genre():
 
 
 def test_recommend_seasonal_anime_for_user_by_cluster():
-    encoder = scoring.CategoricalEncoder(mal.MAL_GENRES)
-    scorer = scoring.ClusterSimilarityScorer(encoder)
+    scorer = scoring.ClusterSimilarityScorer(mal.MAL_GENRES)
 
     recengine = engine.AnimeRecommendationEngine()
     recengine.add_scorer(scorer)
@@ -56,8 +54,7 @@ def test_recommend_seasonal_anime_for_user_by_cluster():
 
 
 def test_multiple_scorers_can_be_added():
-    encoder = scoring.CategoricalEncoder(mal.MAL_GENRES)
-    scorer = scoring.GenreSimilarityScorer(encoder)
+    scorer = scoring.GenreSimilarityScorer(mal.MAL_GENRES)
     scorer2 = scoring.StudioCountScorer()
     recengine = engine.AnimeRecommendationEngine()
 

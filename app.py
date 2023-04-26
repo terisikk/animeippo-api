@@ -4,7 +4,6 @@ from flask import Flask, Response, request, g
 from flask_cors import CORS
 
 from animeippo.main import create_recommender, create_user_dataset
-from animeippo.recommendation.scoring import CategoricalEncoder
 from animeippo.providers import myanimelist as mal
 from animeippo.cache import redis_cache
 from animeippo.recommendation import filters
@@ -15,8 +14,7 @@ app.config["JSON_AS_ASCII"] = False
 cors = CORS(app, origins="http://localhost:3000")
 
 provider = mal.MyAnimeListProvider(cache=redis_cache.RedisCache())
-encoder = CategoricalEncoder(provider.get_genre_tags())
-recommender_engine = create_recommender(encoder)
+recommender_engine = create_recommender(provider.get_genre_tags())
 
 
 @app.before_request

@@ -28,9 +28,7 @@ def test_genre_similarity_scorer():
         {"genres": [["Romance", "Comedy"], ["Action", "Adventure"]], "title": ["Kaguya", "Naruto"]}
     )
 
-    scorer = scoring.GenreSimilarityScorer(
-        scoring.CategoricalEncoder(["Action", "Adventure", "Fantasy", "Romance", "Comedy"])
-    )
+    scorer = scoring.GenreSimilarityScorer(["Action", "Adventure", "Fantasy", "Romance", "Comedy"])
 
     target_df["recommend_score"] = scorer.score(
         target_df,
@@ -62,9 +60,7 @@ def test_genre_similarity_scorer_weighted():
         }
     )
 
-    scorer = scoring.GenreSimilarityScorer(
-        scoring.CategoricalEncoder(["Action", "Adventure", "Fantasy"]), weighted=True
-    )
+    scorer = scoring.GenreSimilarityScorer(["Action", "Adventure", "Fantasy"], weighted=True)
 
     target_df["recommend_score"] = scorer.score(
         target_df,
@@ -123,7 +119,7 @@ def test_cluster_similarity_scorer():
     )
 
     scorer = scoring.ClusterSimilarityScorer(
-        scoring.CategoricalEncoder(["Action", "Adventure", "Fantasy", "Romance", "Comedy"])
+        ["Action", "Adventure", "Fantasy", "Romance", "Comedy"]
     )
 
     target_df["recommend_score"] = scorer.score(
@@ -157,7 +153,7 @@ def test_cluster_similarity_scorer_weighted():
     )
 
     scorer = scoring.ClusterSimilarityScorer(
-        scoring.CategoricalEncoder(["Action", "Adventure", "Fantasy", "Romance", "Comedy"]),
+        ["Action", "Adventure", "Fantasy", "Romance", "Comedy"],
         weighted=True,
     )
 
