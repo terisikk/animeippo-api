@@ -1,14 +1,14 @@
 import requests
 import dotenv
 import os
-import pandas as pd
-import numpy as np
 import contextlib
 
 from datetime import timedelta
 
 from . import provider
 from .formatters import mal_formatter
+
+import animeippo.cache as animecache
 
 dotenv.load_dotenv("conf/prod.env")
 
@@ -163,50 +163,32 @@ class MyAnimeListProvider(provider.AbstractAnimeProvider):
     def get_genre_tags(self):
         return MAL_GENRES
 
+    @animecache.cached_query(ttl=timedelta(days=1))
     def request_anime_list(self, query, parameters):
         anime_list = {"data": []}
-        cached_data = None
 
-        if self.cache:
-            cached_data = self.cache.get_json(query + str(parameters))
-
-        if cached_data:
-            anime_list = cached_data
-        else:
-            with mal_session() as session:
-                for page in self.requests_get_all_pages(session, query, parameters):
-                    for item in page["data"]:
-                        anime_list["data"].append(item)
-
-            if self.cache:
-                self.cache.set_json(query + str(parameters), anime_list, ttl=timedelta(days=1))
+        with mal_session() as session:
+            for page in self.requests_get_all_pages(session, query, parameters):
+                for item in page["data"]:
+                    anime_list["data"].append(item)
 
         return anime_list
 
+    @animecache.cached_query(ttl=timedelta(days=7))
     def request_related_anime(self, query, parameters):
         anime = {"data": []}
-        cached_data = None
 
-        if self.cache:
-            cached_data = self.cache.get_json(query + str(parameters))
+        with mal_session() as session:
+            response = session.get(
+                MAL_API_URL + query,
+                headers=HEADERS,
+                timeout=REQUEST_TIMEOUT,
+                params=parameters,
+            )
 
-        if cached_data:
-            anime = cached_data
-        else:
-            with mal_session() as session:
-                response = session.get(
-                    MAL_API_URL + query,
-                    headers=HEADERS,
-                    timeout=REQUEST_TIMEOUT,
-                    params=parameters,
-                )
-
-                response.raise_for_status()
-                details = response.json()
-                anime["data"] = details["related_anime"]
-
-                if self.cache:
-                    self.cache.set_json(query + str(parameters), anime, ttl=timedelta(days=7))
+            response.raise_for_status()
+            details = response.json()
+            anime["data"] = details["related_anime"]
 
         return anime
 

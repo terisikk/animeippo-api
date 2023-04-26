@@ -1,6 +1,6 @@
-import animeippo.cache.redis_cache as cache
 import animeippo.providers.myanimelist as mal
 
+from animeippo import cache
 from tests import test_data
 
 

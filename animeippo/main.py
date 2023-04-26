@@ -1,6 +1,6 @@
 from animeippo.providers import myanimelist as mal
 from animeippo.recommendation import engine, filters, scoring, dataset
-from animeippo.cache import redis_cache
+from animeippo import cache
 
 
 def create_recommender(genre_tags):
@@ -58,7 +58,7 @@ if __name__ == "__main__":
     season = "spring"
     user = "Janiskeisari"
 
-    provider = mal.MyAnimeListProvider(cache=redis_cache.RedisCache())
+    provider = mal.MyAnimeListProvider(cache=cache.RedisCache())
 
     data = create_user_dataset(user, year, season, provider)
     recommender = create_recommender(provider.get_genre_tags())
