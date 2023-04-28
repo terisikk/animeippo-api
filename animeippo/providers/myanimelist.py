@@ -118,6 +118,7 @@ class MyAnimeListProvider(provider.AbstractAnimeProvider):
             "studios",
             "rating{value}",
             "start_season",
+            "source",
         ]
 
         parameters = {"nsfw": "true", "fields": ",".join(fields)}
@@ -138,6 +139,7 @@ class MyAnimeListProvider(provider.AbstractAnimeProvider):
             "num_list_users",
             "rating{value}",
             "start_season",
+            "source",
         ]
         parameters = {"nsfw": "true", "fields": ",".join(fields)}
 

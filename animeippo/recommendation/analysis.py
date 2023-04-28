@@ -42,6 +42,20 @@ def weight_categoricals(dataframe, column):
     return weights
 
 
+def weight_categoricals_z_score(dataframe, column):
+    df = dataframe.explode(column)
+
+    scores = df.groupby(column)["score"].mean()
+    counts = pd.DataFrame(df[column].value_counts())
+
+    mean = np.mean(scores)
+    std = np.std(scores)
+
+    weighted_scores = counts.apply(lambda row: ((scores[row.name] - mean) / std) * row, axis=1)
+
+    return normalize_column(weighted_scores)
+
+
 def normalize_column(df_column):
     shaped = df_column.to_numpy().reshape(-1, 1)
     return pd.DataFrame(skpre.MinMaxScaler().fit_transform(shaped), index=df_column.index)

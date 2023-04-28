@@ -4,8 +4,6 @@ from animeippo import cache
 
 
 def create_recommender(genre_tags):
-    recommender = engine.AnimeRecommendationEngine()
-
     scorers = [
         # redundant
         # scoring.GenreSimilarityScorer(genre_tags, weighted=True),
@@ -15,10 +13,11 @@ def create_recommender(genre_tags):
         # scoring.StudioCountScorer(),
         scoring.StudioAverageScorer(),
         scoring.PopularityScorer(),
+        scoring.ContinuationScorer(),
+        scoring.SourceScorer(),
     ]
 
-    for scorer in scorers:
-        recommender.add_scorer(scorer)
+    recommender = engine.AnimeRecommendationEngine(scorers)
 
     return recommender
 
@@ -35,7 +34,7 @@ def create_user_dataset(user, year, season, provider):
 
     seasonal_filters = [
         filters.GenreFilter("Kids", negative=True),
-        filters.MediaTypeFilter("tv", "movie"),
+        filters.MediaTypeFilter("tv"),
         filters.RatingFilter("g", "rx", negative=True),
         filters.StartSeasonFilter((year, season)),
     ]
@@ -43,11 +42,9 @@ def create_user_dataset(user, year, season, provider):
     for f in seasonal_filters:
         data.seasonal = f.filter(data.seasonal)
 
-    related_anime = []
-    for i, row in data.seasonal.iterrows():
-        related_anime.append(provider.get_related_anime(i).index.tolist())
+    related_anime = data.seasonal.index.map(lambda i: provider.get_related_anime(i).index.to_list())
+    data.seasonal["related_anime"] = related_anime.to_list()
 
-    data.seasonal["related_anime"] = related_anime
     data.seasonal = filters.ContinuationFilter(data.watchlist).filter(data.seasonal)
 
     return data
@@ -55,7 +52,7 @@ def create_user_dataset(user, year, season, provider):
 
 if __name__ == "__main__":
     year = "2023"
-    season = "spring"
+    season = "winter"
     user = "Janiskeisari"
 
     provider = mal.MyAnimeListProvider(cache=cache.RedisCache())

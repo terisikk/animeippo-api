@@ -129,6 +129,43 @@ class PopularityScorer(AbstractScorer):
         return analysis.normalize_column(scores)
 
 
+class ContinuationScorer(AbstractScorer):
+    name = "continuationscore"
+
+    SCALE_MIDDLE = 6
+
+    def score(self, scoring_target_df, compare_df):
+        mean_score = compare_df["score"].mean()
+
+        rdf = scoring_target_df.explode("related_anime")
+
+        rdf["score"] = np.nan
+
+        for i, row in rdf.iterrows():
+            related_index = row["related_anime"]
+            is_continuation = related_index in compare_df.index
+            rdf.at[i, "score"] = (
+                compare_df.at[related_index, "score"] if is_continuation else self.SCALE_MIDDLE
+            )
+
+        rdf["score"] = rdf["score"].fillna(mean_score)
+
+        scores = rdf.groupby("id")["score"].max()
+
+        return scores / 10
+
+
+class SourceScorer(AbstractScorer):
+    name = "sourcescore"
+
+    def score(self, scoring_target_df, compare_df):
+        averages = compare_df.groupby("source")["score"].mean() / 10
+
+        scores = scoring_target_df["source"].apply(lambda x: averages.get(x, 0))
+
+        return analysis.normalize_column(scores)
+
+
 class CategoricalEncoder:
     def __init__(self, classes):
         self.classes = classes

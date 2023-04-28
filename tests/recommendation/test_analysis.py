@@ -65,3 +65,16 @@ def test_similarity_weight_scores_genre_list_containing_only_unseen_genres_as_ze
     weight = analysis.weighted_mean_for_categorical_values(original, genre_averages)
 
     assert weight == 0.0
+
+
+def test_weight_categoricals_z_score():
+    original = pd.DataFrame(
+        {
+            "genres": [["Action"], ["Action", "Horror"], ["Action", "Horror", "Romance"]],
+            "score": [10, 10, 7],
+        }
+    )
+
+    scores = analysis.weight_categoricals_z_score(original, "genres")
+
+    assert scores.at["Action", 0] > scores.at["Horror", 0] > scores.at["Romance", 0]
