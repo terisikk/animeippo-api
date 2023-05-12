@@ -14,7 +14,7 @@ class AbstractAnimeProvider(abc.ABC):
         pass
 
     @abc.abstractmethod
-    def get_genre_tags(self):
+    def get_features(self):
         pass
 
     @abc.abstractmethod

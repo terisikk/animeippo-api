@@ -18,51 +18,40 @@ class ProviderStub:
     def get_related_anime(self, *args, **kwargs):
         return pd.DataFrame()
 
+    def get_features(self, *args, **kwargs):
+        return ["genres"]
+
 
 def test_recommend_seasonal_anime_for_user_by_genre():
-    scorer = scoring.GenreSimilarityScorer(mal.MAL_GENRES)
+    provider = ProviderStub()
+    data = dataset.UserDataSet(provider.get_user_anime_list(), provider.get_seasonal_anime_list())
+    data.features = provider.get_features()
+
+    scorer = scoring.FeaturesSimilarityScorer(data.features)
     recengine = engine.AnimeRecommendationEngine()
 
     recengine.add_scorer(scorer)
-
-    provider = ProviderStub()
-    data = dataset.UserDataSet(provider.get_user_anime_list(), provider.get_seasonal_anime_list())
 
     recommendations = recengine.fit_predict(data)
 
     assert recommendations["title"].tolist() == [
         "Shingeki no Kyojin: The Final Season",
         "Golden Kamuy 4th Season",
-    ]
-
-
-def test_recommend_seasonal_anime_for_user_by_cluster():
-    scorer = scoring.ClusterSimilarityScorer(mal.MAL_GENRES)
-
-    recengine = engine.AnimeRecommendationEngine()
-    recengine.add_scorer(scorer)
-
-    provider = ProviderStub()
-    data = dataset.UserDataSet(provider.get_user_anime_list(), provider.get_seasonal_anime_list())
-
-    recommendations = recengine.fit_predict(data)
-
-    assert recommendations["title"].tolist() == [
-        "Golden Kamuy 4th Season",
-        "Shingeki no Kyojin: The Final Season",
     ]
 
 
 def test_multiple_scorers_can_be_added():
-    scorer = scoring.GenreSimilarityScorer(mal.MAL_GENRES)
+    provider = ProviderStub()
+    data = dataset.UserDataSet(provider.get_user_anime_list(), provider.get_seasonal_anime_list())
+
+    data.features = provider.get_features()
+
+    scorer = scoring.FeaturesSimilarityScorer(data.features)
     scorer2 = scoring.StudioCountScorer()
     recengine = engine.AnimeRecommendationEngine()
 
     recengine.add_scorer(scorer)
     recengine.add_scorer(scorer2)
-
-    provider = ProviderStub()
-    data = dataset.UserDataSet(provider.get_user_anime_list(), provider.get_seasonal_anime_list())
 
     recommendations = recengine.fit_predict(data)
 

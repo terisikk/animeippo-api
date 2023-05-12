@@ -12,6 +12,7 @@ def pandas_display_all_clusters(dataframe):
 
     with pd.option_context("display.max_rows", None):
         for cluster in np.sort(dataframe["cluster"].unique()):
+            idisplay.display(cluster)
             idisplay.display(descriptions.iloc[cluster].tolist())
             idisplay.display(filter_by_cluster(dataframe, cluster))
 

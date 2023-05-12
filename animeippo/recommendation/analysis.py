@@ -10,10 +10,10 @@ def similarity(x_orig, y_orig, metric="jaccard"):
     return 1 - distances
 
 
-def similarity_of_anime_lists(dataframe1, dataframe2, encoder):
+def similarity_of_anime_lists(features1, features2, encoder):
     similarities = pd.DataFrame(
-        similarity(encoder.encode(dataframe1["genres"]), encoder.encode(dataframe2["genres"])),
-        index=dataframe1.index,
+        similarity(encoder.encode(features1.values), encoder.encode(features2.values)),
+        index=features1.index,
     )
     similarities = similarities.apply(np.nanmean, axis=1)
 

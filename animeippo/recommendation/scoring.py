@@ -18,27 +18,58 @@ class AbstractScorer(abc.ABC):
         pass
 
 
-class GenreSimilarityScorer(AbstractScorer):
-    name = "genresimilarityscore"
+class FeaturesSimilarityScorer(AbstractScorer):
+    name = "featuresimilarityscore"
 
-    def __init__(self, genre_tags, weighted=False):
-        self.encoder = CategoricalEncoder(genre_tags)
+    def __init__(self, features, weighted=False):
+        self.features = features
         self.weighted = weighted
 
     def score(self, scoring_target_df, compare_df):
-        scores = analysis.similarity_of_anime_lists(scoring_target_df, compare_df, self.encoder)
+        compare_df["features"] = compare_df.apply(
+            self.get_features,
+            axis=1,
+        )
+
+        scoring_target_df["features"] = scoring_target_df.apply(
+            self.get_features,
+            axis=1,
+        )
+
+        all_features = (
+            pd.concat([compare_df["features"], scoring_target_df["features"]]).explode().unique()
+        )
+
+        encoder = CategoricalEncoder(all_features)
+
+        scores = analysis.similarity_of_anime_lists(
+            scoring_target_df["features"], compare_df["features"], encoder
+        )
 
         if self.weighted:
-            averages = analysis.mean_score_per_categorical(compare_df, "genres")
-            weights = scoring_target_df["genres"].apply(
+            averages = analysis.mean_score_per_categorical(compare_df, "features")
+            weights = scoring_target_df["features"].apply(
                 analysis.weighted_mean_for_categorical_values, args=(averages,)
             )
             scores = scores * weights
 
         return analysis.normalize_column(scores)
 
+    def get_features(self, row):
+        all_features = []
 
-# Better than GenreSimilarityScorer
+        for feature in self.features:
+            value = row[feature]
+            if isinstance(value, str):
+                all_features.append(value)
+            elif isinstance(value, list):
+                all_features.extend(value)
+            else:
+                continue
+
+        return all_features
+
+
 class GenreAverageScorer(AbstractScorer):
     name = "genreaveragescore"
 
@@ -86,25 +117,41 @@ class StudioAverageScorer:
 class ClusterSimilarityScorer(AbstractScorer):
     name = "clusterscore"
 
-    def __init__(self, genre_tags, weighted=False):
+    def __init__(self, features, weighted=False):
         self.model = skcluster.AgglomerativeClustering(
-            n_clusters=None, metric="precomputed", linkage="average", distance_threshold=0.8
+            n_clusters=None, metric="precomputed", linkage="average", distance_threshold=0.7
         )
 
+        self.features = features
         self.weighted = weighted
-        self.encoder = CategoricalEncoder(genre_tags)
 
     def score(self, scoring_target_df, compare_df):
         scores = pd.DataFrame(index=scoring_target_df.index)
 
-        encoded = self.encoder.encode(compare_df["genres"])
+        compare_df["features"] = compare_df.apply(
+            self.get_features,
+            axis=1,
+        )
+
+        scoring_target_df["features"] = scoring_target_df.apply(
+            self.get_features,
+            axis=1,
+        )
+
+        all_features = (
+            pd.concat([compare_df["features"], scoring_target_df["features"]]).explode().unique()
+        )
+
+        encoder = CategoricalEncoder(all_features)
+
+        encoded = encoder.encode(compare_df["features"])
         distances = pd.DataFrame(1 - analysis.similarity(encoded, encoded), index=compare_df.index)
 
         compare_df["cluster"] = self.model.fit_predict(distances)
 
         for cluster_id, cluster in compare_df.groupby("cluster"):
             similarities = analysis.similarity_of_anime_lists(
-                scoring_target_df, cluster, self.encoder
+                scoring_target_df["features"], cluster["features"], encoder
             )
 
             if self.weighted:
@@ -119,14 +166,85 @@ class ClusterSimilarityScorer(AbstractScorer):
 
         return analysis.normalize_column(scores.apply(np.max, axis=1))
 
+    def get_features(self, row):
+        all_features = []
+
+        for feature in self.features:
+            value = row[feature]
+            if isinstance(value, str):
+                all_features.append(value)
+            elif isinstance(value, list):
+                all_features.extend(value)
+            else:
+                continue
+
+        return all_features
+
+
+class DirectSimilarityScorer(AbstractScorer):
+    name = "directscore"
+
+    def __init__(self, features):
+        self.features = features
+
+    def score(self, scoring_target_df, compare_df):
+        scoring_features = scoring_target_df.apply(
+            self.get_features,
+            axis=1,
+        )
+        compare_features = compare_df.apply(
+            self.get_features,
+            axis=1,
+        )
+
+        all_features = (
+            pd.concat([compare_df["features"], scoring_target_df["features"]]).explode().unique()
+        )
+
+        encoder = CategoricalEncoder(all_features)
+
+        similarities = pd.DataFrame(
+            analysis.similarity(encoder.encode(scoring_features), encoder.encode(compare_features)),
+            index=scoring_target_df.index,
+        )
+
+        max_values = similarities.max(axis=1)
+        max_columns = similarities[similarities.eq(max_values, axis=0)]
+
+        max_columns_list = max_columns.notna().apply(
+            lambda row: list(max_columns.columns[row]), axis=1
+        )
+
+        scores = (
+            max_values
+            * max_columns_list.apply(lambda x: compare_df.iloc[x]["score"].mean()).fillna(6.0)
+            / 10
+        )
+
+        return analysis.normalize_column(scores)
+
+    def get_features(self, row):
+        all_features = []
+
+        for feature in self.features:
+            value = row[feature]
+            if isinstance(value, str):
+                all_features.append(value)
+            elif isinstance(value, list):
+                all_features.extend(value)
+            else:
+                continue
+
+        return all_features
+
 
 class PopularityScorer(AbstractScorer):
     name = "popularityscore"
 
     def score(self, scoring_target_df, compare_df):
-        scores = scoring_target_df["num_list_users"]
+        scores = scoring_target_df["popularity"]
 
-        return analysis.normalize_column(scores)
+        return analysis.normalize_column(scores.rank())
 
 
 class ContinuationScorer(AbstractScorer):

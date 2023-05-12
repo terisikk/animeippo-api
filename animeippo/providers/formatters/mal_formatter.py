@@ -60,6 +60,8 @@ def transform_to_animeippo_format(data):
                 new_key = key.split(".")[-1]
                 column_mapping[key] = new_key
 
+        column_mapping["num_list_users"] = "popularity"
+
         df = df.rename(columns=column_mapping)
 
         dropped = [

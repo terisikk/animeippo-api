@@ -1,20 +1,21 @@
-from animeippo.providers import myanimelist as mal
+import animeippo.providers as providers
 from animeippo.recommendation import engine, filters, scoring, dataset
 from animeippo import cache
 
 
-def create_recommender(genre_tags):
+def create_recommender(feature_tags):
     scorers = [
         # redundant
-        # scoring.GenreSimilarityScorer(genre_tags, weighted=True),
+        # scoring.GenreSimilarityScorer(feature_tags, weighted=True),
         scoring.GenreAverageScorer(),
-        scoring.ClusterSimilarityScorer(genre_tags, weighted=True),
+        scoring.ClusterSimilarityScorer(feature_tags, weighted=True),
         # redundant
         # scoring.StudioCountScorer(),
         scoring.StudioAverageScorer(),
         scoring.PopularityScorer(),
         scoring.ContinuationScorer(),
         scoring.SourceScorer(),
+        scoring.DirectSimilarityScorer(feature_tags),
     ]
 
     recommender = engine.AnimeRecommendationEngine(scorers)
@@ -34,31 +35,37 @@ def create_user_dataset(user, year, season, provider):
 
     seasonal_filters = [
         filters.GenreFilter("Kids", negative=True),
-        filters.MediaTypeFilter("tv"),
-        filters.RatingFilter("g", "rx", negative=True),
+        filters.GenreFilter("Hentai", negative=True),
+        # filters.MediaTypeFilter("tv"),
+        # filters.RatingFilter("g", "rx", negative=True),
         filters.StartSeasonFilter((year, season)),
     ]
 
     for f in seasonal_filters:
         data.seasonal = f.filter(data.seasonal)
 
-    related_anime = data.seasonal.index.map(lambda i: provider.get_related_anime(i).index.to_list())
-    data.seasonal["related_anime"] = related_anime.to_list()
+    if "related_anime" not in data.seasonal.columns:
+        related_anime = data.seasonal.index.map(
+            lambda i: provider.get_related_anime(i).index.to_list()
+        )
+        data.seasonal["related_anime"] = related_anime.to_list()
 
     data.seasonal = filters.ContinuationFilter(data.watchlist).filter(data.seasonal)
+
+    data.features = provider.get_features()
 
     return data
 
 
 if __name__ == "__main__":
     year = "2023"
-    season = "winter"
+    season = "spring"
     user = "Janiskeisari"
 
-    provider = mal.MyAnimeListProvider(cache=cache.RedisCache())
+    provider = providers.anilist.AniListProvider(cache=cache.RedisCache())
 
     data = create_user_dataset(user, year, season, provider)
-    recommender = create_recommender(provider.get_genre_tags())
+    recommender = create_recommender(data.features)
 
     recommendations = recommender.fit_predict(data)
-    print(recommendations.reset_index().loc[0:25, ["title", "genres", "mean", "recommend_score"]])
+    print(recommendations.reset_index().loc[0:25, ["title", "genres", "recommend_score"]])

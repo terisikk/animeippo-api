@@ -14,3 +14,5 @@ anime-offline-database/
 conf/*
 !conf/*_template.env
 .DS_store
+*.png
+*.ipynb

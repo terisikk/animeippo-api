@@ -1,3 +1,3 @@
-__all__ = ["myanimelist"]
+__all__ = ["myanimelist", "anilist"]
 
-from . import myanimelist
+from . import myanimelist, anilist

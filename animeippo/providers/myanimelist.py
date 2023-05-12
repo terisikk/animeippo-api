@@ -18,85 +18,6 @@ MAL_API_TOKEN = os.environ.get("MAL_API_TOKEN", None)
 HEADERS = {"Authorization": f"Bearer {MAL_API_TOKEN}"}
 REQUEST_TIMEOUT = 30
 
-MAL_GENRES = [
-    "Action",
-    "Adult Cast",
-    "Adventure",
-    "Anthropomorphic",
-    "Avant Garde",
-    "Award Winning",
-    "Boys Love",
-    "CGDCT",
-    "Childcare",
-    "Combat Sports",
-    "Comedy",
-    "Crossdressing",
-    "Delinquents",
-    "Detective",
-    "Drama",
-    "Educational",
-    "Erotica",
-    "Fantasy",
-    "Gag Humor",
-    "Girls Love",
-    "Gore",
-    "Gourmet",
-    "Harem",
-    "Hentai",
-    "High Stakes Game",
-    "Historical",
-    "Horror",
-    "Idols (Female)",
-    "Idols (Male)",
-    "Isekai",
-    "Iyashikei",
-    "Josei",
-    "Kids",
-    "Love Polygon",
-    "Magical Sex Shift",
-    "Mahou Shoujo",
-    "Martial Arts",
-    "Mecha",
-    "Medical",
-    "Military",
-    "Music",
-    "Mystery",
-    "Mythology",
-    "Organized Crime",
-    "Otaku Culture",
-    "Parody",
-    "Performing Arts",
-    "Pets",
-    "Psychological",
-    "Racing",
-    "Reincarnation",
-    "Reverse Harem",
-    "Romance",
-    "Romantic Subtext",
-    "Samurai",
-    "School",
-    "Sci-Fi",
-    "Seinen",
-    "Shoujo",
-    "Shounen",
-    "Showbiz",
-    "Slice of Life",
-    "Space",
-    "Sports",
-    "Strategy Game",
-    "Super Power",
-    "Supernatural",
-    "Survival",
-    "Suspense",
-    "Ecchi",
-    "Team Sports",
-    "Time Travel",
-    "Vampire",
-    "Video Game",
-    "Visual Arts",
-    "Workplace",
-]
-
 
 @contextlib.contextmanager
 def mal_session():
@@ -162,8 +83,8 @@ class MyAnimeListProvider(provider.AbstractAnimeProvider):
 
         return mal_formatter.transform_to_animeippo_format(anime_list)
 
-    def get_genre_tags(self):
-        return MAL_GENRES
+    def get_features(self):
+        return ["genres", "rating"]
 
 
 class MyAnimeListConnection:

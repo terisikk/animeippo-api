@@ -15,8 +15,8 @@ def test_new_provider_can_be_instantiated():
         def get_seasonal_anime_list(self, year, season):
             super().get_seasonal_anime_list(year, season)
 
-        def get_genre_tags(self):
-            super().get_genre_tags()
+        def get_features(self):
+            super().get_features()
 
         def get_related_anime(self, id):
             super().get_related_anime(id)
@@ -24,7 +24,7 @@ def test_new_provider_can_be_instantiated():
     actual = ConcreteAnimeProvider()
     actual.get_user_anime_list(None)
     actual.get_seasonal_anime_list(None, None)
-    actual.get_genre_tags()
+    actual.get_features()
     actual.get_related_anime(None)
 
     assert issubclass(actual.__class__, provider.AbstractAnimeProvider)

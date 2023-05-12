@@ -5,6 +5,7 @@ class UserDataSet:
     def __init__(self, watchlist, seasonal):
         self.watchlist = watchlist
         self.seasonal = seasonal
+        self.features = []
         self.recommendations = None
 
         if self.seasonal is not None and self.watchlist is not None:

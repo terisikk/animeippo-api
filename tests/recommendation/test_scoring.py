@@ -28,7 +28,7 @@ def test_genre_similarity_scorer():
         {"genres": [["Romance", "Comedy"], ["Action", "Adventure"]], "title": ["Kaguya", "Naruto"]}
     )
 
-    scorer = scoring.GenreSimilarityScorer(["Action", "Adventure", "Fantasy", "Romance", "Comedy"])
+    scorer = scoring.FeaturesSimilarityScorer(["genres"])
 
     target_df["recommend_score"] = scorer.score(
         target_df,
@@ -41,7 +41,6 @@ def test_genre_similarity_scorer():
     actual = recommendations.iloc[0]["title"]
 
     assert actual == expected
-    assert recommendations.columns.tolist() == ["genres", "title", "recommend_score"]
     assert not recommendations["recommend_score"].isnull().values.any()
 
 
@@ -60,7 +59,10 @@ def test_genre_similarity_scorer_weighted():
         }
     )
 
-    scorer = scoring.GenreSimilarityScorer(["Action", "Adventure", "Fantasy"], weighted=True)
+    scorer = scoring.FeaturesSimilarityScorer(
+        ["genres"],
+        weighted=True,
+    )
 
     target_df["recommend_score"] = scorer.score(
         target_df,
@@ -118,9 +120,7 @@ def test_cluster_similarity_scorer():
         {"genres": [["Romance", "Comedy"], ["Action", "Adventure"]], "title": ["Kaguya", "Naruto"]}
     )
 
-    scorer = scoring.ClusterSimilarityScorer(
-        ["Action", "Adventure", "Fantasy", "Romance", "Comedy"]
-    )
+    scorer = scoring.ClusterSimilarityScorer(["genres"])
 
     target_df["recommend_score"] = scorer.score(
         target_df,
@@ -133,7 +133,6 @@ def test_cluster_similarity_scorer():
     actual = recommendations.iloc[0]["title"]
 
     assert actual == expected
-    assert recommendations.columns.tolist() == ["genres", "title", "recommend_score"]
     assert not recommendations["recommend_score"].isnull().values.any()
 
 
@@ -152,10 +151,7 @@ def test_cluster_similarity_scorer_weighted():
         }
     )
 
-    scorer = scoring.ClusterSimilarityScorer(
-        ["Action", "Adventure", "Fantasy", "Romance", "Comedy"],
-        weighted=True,
-    )
+    scorer = scoring.ClusterSimilarityScorer(["genres"], weighted=True)
 
     target_df["recommend_score"] = scorer.score(
         target_df,
@@ -168,7 +164,6 @@ def test_cluster_similarity_scorer_weighted():
     actual = recommendations.iloc[0]["title"]
 
     assert actual == expected
-    assert recommendations.columns.tolist() == ["genres", "title", "recommend_score"]
     assert not recommendations["recommend_score"].isnull().values.any()
 
 
@@ -199,7 +194,6 @@ def test_studio_count_scorer():
     actual = recommendations.iloc[0]["title"]
 
     assert actual == expected
-    assert "recommend_score" in recommendations.columns.tolist()
     assert not recommendations["recommend_score"].isnull().values.any()
 
 
@@ -226,7 +220,6 @@ def test_studio_count_scorer_does_not_fail_with_zero_studios():
 
     recommendations = target_df.sort_values("recommend_score", ascending=False)
 
-    assert "recommend_score" in recommendations.columns.tolist()
     assert not recommendations["recommend_score"].isnull().values.any()
 
 
@@ -258,7 +251,6 @@ def test_studio_average_scorer():
     actual = recommendations.iloc[0]["title"]
 
     assert actual == expected
-    assert "recommend_score" in recommendations.columns.tolist()
     assert not recommendations["recommend_score"].isnull().values.any()
 
 
@@ -267,7 +259,7 @@ def test_popularity_scorer():
         {
             "studios": [["Bones"], ["MAPPA"]],
             "title": ["Bungou Stray Dogs", "Jujutsu Kaisen"],
-            "num_list_users": [10, 100],
+            "popularity": [10, 100],
         }
     )
 
@@ -284,7 +276,6 @@ def test_popularity_scorer():
     actual = recommendations.iloc[0]["title"]
 
     assert actual == expected
-    assert "recommend_score" in recommendations.columns.tolist()
     assert not recommendations["recommend_score"].isnull().values.any()
 
 
@@ -364,5 +355,4 @@ def test_source_scorer():
     actual = recommendations.iloc[0]["title"]
 
     assert actual == expected
-    assert "recommend_score" in recommendations.columns.tolist()
     assert not recommendations["recommend_score"].isnull().values.any()

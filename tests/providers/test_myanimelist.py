@@ -150,10 +150,10 @@ def test_reqest_does_not_fail_catastrophically_when_response_is_empty(mocker):
     assert len(pages) == 0
 
 
-def test_genre_tags_can_be_fetched():
+def test_features_can_be_fetched():
     provider = myanimelist.MyAnimeListProvider()
 
-    genre_tags = provider.get_genre_tags()
+    features = provider.get_features()
 
-    assert len(genre_tags) > 0
-    assert "Action" in genre_tags
+    assert len(features) > 0
+    assert "genres" in features

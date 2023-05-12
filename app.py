@@ -4,7 +4,7 @@ from flask import Flask, Response, request, g
 from flask_cors import CORS
 
 from animeippo.main import create_recommender, create_user_dataset
-from animeippo.providers import myanimelist as mal
+from animeippo.providers import myanimelist as mal, anilist as al
 from animeippo import cache
 from animeippo.recommendation import filters
 
@@ -13,8 +13,8 @@ app = Flask(__name__)
 app.config["JSON_AS_ASCII"] = False
 cors = CORS(app, origins="http://localhost:3000")
 
-provider = mal.MyAnimeListProvider(cache=cache.RedisCache())
-recommender_engine = create_recommender(provider.get_genre_tags())
+# provider = mal.MyAnimeListProvider(cache=cache.RedisCache())
+provider = al.AniListProvider(cache=cache.RedisCache())
 
 
 @app.before_request
@@ -40,15 +40,14 @@ def seasonal_anime():
     seasonal = provider.get_seasonal_anime_list(year, season)
 
     seasonal_filters = [
-        filters.MediaTypeFilter("tv", "movie"),
-        filters.RatingFilter("rx", negative=True),
+        filters.GenreFilter("Hentai", negative=True),
     ]
 
     for f in seasonal_filters:
         seasonal = f.filter(seasonal)
 
     return Response(
-        seasonal.sort_values("num_list_users", ascending=False).to_json(orient="records"),
+        seasonal.sort_values("popularity", ascending=False).to_json(orient="records"),
         mimetype="application/json",
     )
 
@@ -64,6 +63,7 @@ def recommend_anime():
 
     dataset = create_user_dataset(user, year, season, provider)
 
+    recommender_engine = create_recommender(dataset.features)
     recommendations = recommender_engine.fit_predict(dataset)
 
     recommendations["id"] = recommendations.index
