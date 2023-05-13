@@ -4,7 +4,7 @@ from tests.recommendation.test_recommendation import ProviderStub
 
 
 def test_engine_can_be_created():
-    recommender = main.create_recommender([])
+    recommender = main.create_recommender()
 
     assert recommender is not None
     assert recommender.__class__ == AnimeRecommendationEngine

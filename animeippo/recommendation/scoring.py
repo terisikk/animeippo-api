@@ -21,21 +21,10 @@ class AbstractScorer(abc.ABC):
 class FeaturesSimilarityScorer(AbstractScorer):
     name = "featuresimilarityscore"
 
-    def __init__(self, features, weighted=False):
-        self.features = features
+    def __init__(self, weighted=False):
         self.weighted = weighted
 
     def score(self, scoring_target_df, compare_df):
-        compare_df["features"] = compare_df.apply(
-            self.get_features,
-            axis=1,
-        )
-
-        scoring_target_df["features"] = scoring_target_df.apply(
-            self.get_features,
-            axis=1,
-        )
-
         all_features = (
             pd.concat([compare_df["features"], scoring_target_df["features"]]).explode().unique()
         )
@@ -54,20 +43,6 @@ class FeaturesSimilarityScorer(AbstractScorer):
             scores = scores * weights
 
         return analysis.normalize_column(scores)
-
-    def get_features(self, row):
-        all_features = []
-
-        for feature in self.features:
-            value = row[feature]
-            if isinstance(value, str):
-                all_features.append(value)
-            elif isinstance(value, list):
-                all_features.extend(value)
-            else:
-                continue
-
-        return all_features
 
 
 class GenreAverageScorer(AbstractScorer):
@@ -117,26 +92,15 @@ class StudioAverageScorer:
 class ClusterSimilarityScorer(AbstractScorer):
     name = "clusterscore"
 
-    def __init__(self, features, weighted=False):
+    def __init__(self, weighted=False):
         self.model = skcluster.AgglomerativeClustering(
             n_clusters=None, metric="precomputed", linkage="average", distance_threshold=0.7
         )
 
-        self.features = features
         self.weighted = weighted
 
     def score(self, scoring_target_df, compare_df):
         scores = pd.DataFrame(index=scoring_target_df.index)
-
-        compare_df["features"] = compare_df.apply(
-            self.get_features,
-            axis=1,
-        )
-
-        scoring_target_df["features"] = scoring_target_df.apply(
-            self.get_features,
-            axis=1,
-        )
 
         all_features = (
             pd.concat([compare_df["features"], scoring_target_df["features"]]).explode().unique()
@@ -166,37 +130,11 @@ class ClusterSimilarityScorer(AbstractScorer):
 
         return analysis.normalize_column(scores.apply(np.max, axis=1))
 
-    def get_features(self, row):
-        all_features = []
-
-        for feature in self.features:
-            value = row[feature]
-            if isinstance(value, str):
-                all_features.append(value)
-            elif isinstance(value, list):
-                all_features.extend(value)
-            else:
-                continue
-
-        return all_features
-
 
 class DirectSimilarityScorer(AbstractScorer):
     name = "directscore"
 
-    def __init__(self, features):
-        self.features = features
-
     def score(self, scoring_target_df, compare_df):
-        scoring_features = scoring_target_df.apply(
-            self.get_features,
-            axis=1,
-        )
-        compare_features = compare_df.apply(
-            self.get_features,
-            axis=1,
-        )
-
         all_features = (
             pd.concat([compare_df["features"], scoring_target_df["features"]]).explode().unique()
         )
@@ -204,7 +142,10 @@ class DirectSimilarityScorer(AbstractScorer):
         encoder = CategoricalEncoder(all_features)
 
         similarities = pd.DataFrame(
-            analysis.similarity(encoder.encode(scoring_features), encoder.encode(compare_features)),
+            analysis.similarity(
+                encoder.encode(scoring_target_df["features"]),
+                encoder.encode(compare_df["features"]),
+            ),
             index=scoring_target_df.index,
         )
 
@@ -222,20 +163,6 @@ class DirectSimilarityScorer(AbstractScorer):
         )
 
         return analysis.normalize_column(scores)
-
-    def get_features(self, row):
-        all_features = []
-
-        for feature in self.features:
-            value = row[feature]
-            if isinstance(value, str):
-                all_features.append(value)
-            elif isinstance(value, list):
-                all_features.extend(value)
-            else:
-                continue
-
-        return all_features
 
 
 class PopularityScorer(AbstractScorer):

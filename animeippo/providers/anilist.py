@@ -7,27 +7,7 @@ from .formatters import ani_formatter
 
 import animeippo.cache as animecache
 
-ANI_GENRES = [
-    "Action",
-    "Adventure",
-    "Comedy",
-    "Drama",
-    "Ecchi",
-    "Fantasy",
-    "Hentai",
-    "Horror",
-    "Mahou Shoujo",
-    "Mecha",
-    "Music",
-    "Mystery",
-    "Psychological",
-    "Romance",
-    "Sci-Fi",
-    "Slice of Life",
-    "Sports",
-    "Supernatural",
-    "Thriller",
-]
+REQUEST_TIMEOUT = 30
 
 
 class AniListProvider(provider.AbstractAnimeProvider):
@@ -37,87 +17,64 @@ class AniListProvider(provider.AbstractAnimeProvider):
     def get_user_anime_list(self, user_id):
         # Here we define our query as a multi-line string
         query = """
-        query ($userName: String) { # Define which variables will be used in the query (id)
+        query ($userName: String) {
             MediaListCollection(userName: $userName, type: ANIME) {
                 lists {
-                name
-                isCustomList
-                isSplitCompletedList
-                status
-                entries {
-                    status,
-                    score(format:POINT_10),
-                    media {
-                        id,
-                        title {
-                            romaji
-                        },
-                        genres,
-                        meanScore,
-                        source,
-                        studios {
-                            edges 
-                            {
-                                id,
-                            }
-                        },
-                        seasonYear,
-                        season,
-                        coverImage { large },
-                    }
+                    name
+                    status
+                    entries {
+                        status
+                        score(format:POINT_10)
+                        media {
+                            id
+                            title { romaji }
+                            genres
+                            meanScore
+                            source
+                            studios { edges { id } }
+                            seasonYear
+                            season
+                            coverImage { large }
+                        }
                     }
                 }
             }
         }
         """
 
-        # Define our query variables and values that will be used in the query request
         variables = {"userName": user_id}
 
         anime_list = self.connection.request_collection(query, variables)
-        return ani_formatter.transform_to_animeippo_format(anime_list)
+        return ani_formatter.transform_to_animeippo_format(anime_list, normalize_level=1)
 
     def get_seasonal_anime_list(self, year, season):
         # Here we define our query as a multi-line string
         query = """
-        query ($seasonYear: Int, $season: MediaSeason, $page: Int) { # Define which variables will be used in the query (id)
+        query ($seasonYear: Int, $season: MediaSeason, $page: Int) {
             Page(page: $page, perPage: 50) {
-                pageInfo {hasNextPage, currentPage, lastPage, total, perPage},
+                pageInfo { hasNextPage currentPage lastPage total perPage }
                 media(seasonYear: $seasonYear, season: $season, type:ANIME) {
-                    id,
-                    title {
-                        romaji
-                    },
-                    genres,
-                    meanScore,
-                    source,
-                    studios {
-                        edges {
-                        id,
-                        
-                        }
-                    },
-                    seasonYear,
-                    season,
-                    relations {
-                        edges {
-                        relationType,
-                        node {id}
-                        }
-                    },
-                    popularity,
-                    coverImage { large },
+                    id
+                    title { romaji }
+                    genres
+                    meanScore
+                    source
+                    studios { edges { id }}
+                    seasonYear
+                    season
+                    relations { edges { relationType, node { id }}}
+                    popularity
+                    coverImage { large }
                 }
             }
         }
         """
 
-        # Define our query variables and values that will be used in the query request
         variables = {"seasonYear": int(year), "season": str(season).upper()}
 
         anime_list = self.connection.request_paginated(query, variables)
 
-        return ani_formatter.transform_to_animeippo_format(anime_list)
+        return ani_formatter.transform_to_animeippo_format(anime_list, normalize_level=0)
 
     def get_features(self):
         return ["genres"]
@@ -133,18 +90,21 @@ class AnilistConnection:
     @animecache.cached_query(ttl=timedelta(days=1))
     def request_paginated(self, query, parameters):
         anime_list = {"data": []}
+        variables = parameters.copy()  # To avoid cache miss with side effects
 
-        for page in self.requests_get_all_pages(query, parameters):
+        for page in self.requests_get_all_pages(query, variables):
             for item in page["media"]:
                 anime_list["data"].append(item)
 
         return anime_list
 
-    def request_collection(self, query, variables):
+    @animecache.cached_query(ttl=timedelta(days=1))
+    def request_collection(self, query, parameters):
         anime_list = {"data": []}
+        variables = parameters.copy()  # To avoid cache miss with side effects
 
-        for l in self.request_single(query, variables)["data"]["MediaListCollection"]["lists"]:
-            for entry in l["entries"]:
+        for coll in self.request_single(query, variables)["data"]["MediaListCollection"]["lists"]:
+            for entry in coll["entries"]:
                 anime_list["data"].append(entry)
 
         return anime_list
@@ -152,7 +112,9 @@ class AnilistConnection:
     def request_single(self, query, variables):
         url = "https://graphql.anilist.co"
 
-        response = requests.post(url, json={"query": query, "variables": variables})
+        response = requests.post(
+            url, json={"query": query, "variables": variables}, timeout=REQUEST_TIMEOUT
+        )
 
         response.raise_for_status()
         return response.json()

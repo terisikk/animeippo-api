@@ -20,15 +20,18 @@ def test_abstract_scorer_can_be_instantiated():
 def test_genre_similarity_scorer():
     source_df = pd.DataFrame(
         {
-            "genres": [["Action", "Adventure"], ["Action", "Fantasy"]],
+            "features": [["Action", "Adventure"], ["Action", "Fantasy"]],
             "title": ["Bleach", "Fate/Zero"],
         }
     )
     target_df = pd.DataFrame(
-        {"genres": [["Romance", "Comedy"], ["Action", "Adventure"]], "title": ["Kaguya", "Naruto"]}
+        {
+            "features": [["Romance", "Comedy"], ["Action", "Adventure"]],
+            "title": ["Kaguya", "Naruto"],
+        }
     )
 
-    scorer = scoring.FeaturesSimilarityScorer(["genres"])
+    scorer = scoring.FeaturesSimilarityScorer()
 
     target_df["recommend_score"] = scorer.score(
         target_df,
@@ -47,20 +50,19 @@ def test_genre_similarity_scorer():
 def test_genre_similarity_scorer_weighted():
     source_df = pd.DataFrame(
         {
-            "genres": [["Action", "Adventure"], ["Fantasy", "Adventure"]],
+            "features": [["Action", "Adventure"], ["Fantasy", "Adventure"]],
             "title": ["Bleach", "Fate/Zero"],
             "score": [1, 10],
         }
     )
     target_df = pd.DataFrame(
         {
-            "genres": [["Action", "Adventure"], ["Fantasy", "Adventure"]],
+            "features": [["Action", "Adventure"], ["Fantasy", "Adventure"]],
             "title": ["Naruto", "Inuyasha"],
         }
     )
 
     scorer = scoring.FeaturesSimilarityScorer(
-        ["genres"],
         weighted=True,
     )
 
@@ -112,15 +114,18 @@ def test_genre_average_scorer():
 def test_cluster_similarity_scorer():
     source_df = pd.DataFrame(
         {
-            "genres": [["Action", "Adventure"], ["Action", "Fantasy"]],
+            "features": [["Action", "Adventure"], ["Action", "Fantasy"]],
             "title": ["Bleach", "Fate/Zero"],
         }
     )
     target_df = pd.DataFrame(
-        {"genres": [["Romance", "Comedy"], ["Action", "Adventure"]], "title": ["Kaguya", "Naruto"]}
+        {
+            "features": [["Romance", "Comedy"], ["Action", "Adventure"]],
+            "title": ["Kaguya", "Naruto"],
+        }
     )
 
-    scorer = scoring.ClusterSimilarityScorer(["genres"])
+    scorer = scoring.ClusterSimilarityScorer()
 
     target_df["recommend_score"] = scorer.score(
         target_df,
@@ -139,19 +144,19 @@ def test_cluster_similarity_scorer():
 def test_cluster_similarity_scorer_weighted():
     source_df = pd.DataFrame(
         {
-            "genres": [["Action", "Adventure"], ["Fantasy", "Adventure"]],
+            "features": [["Action", "Adventure"], ["Fantasy", "Adventure"]],
             "title": ["Bleach", "Fate/Zero"],
             "score": [10, 1],
         }
     )
     target_df = pd.DataFrame(
         {
-            "genres": [["Fantasy", "Adventure"], ["Action", "Adventure"]],
+            "features": [["Fantasy", "Adventure"], ["Action", "Adventure"]],
             "title": ["Inuyasha", "Naruto"],
         }
     )
 
-    scorer = scoring.ClusterSimilarityScorer(["genres"], weighted=True)
+    scorer = scoring.ClusterSimilarityScorer(weighted=True)
 
     target_df["recommend_score"] = scorer.score(
         target_df,

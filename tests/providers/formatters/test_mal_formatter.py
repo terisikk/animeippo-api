@@ -12,19 +12,20 @@ def test_genre_splitting_does_not_fail_with_invalid_data():
 
 
 def test_user_score_extraction_does_not_fail_with_invalid_data():
-    mal_formatter.get_user_score(1.0)
-    mal_formatter.get_user_score(None)
+    mal_formatter.formatters["score"](1.0)
+    mal_formatter.formatters["score"](None)
+    mal_formatter.formatters["score"](np.nan)
 
 
 def test_anime_season_extraction_does_not_fail_with_invalid_data():
     assert mal_formatter.split_season({"year": None, "sesson": "winter"}) == "None/?"
-    assert pd.isnull(mal_formatter.split_season(np.nan))
+    assert mal_formatter.split_season(np.nan) == "?/?"
 
 
 def test_user_score_cannot_be_zero():
     original = 0
 
-    actual = mal_formatter.get_user_score(original)
+    actual = mal_formatter.formatters["score"](original)
 
     assert np.isnan(actual)
 

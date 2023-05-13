@@ -1,6 +1,5 @@
 import animeippo.recommendation.engine as engine
 import animeippo.recommendation.scoring as scoring
-import animeippo.providers.myanimelist as mal
 from animeippo.recommendation import dataset
 import pandas as pd
 import pytest
@@ -24,7 +23,9 @@ class ProviderStub:
 
 def test_recommend_seasonal_anime_for_user_by_genre():
     provider = ProviderStub()
-    data = dataset.UserDataSet(provider.get_user_anime_list(), provider.get_seasonal_anime_list())
+    data = dataset.UserDataSet(
+        provider.get_user_anime_list(), provider.get_seasonal_anime_list(), provider.get_features()
+    )
     data.features = provider.get_features()
 
     scorer = scoring.FeaturesSimilarityScorer(data.features)
@@ -42,7 +43,9 @@ def test_recommend_seasonal_anime_for_user_by_genre():
 
 def test_multiple_scorers_can_be_added():
     provider = ProviderStub()
-    data = dataset.UserDataSet(provider.get_user_anime_list(), provider.get_seasonal_anime_list())
+    data = dataset.UserDataSet(
+        provider.get_user_anime_list(), provider.get_seasonal_anime_list(), provider.get_features()
+    )
 
     data.features = provider.get_features()
 

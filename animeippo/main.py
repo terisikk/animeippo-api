@@ -3,19 +3,19 @@ from animeippo.recommendation import engine, filters, scoring, dataset
 from animeippo import cache
 
 
-def create_recommender(feature_tags):
+def create_recommender():
     scorers = [
         # redundant
         # scoring.GenreSimilarityScorer(feature_tags, weighted=True),
         scoring.GenreAverageScorer(),
-        scoring.ClusterSimilarityScorer(feature_tags, weighted=True),
+        scoring.ClusterSimilarityScorer(weighted=True),
         # redundant
         # scoring.StudioCountScorer(),
         scoring.StudioAverageScorer(),
         scoring.PopularityScorer(),
         scoring.ContinuationScorer(),
         scoring.SourceScorer(),
-        scoring.DirectSimilarityScorer(feature_tags),
+        scoring.DirectSimilarityScorer(),
     ]
 
     recommender = engine.AnimeRecommendationEngine(scorers)
@@ -25,7 +25,9 @@ def create_recommender(feature_tags):
 
 def create_user_dataset(user, year, season, provider):
     data = dataset.UserDataSet(
-        provider.get_user_anime_list(user), provider.get_seasonal_anime_list(year, season)
+        provider.get_user_anime_list(user),
+        provider.get_seasonal_anime_list(year, season),
+        provider.get_features(),
     )
 
     watchlist_filters = [filters.IdFilter(*data.seasonal.index.to_list(), negative=True)]
@@ -52,8 +54,6 @@ def create_user_dataset(user, year, season, provider):
 
     data.seasonal = filters.ContinuationFilter(data.watchlist).filter(data.seasonal)
 
-    data.features = provider.get_features()
-
     return data
 
 
@@ -65,7 +65,7 @@ if __name__ == "__main__":
     provider = providers.anilist.AniListProvider(cache=cache.RedisCache())
 
     data = create_user_dataset(user, year, season, provider)
-    recommender = create_recommender(data.features)
+    recommender = create_recommender()
 
     recommendations = recommender.fit_predict(data)
     print(recommendations.reset_index().loc[0:25, ["title", "genres", "recommend_score"]])

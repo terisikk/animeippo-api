@@ -4,7 +4,7 @@ from flask import Flask, Response, request, g
 from flask_cors import CORS
 
 from animeippo.main import create_recommender, create_user_dataset
-from animeippo.providers import myanimelist as mal, anilist as al
+from animeippo.providers import anilist as al
 from animeippo import cache
 from animeippo.recommendation import filters
 
@@ -13,8 +13,8 @@ app = Flask(__name__)
 app.config["JSON_AS_ASCII"] = False
 cors = CORS(app, origins="http://localhost:3000")
 
-# provider = mal.MyAnimeListProvider(cache=cache.RedisCache())
 provider = al.AniListProvider(cache=cache.RedisCache())
+engine = create_recommender()
 
 
 @app.before_request
@@ -63,8 +63,7 @@ def recommend_anime():
 
     dataset = create_user_dataset(user, year, season, provider)
 
-    recommender_engine = create_recommender(dataset.features)
-    recommendations = recommender_engine.fit_predict(dataset)
+    recommendations = engine.fit_predict(dataset)
 
     recommendations["id"] = recommendations.index
 

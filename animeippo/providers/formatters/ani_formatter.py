@@ -1,87 +1,82 @@
 import numpy as np
 import pandas as pd
 
+from . import util
 
-def transform_to_animeippo_format(data):
-    df = pd.DataFrame()
 
-    if len(data.get("data", [])) > 0:
-        df = pd.json_normalize(data["data"], max_level=2)
+def transform_to_animeippo_format(data, normalize_level=1):
+    if len(data.get("data", [])) == 0:
+        return pd.DataFrame()
 
-        column_mapping = {}
+    df = pd.json_normalize(data["data"], max_level=normalize_level)
 
-        if "seasonYear" in df.columns:
-            df["start_season"] = df.apply(
-                lambda row: str(row["seasonYear"]) + "/" + row["season"].lower(), axis=1
-            )
+    column_mapping = util.get_column_name_mappers(df.columns)
+    column_mapping["relations"] = "related_anime"
 
-        for key in df.columns:
-            new_key = key
+    df = df.rename(columns=column_mapping)
 
-            if "media." in new_key:
-                new_key = new_key.split("media.")[-1]
+    df = util.format_with_formatters(df, formatters)
 
-            if "." in new_key:
-                new_key = new_key.split(".")[0]
+    df["start_season"] = df.apply(format_season, axis=1)
 
-            column_mapping[key] = new_key
+    dropped = ["seasonYear", "season"]
+    df = df.drop(dropped, errors="ignore", axis=1)
 
-        column_mapping["relations.edges"] = "related_anime"
-        df = df.rename(columns=column_mapping)
-
-        for key, formatter in formatters.items():
-            if key in df.columns:
-                df[key] = df[key].apply(formatter)
-
-        if "id" in df.columns:
-            df = df.set_index("id")
-
-        dropped = ["seasonYear", "season"]
-
-        df = df.drop(dropped, errors="ignore", axis=1)
+    if "id" in df.columns:
+        df = df.set_index("id")
 
     return df
 
 
+@util.default_if_error([])
 def filter_related_anime(field):
     meaningful_relations = ["PARENT", "PREQUEL"]
 
     relations = []
 
-    for item in field:
-        relationType = item.get("relationType", None)
+    for item in field["edges"]:
+        relationType = item.get("relationType", "")
+        node = item.get("node", {})
 
         if relationType in meaningful_relations:
-            id = item.get("node", None)["id"]
-
-            if id:
-                relations.append(id)
+            relations.append(node.get("id", None))
 
     return relations
 
 
+@util.default_if_error("?/?")
+def format_season(row):
+    year = row.get("seasonYear", 0)
+    season = str(row.get("season", "?"))
+
+    if year == 0 or np.isnan(year):
+        year = "?"
+    else:
+        year = str(int(year))
+
+    return f"{year}/{season.lower()}"
+
+
+@util.default_if_error(None)
 def split_studios(field):
-    studios = []
-
-    for studio in field:
-        if studio:
-            id = studio.get("id", None)
-            if id:
-                studios.append(id)
-
-    return studios
+    return [studio.get("id", None) for studio in field["edges"]]
 
 
-def get_user_score(score):
-    if score == 0:
-        score = np.nan
+@util.default_if_error(None)
+def get_image_url(field):
+    return field.get("large", None)
 
-    return score
+
+@util.default_if_error(None)
+def get_title(field):
+    return field.get("romaji", None)
 
 
 formatters = {
     "related_anime": filter_related_anime,
     "status": str.lower,
     "studios": split_studios,
-    "score": get_user_score,
+    "score": lambda score: score if score != 0 else np.nan,
+    "coverImage": get_image_url,
+    "title": get_title,
 }
