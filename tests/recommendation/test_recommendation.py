@@ -8,11 +8,17 @@ from tests import test_data
 
 
 class ProviderStub:
+    def __init__(
+        self, seasonal=test_data.FORMATTED_MAL_SEASONAL_LIST, user=test_data.FORMATTED_MAL_USER_LIST
+    ):
+        self.seasonal = seasonal
+        self.user = user
+
     def get_seasonal_anime_list(self, *args, **kwargs):
-        return pd.DataFrame(test_data.FORMATTED_MAL_SEASONAL_LIST).set_index("id")
+        return pd.DataFrame(self.seasonal).set_index("id")
 
     def get_user_anime_list(self, *args, **kwargs):
-        return pd.DataFrame(test_data.FORMATTED_MAL_USER_LIST).set_index("id")
+        return pd.DataFrame(self.user).set_index("id")
 
     def get_related_anime(self, *args, **kwargs):
         return pd.DataFrame()

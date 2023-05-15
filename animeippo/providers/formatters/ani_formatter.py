@@ -72,6 +72,11 @@ def get_title(field):
     return field.get("romaji", None)
 
 
+@util.default_if_error([])
+def get_tags(tags):
+    return [tag["name"] for tag in tags]
+
+
 formatters = {
     "related_anime": filter_related_anime,
     "status": str.lower,
@@ -79,4 +84,5 @@ formatters = {
     "score": lambda score: score if score != 0 else np.nan,
     "coverImage": get_image_url,
     "title": get_title,
+    "tags": get_tags,
 }

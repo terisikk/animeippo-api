@@ -1,4 +1,5 @@
 import numpy as np
+import pandas as pd
 
 
 class UserDataSet:
@@ -30,11 +31,11 @@ def get_features(row, feature_names):
     for feature in feature_names:
         value = row[feature]
 
-        if isinstance(value, str):
-            all_features.append(value)
-        elif isinstance(value, list):
-            all_features.extend(value)
-        else:
+        if isinstance(value, list):
+            all_features.extend([v for v in value if not pd.isnull(v)])
+        elif value is None or pd.isnull(value):
             continue
+        else:
+            all_features.append(value)
 
     return all_features

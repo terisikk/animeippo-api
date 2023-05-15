@@ -74,6 +74,96 @@ MAL_USER_LIST = {
     ]
 }
 
+ANI_USER_LIST = {
+    "data": {
+        "MediaListCollection": {
+            "lists": [
+                {
+                    "name": "Watching",
+                    "isCustomList": False,
+                    "isSplitCompletedList": False,
+                    "status": "CURRENT",
+                    "entries": [
+                        {
+                            "status": "CURRENT",
+                            "score": 0,
+                            "media": {
+                                "id": 131518,
+                                "title": {"romaji": "Dr. STONE: NEW WORLD"},
+                                "genres": ["Action", "Adventure", "Comedy", "Sci-Fi"],
+                                "tags": [
+                                    {"name": "Post-Apocalyptic", "rank": 95},
+                                    {"name": "Survival", "rank": 89},
+                                    {"name": "Educational", "rank": 88},
+                                    {"name": "Male Protagonist", "rank": 85},
+                                    {"name": "Ships", "rank": 84},
+                                    {"name": "Shounen", "rank": 81},
+                                    {"name": "Conspiracy", "rank": 80},
+                                    {"name": "Ensemble Cast", "rank": 71},
+                                    {"name": "Amnesia", "rank": 60},
+                                    {"name": "Espionage", "rank": 60},
+                                    {"name": "Found Family", "rank": 60},
+                                    {"name": "Crossdressing", "rank": 50},
+                                    {"name": "Agriculture", "rank": 40},
+                                    {"name": "Butler", "rank": 33},
+                                    {"name": "Aliens", "rank": 33},
+                                    {"name": "War", "rank": 30},
+                                    {"name": "Female Harem", "rank": 10},
+                                ],
+                                "meanScore": 82,
+                                "source": "MANGA",
+                                "studios": {"edges": [{"id": 29467}, {"id": 29998}, {"id": 32538}]},
+                                "seasonYear": 2023,
+                                "season": "SPRING",
+                            },
+                        },
+                        {
+                            "status": "CURRENT",
+                            "score": 7,
+                            "media": {
+                                "id": 790,
+                                "title": {"romaji": "Ergo Proxy"},
+                                "genres": ["Adventure", "Mystery", "Psychological", "Sci-Fi"],
+                                "tags": [
+                                    {"name": "Post-Apocalyptic", "rank": 94},
+                                    {"name": "Philosophy", "rank": 93},
+                                    {"name": "Dissociative Identities", "rank": 90},
+                                    {"name": "Dystopian", "rank": 89},
+                                    {"name": "Cyberpunk", "rank": 85},
+                                    {"name": "Primarily Adult Cast", "rank": 85},
+                                    {"name": "Amnesia", "rank": 85},
+                                    {"name": "Robots", "rank": 85},
+                                    {"name": "Conspiracy", "rank": 84},
+                                    {"name": "Artificial Intelligence", "rank": 80},
+                                    {"name": "Anti-Hero", "rank": 79},
+                                    {"name": "Noir", "rank": 78},
+                                    {"name": "Fugitive", "rank": 74},
+                                    {"name": "Memory Manipulation", "rank": 73},
+                                    {"name": "Angels", "rank": 73},
+                                    {"name": "Female Protagonist", "rank": 72},
+                                    {"name": "Denpa", "rank": 70},
+                                    {"name": "Male Protagonist", "rank": 68},
+                                    {"name": "Tragedy", "rank": 64},
+                                    {"name": "Gods", "rank": 60},
+                                    {"name": "Travel", "rank": 60},
+                                    {"name": "Kuudere", "rank": 52},
+                                    {"name": "Police", "rank": 48},
+                                    {"name": "Meta", "rank": 40},
+                                    {"name": "Coming of Age", "rank": 38},
+                                    {"name": "Terrorism", "rank": 35},
+                                    {"name": "Guns", "rank": 30},
+                                    {"name": "Heterosexual", "rank": 30},
+                                    {"name": "Satire", "rank": 12},
+                                ],
+                            },
+                        },
+                    ],
+                }
+            ]
+        }
+    }
+}
+
 MAL_SEASONAL_LIST = {
     "data": [
         {
@@ -128,6 +218,52 @@ MAL_SEASONAL_LIST = {
             }
         },
     ]
+}
+
+ANI_SEASONAL_LIST = {
+    "data": {
+        "Page": {
+            "pageInfo": {
+                "hasNextPage": True,
+                "total": 5000,
+                "currentPage": 1,
+                "lastPage": 100,
+                "perPage": 50,
+            },
+            "media": [
+                {
+                    "id": 144932,
+                    "title": {"romaji": "EDENS ZERO 2nd Season"},
+                    "season": "SPRING",
+                    "seasonYear": 2023,
+                    "relations": {
+                        "edges": [
+                            {"relationType": "PREQUEL", "node": {"id": 119683}},
+                            {"relationType": "ADAPTATION", "node": {"id": 101860}},
+                        ]
+                    },
+                    "genres": ["Action", "Adventure", "Drama", "Fantasy", "Supernatural"],
+                    "coverImage": {"medium": "https://localhost/test.png"},
+                    "popularity": 14090,
+                },
+                {
+                    "id": 145139,
+                    "title": {"romaji": "Kimetsu no Yaiba: Katanakaji no Sato-hen"},
+                    "season": "SPRING",
+                    "seasonYear": 2023,
+                    "relations": {
+                        "edges": [
+                            {"relationType": "ADAPTATION", "node": {"id": 87216}},
+                            {"relationType": "PREQUEL", "node": {"id": 142329}},
+                        ]
+                    },
+                    "genres": ["Action", "Adventure", "Comedy", "Fantasy", "Sci-Fi"],
+                    "coverImage": {"medium": "https://localhost/test.png"},
+                    "popularity": 131620,
+                },
+            ],
+        }
+    }
 }
 
 FORMATTED_MAL_USER_LIST = [
@@ -219,6 +355,27 @@ FORMATTED_MAL_SEASONAL_LIST = [
         "media_type": "tv",
         "status": None,
         "start_season": "2023/winter",
+    },
+]
+
+FORMATTED_ANI_SEASONAL_LIST = [
+    {
+        "id": 144932,
+        "title": "EDENS ZERO 2nd Season",
+        "start_season": "2023/spring",
+        "related_anime": [],
+        "coverImage": "https://localhost/test.png",
+        "popularity": 14090,
+        "genres": ["Action", "Adventure", "Drama", "Fantasy", "Supernatural"],
+    },
+    {
+        "id": 145139,
+        "title": "Kimetsu no Yaiba: Katanakaji no Sato-hen",
+        "start_season": "2023/spring",
+        "related_anime": [],
+        "coverImage": "https://localhost/test.png",
+        "popularity": 131620,
+        "genres": ["Action", "Adventure", "Comedy", "Fantasy", "Sci-Fi"],
     },
 ]
 

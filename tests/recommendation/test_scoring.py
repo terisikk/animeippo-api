@@ -17,7 +17,7 @@ def test_abstract_scorer_can_be_instantiated():
     assert issubclass(filter.__class__, scoring.AbstractScorer)
 
 
-def test_genre_similarity_scorer():
+def test_feature_similarity_scorer():
     source_df = pd.DataFrame(
         {
             "features": [["Action", "Adventure"], ["Action", "Fantasy"]],
@@ -47,7 +47,7 @@ def test_genre_similarity_scorer():
     assert not recommendations["recommend_score"].isnull().values.any()
 
 
-def test_genre_similarity_scorer_weighted():
+def test_feature_similarity_scorer_weighted():
     source_df = pd.DataFrame(
         {
             "features": [["Action", "Adventure"], ["Fantasy", "Adventure"]],
@@ -357,6 +357,37 @@ def test_source_scorer():
     recommendations = actual.sort_values("recommend_score", ascending=False)
 
     expected = "Jujutsu Kaisen"
+    actual = recommendations.iloc[0]["title"]
+
+    assert actual == expected
+    assert not recommendations["recommend_score"].isnull().values.any()
+
+
+def test_direct_similarity_scorer():
+    source_df = pd.DataFrame(
+        {
+            "features": [["Action", "Adventure"], ["Action", "Fantasy"]],
+            "title": ["Bleach", "Fate/Zero"],
+            "score": [10, 10],
+        }
+    )
+    target_df = pd.DataFrame(
+        {
+            "features": [["Romance", "Comedy"], ["Action", "Adventure"]],
+            "title": ["Kaguya", "Naruto"],
+        }
+    )
+
+    scorer = scoring.DirectSimilarityScorer()
+
+    target_df["recommend_score"] = scorer.score(
+        target_df,
+        source_df,
+    )
+
+    recommendations = target_df.sort_values("recommend_score", ascending=False)
+
+    expected = "Naruto"
     actual = recommendations.iloc[0]["title"]
 
     assert actual == expected

@@ -100,8 +100,6 @@ class ClusterSimilarityScorer(AbstractScorer):
         self.weighted = weighted
 
     def score(self, scoring_target_df, compare_df):
-        scores = pd.DataFrame(index=scoring_target_df.index)
-
         all_features = (
             pd.concat([compare_df["features"], scoring_target_df["features"]]).explode().unique()
         )
@@ -112,6 +110,10 @@ class ClusterSimilarityScorer(AbstractScorer):
         distances = pd.DataFrame(1 - analysis.similarity(encoded, encoded), index=compare_df.index)
 
         compare_df["cluster"] = self.model.fit_predict(distances)
+
+        scores = pd.DataFrame(
+            index=scoring_target_df.index, columns=range(0, self.model.n_clusters_)
+        )
 
         for cluster_id, cluster in compare_df.groupby("cluster"):
             similarities = analysis.similarity_of_anime_lists(

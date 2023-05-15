@@ -8,6 +8,7 @@ from .formatters import ani_formatter
 import animeippo.cache as animecache
 
 REQUEST_TIMEOUT = 30
+ANI_API_URL = "https://graphql.anilist.co"
 
 
 class AniListProvider(provider.AbstractAnimeProvider):
@@ -29,6 +30,10 @@ class AniListProvider(provider.AbstractAnimeProvider):
                             id
                             title { romaji }
                             genres
+                            tags {
+                                name
+                                rank
+                            }
                             meanScore
                             source
                             studios { edges { id } }
@@ -44,7 +49,14 @@ class AniListProvider(provider.AbstractAnimeProvider):
 
         variables = {"userName": user_id}
 
-        anime_list = self.connection.request_collection(query, variables)
+        collection = self.connection.request_collection(query, variables)
+
+        anime_list = {"data": []}
+
+        for coll in collection["data"]["MediaListCollection"]["lists"]:
+            for entry in coll["entries"]:
+                anime_list["data"].append(entry)
+
         return ani_formatter.transform_to_animeippo_format(anime_list, normalize_level=1)
 
     def get_seasonal_anime_list(self, year, season):
@@ -57,6 +69,10 @@ class AniListProvider(provider.AbstractAnimeProvider):
                     id
                     title { romaji }
                     genres
+                    tags {
+                        name
+                        rank
+                    }
                     meanScore
                     source
                     studios { edges { id }}
@@ -72,12 +88,14 @@ class AniListProvider(provider.AbstractAnimeProvider):
 
         variables = {"seasonYear": int(year), "season": str(season).upper()}
 
-        anime_list = self.connection.request_paginated(query, variables)
+        anime_list = {
+            "data": self.connection.request_paginated(query, variables)["data"].get("media", [])
+        }
 
         return ani_formatter.transform_to_animeippo_format(anime_list, normalize_level=0)
 
     def get_features(self):
-        return ["genres"]
+        return ["genres", "tags"]
 
     def get_related_anime(self, id):
         pass
@@ -89,28 +107,23 @@ class AnilistConnection:
 
     @animecache.cached_query(ttl=timedelta(days=1))
     def request_paginated(self, query, parameters):
-        anime_list = {"data": []}
+        anime_list = {"data": {"media": []}}
         variables = parameters.copy()  # To avoid cache miss with side effects
 
         for page in self.requests_get_all_pages(query, variables):
             for item in page["media"]:
-                anime_list["data"].append(item)
+                anime_list["data"]["media"].append(item)
 
         return anime_list
 
     @animecache.cached_query(ttl=timedelta(days=1))
     def request_collection(self, query, parameters):
-        anime_list = {"data": []}
         variables = parameters.copy()  # To avoid cache miss with side effects
 
-        for coll in self.request_single(query, variables)["data"]["MediaListCollection"]["lists"]:
-            for entry in coll["entries"]:
-                anime_list["data"].append(entry)
-
-        return anime_list
+        return self.request_single(query, variables)
 
     def request_single(self, query, variables):
-        url = "https://graphql.anilist.co"
+        url = ANI_API_URL
 
         response = requests.post(
             url, json={"query": query, "variables": variables}, timeout=REQUEST_TIMEOUT
@@ -123,13 +136,13 @@ class AnilistConnection:
         variables["page"] = 0
         variables["perPage"] = 50
 
-        page = self.request_single(query, variables)["data"]["Page"]
+        page = self.request_single(query, variables).get("data", {}).get("Page", None)
 
         safeguard = 10
 
         yield page
 
-        while page["pageInfo"].get("hasNextPage", False) and safeguard > 0:
+        while page is not None and page["pageInfo"].get("hasNextPage", False) and safeguard > 0:
             variables["page"] = page["pageInfo"]["currentPage"] + 1
 
             page = self.request_single(query, variables)["data"]["Page"]
