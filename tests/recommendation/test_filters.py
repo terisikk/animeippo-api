@@ -25,16 +25,16 @@ def test_media_type_filter():
     assert filter.filter(original)["media_type"].tolist() == ["special", "movie"]
 
 
-def test_genre_filter():
-    original = pd.DataFrame({"genres": [["Action", "Adventure"], ["Fantasy", "Comedy"]]})
+def test_feature_filter():
+    original = pd.DataFrame({"features": [["Action", "Adventure"], ["Fantasy", "Comedy"]]})
 
-    filter = filters.GenreFilter("Action")
+    filter = filters.FeatureFilter("Action")
 
-    assert filter.filter(original)["genres"].tolist() == [["Action", "Adventure"]]
+    assert filter.filter(original)["features"].tolist() == [["Action", "Adventure"]]
 
     filter.negative = True
 
-    assert filter.filter(original)["genres"].tolist() == [["Fantasy", "Comedy"]]
+    assert filter.filter(original)["features"].tolist() == [["Fantasy", "Comedy"]]
 
 
 def test_id_filter():

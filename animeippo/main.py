@@ -36,8 +36,8 @@ def create_user_dataset(user, year, season, provider):
         data.watchlist = f.filter(data.watchlist)
 
     seasonal_filters = [
-        filters.GenreFilter("Kids", negative=True),
-        filters.GenreFilter("Hentai", negative=True),
+        filters.FeatureFilter("Kids", negative=True),
+        filters.FeatureFilter("Hentai", negative=True),
         # filters.MediaTypeFilter("tv"),
         # filters.RatingFilter("g", "rx", negative=True),
         filters.StartSeasonFilter((year, season)),
@@ -58,7 +58,7 @@ def create_user_dataset(user, year, season, provider):
 
 
 if __name__ == "__main__":
-    year = "2023"
+    year = "2022"
     season = "spring"
     user = "Janiskeisari"
 
@@ -68,4 +68,4 @@ if __name__ == "__main__":
     recommender = create_recommender()
 
     recommendations = recommender.fit_predict(data)
-    print(recommendations.reset_index().loc[0:25, ["title", "genres", "recommend_score"]])
+    print(recommendations.reset_index().loc[0:25, ["title", "features", "recommend_score"]])

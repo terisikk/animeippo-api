@@ -21,14 +21,14 @@ class MediaTypeFilter(AbstractFilter):
         return dataframe[mask]
 
 
-class GenreFilter(AbstractFilter):
-    def __init__(self, *genres, negative=False):
-        self.genres = genres
+class FeatureFilter(AbstractFilter):
+    def __init__(self, *features, negative=False):
+        self.features = features
         self.negative = negative
 
     def filter(self, dataframe):
-        mask = dataframe["genres"].apply(
-            lambda genres: all([genre in genres for genre in self.genres])
+        mask = dataframe["features"].apply(
+            lambda field: all([feature in field for feature in self.features])
         )
 
         if self.negative:

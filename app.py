@@ -40,7 +40,7 @@ def seasonal_anime():
     seasonal = provider.get_seasonal_anime_list(year, season)
 
     seasonal_filters = [
-        filters.GenreFilter("Hentai", negative=True),
+        filters.FeatureFilter("Hentai", negative=True),
     ]
 
     for f in seasonal_filters:

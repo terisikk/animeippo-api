@@ -94,7 +94,7 @@ class ClusterSimilarityScorer(AbstractScorer):
 
     def __init__(self, weighted=False):
         self.model = skcluster.AgglomerativeClustering(
-            n_clusters=None, metric="precomputed", linkage="average", distance_threshold=0.7
+            n_clusters=None, metric="precomputed", linkage="average", distance_threshold=0.8
         )
 
         self.weighted = weighted
