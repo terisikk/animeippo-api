@@ -189,6 +189,7 @@ MAL_SEASONAL_LIST = {
                 "media_type": "tv",
                 "start_season": {"year": 2023, "season": "winter"},
                 "rating": "r+",
+                "num_list_users": 5,
             }
         },
         {
@@ -215,6 +216,7 @@ MAL_SEASONAL_LIST = {
                 "media_type": "tv",
                 "start_season": {"year": 2023, "season": "winter"},
                 "rating": "r",
+                "num_list_users": 6,
             }
         },
     ]
@@ -289,6 +291,7 @@ FORMATTED_MAL_USER_LIST = [
         "score": 10,
         "status": "completed",
         "start_season": "2020/winter",
+        "coverImage": "https://localhost/test.png",
     },
     {
         "id": 270,
@@ -311,6 +314,7 @@ FORMATTED_MAL_USER_LIST = [
         "score": 8,
         "status": "watching",
         "start_season": "2023/spring",
+        "coverImage": "https://localhost/test.png",
     },
 ]
 
@@ -334,6 +338,9 @@ FORMATTED_MAL_SEASONAL_LIST = [
         "media_type": "tv",
         "status": None,
         "start_season": "2023/winter",
+        "popularity": 1,
+        "coverImage": "https://localhost/test.png",
+        "related_anime": [],
     },
     {
         "id": 51535,
@@ -355,6 +362,9 @@ FORMATTED_MAL_SEASONAL_LIST = [
         "media_type": "tv",
         "status": None,
         "start_season": "2023/winter",
+        "popularity": 2,
+        "coverImage": "https://localhost/test.png",
+        "related_anime": [1],
     },
 ]
 

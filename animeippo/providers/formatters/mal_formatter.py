@@ -12,6 +12,7 @@ def transform_to_animeippo_format(data):
 
     column_mapping = util.get_column_name_mappers(df.columns)
     column_mapping["node.num_list_users"] = "popularity"
+    column_mapping["node.main_picture"] = "coverImage"
 
     df = df.rename(columns=column_mapping)
 
@@ -62,9 +63,15 @@ def filter_related_anime(df):
     return df[df["relation_type"].isin(meaningful_relations)]
 
 
+@util.default_if_error(None)
+def get_image_url(field):
+    return field.get("medium", None)
+
+
 formatters = {
     "genres": split_id_name_field,
     "studios": split_id_name_field,
     "start_season": split_season,
     "score": lambda score: score if score != 0 else np.nan,
+    "coverImage": get_image_url,
 }

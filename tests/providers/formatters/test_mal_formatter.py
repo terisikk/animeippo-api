@@ -92,3 +92,13 @@ def test_mal_genres_can_be_split():
     expected = ["Action", "Adult Cast", "Gore", "Horror", "Seinen", "Supernatural", "Vampire"]
 
     assert actual == expected
+
+
+def test_columns_are_named_properly():
+    animelist = test_data.MAL_SEASONAL_LIST
+
+    data = mal_formatter.transform_to_animeippo_format(animelist)
+
+    assert "popularity" in data.columns
+    assert "coverImage" in data.columns
+    assert "genres" in data.columns

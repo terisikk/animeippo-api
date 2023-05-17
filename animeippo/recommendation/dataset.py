@@ -11,7 +11,11 @@ class UserDataSet:
 
         if self.seasonal is not None and self.watchlist is not None:
             self.seasonal = fill_status_data_from_watchlist(self.seasonal, self.watchlist)
+
+        if self.seasonal is not None:
             self.seasonal["features"] = fill_feature_data(self.seasonal, self.features)
+
+        if self.watchlist is not None:
             self.watchlist["features"] = fill_feature_data(self.watchlist, self.features)
 
 

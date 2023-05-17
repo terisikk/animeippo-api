@@ -9,10 +9,14 @@ from tests import test_data
 
 class ProviderStub:
     def __init__(
-        self, seasonal=test_data.FORMATTED_MAL_SEASONAL_LIST, user=test_data.FORMATTED_MAL_USER_LIST
+        self,
+        seasonal=test_data.FORMATTED_MAL_SEASONAL_LIST,
+        user=test_data.FORMATTED_MAL_USER_LIST,
+        cache=None,
     ):
         self.seasonal = seasonal
         self.user = user
+        self.cache = cache
 
     def get_seasonal_anime_list(self, *args, **kwargs):
         return pd.DataFrame(self.seasonal).set_index("id")
