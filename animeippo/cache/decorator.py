@@ -27,3 +27,31 @@ def cached_query(ttl):
         return wrapper
 
     return decorator_query
+
+
+def cached_dataframe(ttl):
+    def decorator_query(func):
+        @functools.wraps(func)
+        def wrapper(self, *args):
+            data = None
+            cachekey = ",".join(args) + "_" + str(self.__class__)
+
+            if self.cache:
+                data = self.cache.get_dataframe(cachekey)
+
+            if data is not None:
+                print(f"Cache hit for {cachekey}")
+                return data
+            else:
+                print(f"Cache miss for {cachekey}")
+                data = func(self, *args)
+
+                if self.cache:
+                    print(f"Cache save for {cachekey}")
+                    self.cache.set_dataframe(cachekey, data, ttl)
+
+            return data
+
+        return wrapper
+
+    return decorator_query

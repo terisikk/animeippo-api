@@ -7,7 +7,7 @@ from animeippo.recommendation import engine, filters, scoring, dataset
 
 
 DEFAULT_SCORERS = [
-    # scoring.GenreSimilarityScorer(feature_tags, weighted=True),
+    # scoring.FeatureSimilarityScorer(feature_tags, weighted=True),
     scoring.GenreAverageScorer(),
     scoring.ClusterSimilarityScorer(weighted=True),
     # scoring.StudioCountScorer(),

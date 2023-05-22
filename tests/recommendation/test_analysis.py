@@ -27,7 +27,7 @@ def test_genre_average_scores():
         }
     )
 
-    avg = analysis.mean_score_per_categorical(original, "genres")
+    avg = analysis.mean_score_per_categorical(original.explode("genres"), "genres")
 
     assert avg.tolist() == [9.0, 8.5, 7.0]
 

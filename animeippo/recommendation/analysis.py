@@ -15,28 +15,25 @@ def similarity_of_anime_lists(features1, features2, encoder):
         similarity(encoder.encode(features1.values), encoder.encode(features2.values)),
         index=features1.index,
     )
-    similarities = similarities.apply(np.nanmean, axis=1)
 
-    return similarities
+    return similarities.mean(axis=1, skipna=True)
+
+    # return similarities.apply(np.nanmean, axis=1)
 
 
 def mean_score_per_categorical(dataframe, column):
-    gdf = dataframe.explode(column)
-
-    return gdf.groupby(column)["score"].mean()
+    return dataframe.groupby(column)["score"].mean()
 
 
-def weighted_mean_for_categorical_values(categoricals, averages, fillna=0.0):
-    averages = averages.fillna(fillna)
-    return np.nanmean([averages.get(categorical, fillna) for categorical in categoricals])
+def weighted_mean_for_categorical_values(categoricals, weights, fillna=0.0):
+    return np.nanmean([weights.get(categorical, fillna) for categorical in categoricals])
 
 
 def weight_categoricals(dataframe, column):
-    averages = mean_score_per_categorical(dataframe, column)
-    averages = averages / 10
+    exploded = dataframe.explode(column)
+    averages = mean_score_per_categorical(exploded, column)
 
-    weights = np.sqrt(dataframe.explode(column)[column].value_counts())
-
+    weights = np.sqrt(exploded[column].value_counts())
     weights = weights * averages
 
     return weights

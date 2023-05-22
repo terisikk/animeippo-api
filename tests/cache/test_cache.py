@@ -1,4 +1,5 @@
 import animeippo.providers.myanimelist as mal
+import pandas as pd
 
 from animeippo import cache
 from tests import test_data
@@ -18,12 +19,19 @@ class RedisJsonStub:
 class RedisStub:
     def __init__(self, *args, **kwargs):
         self.store = RedisJsonStub()
+        self.plainstore = {}
 
     def json(self):
         return self.store
 
     def expire(self, key, ttl):
         pass
+
+    def get(self, key):
+        return self.plainstore.get(key, None)
+
+    def set(self, key, data):
+        self.plainstore[key] = data
 
 
 def test_items_can_be_added_to_redis_cache(mocker):
@@ -124,3 +132,30 @@ def test_mal_related_anime_can_be_stored_to_cache(mocker, requests_mock):
     assert adapter.call_count == 1
     assert not first_hit.empty
     assert first_hit["title"].tolist() == second_hit["title"].tolist()
+
+
+def test_dataframes_can_be_added_to_cache(mocker):
+    mocker.patch("redis.Redis", RedisStub)
+
+    rcache = cache.RedisCache()
+
+    data = pd.DataFrame(test_data.FORMATTED_MAL_USER_LIST)
+
+    rcache.set_dataframe("test", data)
+
+    actual = rcache.get_dataframe("test")
+
+    assert actual["title"].tolist() == data["title"].tolist()
+    assert actual.columns.tolist() == data.columns.tolist()
+
+
+def test_none_frames_are_not_added_to_cache(mocker):
+    mocker.patch("redis.Redis", RedisStub)
+
+    rcache = cache.RedisCache()
+
+    data = None
+
+    rcache.set_dataframe("test", data)
+
+    assert rcache.connection.plainstore == {}

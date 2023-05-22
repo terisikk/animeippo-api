@@ -99,14 +99,11 @@ class ContinuationFilter(AbstractFilter):
         self.negative = negative
 
     def filter(self, dataframe):
-        ids = self.compare_df[self.compare_df["status"] == "completed"].index.values
+        completed = set(self.compare_df[self.compare_df["status"] == "completed"].index)
 
-        mask = dataframe.apply(self._filter, args=(ids,), axis=1)
+        mask = dataframe["related_anime"].apply(lambda x: bool(set(x) & completed) or len(x) == 0)
 
         if self.negative:
             mask = ~mask
 
         return dataframe[mask]
-
-    def _filter(self, row, ids):
-        return any([i in row["related_anime"] for i in ids]) or len(row["related_anime"]) == 0

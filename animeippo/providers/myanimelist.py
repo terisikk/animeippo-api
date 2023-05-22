@@ -28,7 +28,9 @@ def mal_session():
 class MyAnimeListProvider(provider.AbstractAnimeProvider):
     def __init__(self, cache=None):
         self.connection = MyAnimeListConnection(cache)
+        self.cache = cache
 
+    @animecache.cached_dataframe(ttl=timedelta(days=1))
     def get_user_anime_list(self, user_id):
         query = f"/users/{user_id}/animelist"
         fields = [
@@ -48,6 +50,7 @@ class MyAnimeListProvider(provider.AbstractAnimeProvider):
 
         return mal_formatter.transform_to_animeippo_format(anime_list)
 
+    @animecache.cached_dataframe(ttl=timedelta(days=1))
     def get_seasonal_anime_list(self, year, season):
         query = f"/anime/season/{year}/{season}"
         fields = [

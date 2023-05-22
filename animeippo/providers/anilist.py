@@ -13,8 +13,10 @@ ANI_API_URL = "https://graphql.anilist.co"
 
 class AniListProvider(provider.AbstractAnimeProvider):
     def __init__(self, cache=None):
+        self.cache = cache
         self.connection = AnilistConnection(cache)
 
+    @animecache.cached_dataframe(ttl=timedelta(days=1))
     def get_user_anime_list(self, user_id):
         # Here we define our query as a multi-line string
         query = """
@@ -59,6 +61,7 @@ class AniListProvider(provider.AbstractAnimeProvider):
 
         return ani_formatter.transform_to_animeippo_format(anime_list, normalize_level=1)
 
+    @animecache.cached_dataframe(ttl=timedelta(days=1))
     def get_seasonal_anime_list(self, year, season):
         # Here we define our query as a multi-line string
         query = """

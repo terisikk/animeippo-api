@@ -36,9 +36,11 @@ class FeaturesSimilarityScorer(AbstractScorer):
         )
 
         if self.weighted:
-            averages = analysis.mean_score_per_categorical(compare_df, "features")
+            averages = analysis.mean_score_per_categorical(
+                compare_df.explode("features"), "features"
+            )
             weights = scoring_target_df["features"].apply(
-                analysis.weighted_mean_for_categorical_values, args=(averages,)
+                analysis.weighted_mean_for_categorical_values, args=(averages.fillna(0.0),)
             )
             scores = scores * weights
 
@@ -52,7 +54,7 @@ class GenreAverageScorer(AbstractScorer):
         weights = analysis.weight_categoricals(compare_df, "genres")
 
         scores = scoring_target_df["genres"].apply(
-            analysis.weighted_mean_for_categorical_values, args=(weights,)
+            analysis.weighted_mean_for_categorical_values, args=(weights.fillna(0.0),)
         )
 
         return analysis.normalize_column(scores)
@@ -83,7 +85,8 @@ class StudioAverageScorer:
         weights = analysis.weight_categoricals(compare_df, "studios")
 
         scores = scoring_target_df["studios"].apply(
-            analysis.weighted_mean_for_categorical_values, args=(weights, weights.mode()[0])
+            analysis.weighted_mean_for_categorical_values,
+            args=(weights.fillna(weights.mode()[0]),),
         )
 
         return analysis.normalize_column(scores)
@@ -94,7 +97,7 @@ class ClusterSimilarityScorer(AbstractScorer):
 
     def __init__(self, weighted=False):
         self.model = skcluster.AgglomerativeClustering(
-            n_clusters=None, metric="precomputed", linkage="average", distance_threshold=0.8
+            n_clusters=None, metric="precomputed", linkage="average", distance_threshold=0.85
         )
 
         self.weighted = weighted
@@ -115,10 +118,17 @@ class ClusterSimilarityScorer(AbstractScorer):
             index=scoring_target_df.index, columns=range(0, self.model.n_clusters_)
         )
 
+        print("CLUSTERS: ", self.model.n_clusters_)
+
+        st_encoded = encoder.encode(scoring_target_df["features"])
+
         for cluster_id, cluster in compare_df.groupby("cluster"):
-            similarities = analysis.similarity_of_anime_lists(
-                scoring_target_df["features"], cluster["features"], encoder
-            )
+            cl_encoded = encoder.encode(cluster["features"])
+
+            similarities = pd.DataFrame(
+                analysis.similarity(st_encoded, cl_encoded),
+                index=scoring_target_df.index,
+            ).mean(axis=1, skipna=True)
 
             if self.weighted:
                 averages = cluster["score"].mean()
@@ -152,17 +162,11 @@ class DirectSimilarityScorer(AbstractScorer):
         )
 
         max_values = similarities.max(axis=1)
-        max_columns = similarities[similarities.eq(max_values, axis=0)]
+        max_columns = similarities[similarities.ge(max_values, axis=0)]
 
-        max_columns_list = max_columns.notna().apply(
-            lambda row: list(max_columns.columns[row]), axis=1
-        )
-
-        scores = (
-            max_values
-            * max_columns_list.apply(lambda x: compare_df.iloc[x]["score"].mean()).fillna(6.0)
-            / 10
-        )
+        scores = max_values * max_columns.notna().apply(
+            lambda row: compare_df.iloc[max_columns.columns[row]]["score"].mean(), axis=1
+        ).fillna(6.0)
 
         return analysis.normalize_column(scores)
 
