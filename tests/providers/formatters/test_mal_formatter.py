@@ -37,7 +37,7 @@ def test_dataframe_can_be_constructed_from_mal():
 
     assert type(data) == pd.DataFrame
     assert len(data) == 2
-    assert data.iloc[1]["title"] == "Hellsing"
+    assert data.iloc[1]["title"] == "Hellsingfårs"
     assert data.iloc[1]["genres"] == [
         "Action",
         "Adult Cast",
@@ -62,7 +62,7 @@ def test_dataframe_can_be_constructed_from_incomplete_data():
 
     assert type(data) == pd.DataFrame
     assert len(data) == 2
-    assert data.iloc[1]["title"] == "Hellsing"
+    assert data.iloc[1]["title"] == "Hellsingfårs"
     assert data.iloc[1]["genres"] == [
         "Action",
         "Adult Cast",

@@ -12,7 +12,7 @@ class EngineStub:
         return dataset.seasonal[::-1]
 
 
-def databuilder_stub(x, y, z, watchlist=None, seasonal=None):
+async def databuilder_stub(x, y, z, watchlist=None, seasonal=None):
     return dataset.UserDataSet(watchlist, seasonal)
 
 

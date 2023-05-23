@@ -1,3 +1,6 @@
+import asyncio
+
+
 class AnimeRecommender:
     def __init__(self, provider, engine, databuilder):
         self.provider = provider
@@ -7,7 +10,7 @@ class AnimeRecommender:
     def recommend_seasonal_anime(self, year, season, user=None):
         recommendations = None
 
-        dataset = self.databuilder(year, season, user)
+        dataset = asyncio.run(self.databuilder(year, season, user))
 
         if user:
             recommendations = self.engine.fit_predict(dataset)

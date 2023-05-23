@@ -1,6 +1,8 @@
 from animeippo.providers import myanimelist
 from tests import test_data
 
+import pytest
+
 
 class SessionStub:
     dictionary = {}
@@ -11,6 +13,12 @@ class SessionStub:
     def get(self, key, *args, **kwargs):
         return self.dictionary.get(key)
 
+    async def __aexit__(self, exc_type, exc, tb):
+        pass
+
+    async def __aenter__(self):
+        return self
+
 
 class ResponseStub:
     dictionary = {}
@@ -18,91 +26,104 @@ class ResponseStub:
     def __init__(self, dictionary):
         self.dictionary = dictionary
 
-    def json(self):
+    async def get(self, key):
+        return self.dictionary.get(key)
+
+    async def json(self):
         return self.dictionary
+
+    async def __aexit__(self, exc_type, exc, tb):
+        pass
+
+    async def __aenter__(self):
+        return self
 
     def raise_for_status(self):
         pass
 
 
-def test_mal_user_anime_list_can_be_fetched(requests_mock):
+@pytest.mark.asyncio
+async def test_mal_user_anime_list_can_be_fetched(mocker):
     provider = myanimelist.MyAnimeListProvider()
 
     user = "Janiskeisari"
 
-    url = f"{myanimelist.MAL_API_URL}/users/{user}/animelist"
-    adapter = requests_mock.get(url, json=test_data.MAL_USER_LIST)  # nosec B113
+    response = ResponseStub(test_data.MAL_USER_LIST)
+    mocker.patch("aiohttp.ClientSession.get", return_value=response)
 
-    animelist = provider.get_user_anime_list(user)
+    animelist = await provider.get_user_anime_list(user)
 
-    assert adapter.called
-    assert "Hellsing" in animelist["title"].values
+    assert "Hellsingfårs" in animelist["title"].values
 
 
-def test_mal_seasonal_anime_list_can_be_fetched(requests_mock):
+@pytest.mark.asyncio
+async def test_mal_seasonal_anime_list_can_be_fetched(mocker):
     provider = myanimelist.MyAnimeListProvider()
 
     year = "2023"
     season = "winter"
 
-    url = f"{myanimelist.MAL_API_URL}/anime/season/{year}/{season}"
-    adapter = requests_mock.get(url, json=test_data.MAL_SEASONAL_LIST)  # nosec B113
+    response = ResponseStub(test_data.MAL_SEASONAL_LIST)
+    mocker.patch("aiohttp.ClientSession.get", return_value=response)
 
-    animelist = provider.get_seasonal_anime_list(year, season)
+    animelist = await provider.get_seasonal_anime_list(year, season)
 
-    assert adapter.called
-    assert "Shingeki no Kyojin: The Final Season" in animelist["title"].values
+    assert "Shingeki no Kyojin: The Fake Season" in animelist["title"].values
 
 
-def test_mal_related_anime_can_be_fetched(requests_mock):
+@pytest.mark.asyncio
+async def test_mal_related_anime_can_be_fetched(mocker):
     provider = myanimelist.MyAnimeListProvider()
 
     anime_id = 30
 
-    url = f"{myanimelist.MAL_API_URL}/anime/{anime_id}"
-    adapter = requests_mock.get(url, json=test_data.MAL_RELATED_ANIME)  # nosec B113
+    response = ResponseStub(test_data.MAL_RELATED_ANIME)
 
-    details = provider.get_related_anime(anime_id)
+    mocker.patch("aiohttp.ClientSession.get", return_value=response)
 
-    assert adapter.called
+    details = await provider.get_related_anime(anime_id)
+
     assert details.index.tolist() == [31]
 
 
-def test_mal_related_anime_does_not_fail_with_invalid_data(requests_mock):
+@pytest.mark.asyncio
+async def test_mal_related_anime_does_not_fail_with_invalid_data(mocker):
     provider = myanimelist.MyAnimeListProvider()
 
     anime_id = 30
 
-    url = f"{myanimelist.MAL_API_URL}/anime/{anime_id}"
-    adapter = requests_mock.get(url, json={"related_anime": []})  # nosec B113
+    response = ResponseStub({"related_anime": []})
+    mocker.patch("aiohttp.ClientSession.get", return_value=response)
 
-    details = provider.get_related_anime(anime_id)
+    details = await provider.get_related_anime(anime_id)
 
-    assert adapter.called
     assert details.index.tolist() == []
 
 
-def test_get_next_page_returns_succesfully():
+@pytest.mark.asyncio
+async def test_get_next_page_returns_succesfully(mocker):
     response1 = ResponseStub({"data": [{"test": "test"}], "paging": {"next": "page2"}})
     response2 = ResponseStub({"data": [{"test2": "test2"}], "paging": {"next": "page3"}})
     response3 = ResponseStub({"data": [{"test3": "test3"}]})
 
     pages = [response1, response2, response3]
 
-    mock_session = SessionStub({"page1": response1, "page2": response2, "page3": response3})
+    mocker.patch("aiohttp.ClientSession.get", side_effect=pages)
 
+    session = SessionStub({"page1": response1, "page2": response2, "page3": response3})
     final_pages = [
-        myanimelist.MyAnimeListConnection().requests_get_next_page(mock_session, page.json())
+        await myanimelist.MyAnimeListConnection().requests_get_next_page(session, await page.json())
         for page in pages
     ]
 
     assert len(final_pages) == 3
-    assert final_pages[0] == response2.json()
-    assert final_pages[1] == response3.json()
+    assert final_pages[0] == await response2.json()
+    assert final_pages[1] == await response3.json()
     assert final_pages[2] is None
 
 
-def test_get_all_pages_returns_all_pages(mocker):
+@pytest.mark.asyncio
+async def test_get_all_pages_returns_all_pages(mocker):
     response1 = ResponseStub({"data": [{"test": "test"}], "paging": {"next": "page2"}})
     response2 = ResponseStub({"data": [{"test2": "test2"}], "paging": {"next": "page3"}})
     response3 = ResponseStub({"data": [{"test3": "test3"}]})
@@ -110,30 +131,38 @@ def test_get_all_pages_returns_all_pages(mocker):
     mocker.patch("animeippo.providers.myanimelist.MAL_API_URL", "FAKE")
     first_page_url = "/users/kamina69/animelist"
 
+    response = ResponseStub({"related_anime": []})
+    mocker.patch("aiohttp.ClientSession.get", return_value=response)
+
     mock_session = SessionStub(
         {"FAKE" + first_page_url: response1, "page2": response2, "page3": response3}
     )
 
     final_pages = list(
-        myanimelist.MyAnimeListConnection().requests_get_all_pages(
-            mock_session, first_page_url, None
-        )
+        [
+            page
+            async for page in myanimelist.MyAnimeListConnection().requests_get_all_pages(
+                mock_session, first_page_url, None
+            )
+        ]
     )
 
     assert len(final_pages) == 3
-    assert final_pages[0] == response1.json()
+    assert final_pages[0] == await response1.json()
 
 
-def test_request_page_succesfully_exists_with_blank_page():
+@pytest.mark.asyncio
+async def test_request_page_succesfully_exists_with_blank_page():
     page = None
     mock_session = SessionStub({})
 
-    actual = myanimelist.MyAnimeListConnection().requests_get_next_page(mock_session, page)
+    actual = await myanimelist.MyAnimeListConnection().requests_get_next_page(mock_session, page)
 
     assert actual is None
 
 
-def test_reqest_does_not_fail_catastrophically_when_response_is_empty(mocker):
+@pytest.mark.asyncio
+async def test_reqest_does_not_fail_catastrophically_when_response_is_empty(mocker):
     response1 = ResponseStub(dict())
 
     mocker.patch("animeippo.providers.myanimelist.MAL_API_URL", "FAKE")
@@ -142,9 +171,12 @@ def test_reqest_does_not_fail_catastrophically_when_response_is_empty(mocker):
     mock_session = SessionStub({"FAKE" + first_page_url: response1})
 
     pages = list(
-        myanimelist.MyAnimeListConnection().requests_get_all_pages(
-            mock_session, first_page_url, None
-        )
+        [
+            page
+            async for page in myanimelist.MyAnimeListConnection().requests_get_all_pages(
+                mock_session, first_page_url, None
+            )
+        ]
     )
 
     assert len(pages) == 0

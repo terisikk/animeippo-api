@@ -1,4 +1,5 @@
 import abc
+import asyncio
 
 import animeippo.providers as providers
 from animeippo import cache
@@ -53,10 +54,15 @@ class AniListRecommenderBuilder(AbstractRecommenderBuilder):
         return providers.anilist.AniListProvider(cache=rcache)
 
     def _build_databuilder(self, provider):
-        def databuilder(year, season, user):
-            data = dataset.UserDataSet(
-                provider.get_user_anime_list(user) if user else None,
+        async def databuilder(year, season, user):
+            user_data, season_data = await asyncio.gather(
+                provider.get_user_anime_list(user),
                 provider.get_seasonal_anime_list(year, season),
+            )
+
+            data = dataset.UserDataSet(
+                user_data,
+                season_data,
                 provider.get_features(),
             )
 
@@ -101,10 +107,24 @@ class MyAnimeListRecommenderBuilder(AbstractRecommenderBuilder):
         return providers.myanimelist.MyAnimeListProvider(cache=rcache)
 
     def _build_databuilder(self, provider):
-        def databuilder(year, season, user):
-            data = dataset.UserDataSet(
-                provider.get_user_anime_list(user) if user else None,
+        async def get_related_anime(indices, provider):
+            related_anime = []
+
+            for i in indices:
+                anime = await provider.get_related_anime(i)
+                related_anime.append(anime.index.to_list())
+
+            return related_anime
+
+        async def databuilder(year, season, user):
+            user_data, season_data = await asyncio.gather(
+                provider.get_user_anime_list(user),
                 provider.get_seasonal_anime_list(year, season),
+            )
+
+            data = dataset.UserDataSet(
+                user_data,
+                season_data,
                 provider.get_features(),
             )
 
@@ -118,10 +138,8 @@ class MyAnimeListRecommenderBuilder(AbstractRecommenderBuilder):
                 for f in seasonal_filters:
                     data.seasonal = f.filter(data.seasonal)
 
-                related_anime = data.seasonal.index.map(
-                    lambda i: provider.get_related_anime(i).index.to_list()
-                )
-                data.seasonal["related_anime"] = related_anime.to_list()
+                indices = data.seasonal.index.to_list()
+                data.seasonal["related_anime"] = await get_related_anime(indices, provider)
 
             if data.watchlist is not None and data.seasonal is not None:
                 watchlist_filters = [

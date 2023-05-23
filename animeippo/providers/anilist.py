@@ -1,11 +1,11 @@
-import requests
-
+import aiohttp
 from datetime import timedelta
 
 from . import provider
 from .formatters import ani_formatter
 
 import animeippo.cache as animecache
+
 
 REQUEST_TIMEOUT = 30
 ANI_API_URL = "https://graphql.anilist.co"
@@ -17,7 +17,7 @@ class AniListProvider(provider.AbstractAnimeProvider):
         self.connection = AnilistConnection(cache)
 
     @animecache.cached_dataframe(ttl=timedelta(days=1))
-    def get_user_anime_list(self, user_id):
+    async def get_user_anime_list(self, user_id):
         # Here we define our query as a multi-line string
         query = """
         query ($userName: String) {
@@ -51,7 +51,7 @@ class AniListProvider(provider.AbstractAnimeProvider):
 
         variables = {"userName": user_id}
 
-        collection = self.connection.request_collection(query, variables)
+        collection = await self.connection.request_collection(query, variables)
 
         anime_list = {"data": []}
 
@@ -62,7 +62,7 @@ class AniListProvider(provider.AbstractAnimeProvider):
         return ani_formatter.transform_to_animeippo_format(anime_list, normalize_level=1)
 
     @animecache.cached_dataframe(ttl=timedelta(days=1))
-    def get_seasonal_anime_list(self, year, season):
+    async def get_seasonal_anime_list(self, year, season):
         # Here we define our query as a multi-line string
         query = """
         query ($seasonYear: Int, $season: MediaSeason, $page: Int) {
@@ -91,9 +91,9 @@ class AniListProvider(provider.AbstractAnimeProvider):
 
         variables = {"seasonYear": int(year), "season": str(season).upper()}
 
-        anime_list = {
-            "data": self.connection.request_paginated(query, variables)["data"].get("media", [])
-        }
+        data = await self.connection.request_paginated(query, variables)
+
+        anime_list = {"data": data["data"].get("media", [])}
 
         return ani_formatter.transform_to_animeippo_format(anime_list, normalize_level=0)
 
@@ -109,37 +109,38 @@ class AnilistConnection:
         self.cache = cache
 
     @animecache.cached_query(ttl=timedelta(days=1))
-    def request_paginated(self, query, parameters):
+    async def request_paginated(self, query, parameters):
         anime_list = {"data": {"media": []}}
         variables = parameters.copy()  # To avoid cache miss with side effects
 
-        for page in self.requests_get_all_pages(query, variables):
+        async for page in self.requests_get_all_pages(query, variables):
             for item in page["media"]:
                 anime_list["data"]["media"].append(item)
 
         return anime_list
 
     @animecache.cached_query(ttl=timedelta(days=1))
-    def request_collection(self, query, parameters):
+    async def request_collection(self, query, parameters):
         variables = parameters.copy()  # To avoid cache miss with side effects
 
-        return self.request_single(query, variables)
+        return await self.request_single(query, variables)
 
-    def request_single(self, query, variables):
+    async def request_single(self, query, variables):
         url = ANI_API_URL
 
-        response = requests.post(
-            url, json={"query": query, "variables": variables}, timeout=REQUEST_TIMEOUT
-        )
+        async with aiohttp.ClientSession() as session:
+            async with session.post(
+                url, json={"query": query, "variables": variables}, timeout=REQUEST_TIMEOUT
+            ) as response:
+                response.raise_for_status()
+                return await response.json()
 
-        response.raise_for_status()
-        return response.json()
-
-    def requests_get_all_pages(self, query, variables):
+    async def requests_get_all_pages(self, query, variables):
         variables["page"] = 0
         variables["perPage"] = 50
 
-        page = self.request_single(query, variables).get("data", {}).get("Page", None)
+        page = await self.request_single(query, variables)
+        page = page.get("data", {}).get("Page", None)
 
         safeguard = 10
 
@@ -148,6 +149,7 @@ class AnilistConnection:
         while page is not None and page["pageInfo"].get("hasNextPage", False) and safeguard > 0:
             variables["page"] = page["pageInfo"]["currentPage"] + 1
 
-            page = self.request_single(query, variables)["data"]["Page"]
+            page = await self.request_single(query, variables)
+            page = page["data"]["Page"]
             yield page
             safeguard = safeguard - 1

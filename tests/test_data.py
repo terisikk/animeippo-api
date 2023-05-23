@@ -39,7 +39,7 @@ MAL_USER_LIST = {
         {
             "node": {
                 "id": 270,
-                "title": "Hellsing",
+                "title": "Hellsingfårs",
                 "main_picture": {
                     "medium": "https://api-cdn.myanimelist.net/images/anime/10/19956.jpg",
                     "large": "https://api-cdn.myanimelist.net/images/anime/10/19956l.jpg",
@@ -195,7 +195,7 @@ MAL_SEASONAL_LIST = {
         {
             "node": {
                 "id": 51535,
-                "title": "Shingeki no Kyojin: The Final Season",
+                "title": "Shingeki no Kyojin: The Fake Season",
                 "main_picture": {
                     "medium": "https://api-cdn.myanimelist.net/images/anime/1279/131078.jpg",
                     "large": "https://api-cdn.myanimelist.net/images/anime/1279/131078l.jpg",
@@ -235,7 +235,7 @@ ANI_SEASONAL_LIST = {
             "media": [
                 {
                     "id": 144932,
-                    "title": {"romaji": "EDENS ZERO 2nd Season"},
+                    "title": {"romaji": "EDENS KNOCK-OFF 2nd Season"},
                     "season": "SPRING",
                     "seasonYear": 2023,
                     "relations": {
@@ -295,7 +295,7 @@ FORMATTED_MAL_USER_LIST = [
     },
     {
         "id": 270,
-        "title": "Hellsing",
+        "title": "Hellsingfårs",
         "nsfw": "white",
         "genres": [
             "Action",
@@ -344,7 +344,7 @@ FORMATTED_MAL_SEASONAL_LIST = [
     },
     {
         "id": 51535,
-        "title": "Shingeki no Kyojin: The Final Season",
+        "title": "Shingeki no Kyojin: The Fake Season",
         "genres": [
             "Action",
             "Drama",
@@ -371,7 +371,7 @@ FORMATTED_MAL_SEASONAL_LIST = [
 FORMATTED_ANI_SEASONAL_LIST = [
     {
         "id": 144932,
-        "title": "EDENS ZERO 2nd Season",
+        "title": "EDENS KNOCK-OFF 2nd Season",
         "start_season": "2023/spring",
         "related_anime": [],
         "coverImage": "https://localhost/test.png",

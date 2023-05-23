@@ -6,6 +6,7 @@ if __name__ == "__main__":
     from animeippo.recommendation import builder
 
     dotenv.load_dotenv("conf/prod.env")
+
     year = "2023"
     season = "spring"
     user = "Janiskeisari"

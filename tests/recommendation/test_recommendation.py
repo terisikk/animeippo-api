@@ -46,7 +46,7 @@ def test_recommend_seasonal_anime_for_user_by_genre():
     recommendations = recengine.fit_predict(data)
 
     assert recommendations["title"].tolist() == [
-        "Shingeki no Kyojin: The Final Season",
+        "Shingeki no Kyojin: The Fake Season",
         "Golden Kamuy 4th Season",
     ]
 
@@ -69,7 +69,7 @@ def test_multiple_scorers_can_be_added():
     recommendations = recengine.fit_predict(data)
 
     assert recommendations["title"].tolist() == [
-        "Shingeki no Kyojin: The Final Season",
+        "Shingeki no Kyojin: The Fake Season",
         "Golden Kamuy 4th Season",
     ]
 

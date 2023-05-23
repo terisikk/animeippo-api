@@ -1,6 +1,33 @@
 from animeippo.recommendation import builder, recommender
+import pandas as pd
 
-from tests.recommendation.test_recommendation import ProviderStub
+from tests import test_data
+
+import pytest
+
+
+class AsyncProviderStub:
+    def __init__(
+        self,
+        seasonal=test_data.FORMATTED_MAL_SEASONAL_LIST,
+        user=test_data.FORMATTED_MAL_USER_LIST,
+        cache=None,
+    ):
+        self.seasonal = seasonal
+        self.user = user
+        self.cache = cache
+
+    async def get_seasonal_anime_list(self, *args, **kwargs):
+        return pd.DataFrame(self.seasonal).set_index("id")
+
+    async def get_user_anime_list(self, *args, **kwargs):
+        return pd.DataFrame(self.user).set_index("id")
+
+    async def get_related_anime(self, *args, **kwargs):
+        return pd.DataFrame()
+
+    def get_features(self, *args, **kwargs):
+        return ["genres"]
 
 
 class FaultyProviderStub:
@@ -10,13 +37,13 @@ class FaultyProviderStub:
     ):
         self.cache = cache
 
-    def get_seasonal_anime_list(self, *args, **kwargs):
+    async def get_seasonal_anime_list(self, *args, **kwargs):
         return None
 
-    def get_user_anime_list(self, *args, **kwargs):
+    async def get_user_anime_list(self, *args, **kwargs):
         return None
 
-    def get_related_anime(self, *args, **kwargs):
+    async def get_related_anime(self, *args, **kwargs):
         return None
 
     def get_features(self, *args, **kwargs):
@@ -49,62 +76,62 @@ def test_new_builder_can_be_instantiated():
     assert issubclass(actual.__class__, builder.AbstractRecommenderBuilder)
 
 
-def test_AniListRecommenderbuilder(mocker):
-    mocker.patch("animeippo.providers.anilist.AniListProvider", ProviderStub)
+@pytest.mark.asyncio
+async def test_AniListRecommenderbuilder(mocker):
+    mocker.patch("animeippo.providers.anilist.AniListProvider", AsyncProviderStub)
 
     b = builder.AniListRecommenderBuilder()
 
     actual = b.build()
+    data = await actual.databuilder("2023", "winter", "test")
 
     assert isinstance(actual, recommender.AnimeRecommender)
     assert actual.provider is not None
     assert actual.databuilder is not None
     assert actual.engine is not None
 
-    assert (
-        "Golden Kamuy 4th Season"
-        in actual.databuilder("2023", "winter", "test").seasonal["title"].to_list()
-    )
+    assert "Golden Kamuy 4th Season" in data.seasonal["title"].to_list()
 
 
-def test_MyAnimeListRecommenderbuilder(mocker):
-    mocker.patch("animeippo.providers.myanimelist.MyAnimeListProvider", ProviderStub)
+@pytest.mark.asyncio
+async def test_MyAnimeListRecommenderbuilder(mocker):
+    mocker.patch("animeippo.providers.myanimelist.MyAnimeListProvider", AsyncProviderStub)
 
     b = builder.MyAnimeListRecommenderBuilder()
 
     actual = b.build()
+    data = await actual.databuilder("2023", "winter", "test")
 
     assert isinstance(actual, recommender.AnimeRecommender)
     assert actual.provider is not None
     assert actual.databuilder is not None
     assert actual.engine is not None
 
-    assert (
-        "Golden Kamuy 4th Season"
-        in actual.databuilder("2023", "winter", "test").seasonal["title"].to_list()
-    )
+    assert "Golden Kamuy 4th Season" in data.seasonal["title"].to_list()
 
 
-def test_mal_databuilder_does_not_fail_with_missing_data(mocker):
+@pytest.mark.asyncio
+async def test_mal_databuilder_does_not_fail_with_missing_data(mocker):
     mocker.patch("animeippo.providers.myanimelist.MyAnimeListProvider", FaultyProviderStub)
 
     b = builder.MyAnimeListRecommenderBuilder()
 
     actual = b.build()
-    data = actual.databuilder("2023", "winter", "test")
+    data = await actual.databuilder("2023", "winter", "test")
 
     assert data.seasonal is None
     assert data.watchlist is None
     assert data.features == ["genres"]
 
 
-def test_anilist_databuilder_does_not_fail_with_missing_data(mocker):
+@pytest.mark.asyncio
+async def test_anilist_databuilder_does_not_fail_with_missing_data(mocker):
     mocker.patch("animeippo.providers.anilist.AniListProvider", FaultyProviderStub)
 
     b = builder.AniListRecommenderBuilder()
 
     actual = b.build()
-    data = actual.databuilder("2023", "winter", "test")
+    data = await actual.databuilder("2023", "winter", "test")
 
     assert data.seasonal is None
     assert data.watchlist is None

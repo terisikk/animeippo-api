@@ -36,7 +36,10 @@ def test_similarity_weights():
     genre_averages = pd.Series(data=[9.0, 8.0, 7.0], index=["Action", "Horror", "Romance"])
 
     original = pd.DataFrame(
-        {"title": ["Hellsing", "Inuyasha"], "genres": [["Action", "Horror"], ["Action", "Romance"]]}
+        {
+            "title": ["Hellsingfårs", "Inuyasha"],
+            "genres": [["Action", "Horror"], ["Action", "Romance"]],
+        }
     )
 
     weights = original["genres"].apply(

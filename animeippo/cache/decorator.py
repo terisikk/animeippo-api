@@ -4,7 +4,7 @@ import functools
 def cached_query(ttl):
     def decorator_query(func):
         @functools.wraps(func)
-        def wrapper(self, query, parameters):
+        async def wrapper(self, query, parameters):
             data = None
             cachekey = "".join(query.split()) + str(parameters)
 
@@ -16,7 +16,7 @@ def cached_query(ttl):
                 return data
             else:
                 print(f"Cache miss for {cachekey}")
-                data = func(self, query, parameters)
+                data = await func(self, query, parameters)
 
                 if self.cache:
                     print(f"Cache save for {cachekey}")
@@ -32,7 +32,7 @@ def cached_query(ttl):
 def cached_dataframe(ttl):
     def decorator_query(func):
         @functools.wraps(func)
-        def wrapper(self, *args):
+        async def wrapper(self, *args):
             data = None
             cachekey = ",".join(args) + "_" + str(self.__class__)
 
@@ -44,7 +44,7 @@ def cached_dataframe(ttl):
                 return data
             else:
                 print(f"Cache miss for {cachekey}")
-                data = func(self, *args)
+                data = await func(self, *args)
 
                 if self.cache:
                     print(f"Cache save for {cachekey}")
