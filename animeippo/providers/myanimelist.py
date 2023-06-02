@@ -25,6 +25,9 @@ class MyAnimeListProvider(provider.AbstractAnimeProvider):
 
     @animecache.cached_dataframe(ttl=timedelta(days=1))
     async def get_user_anime_list(self, user_id):
+        if not user_id:
+            return None
+
         query = f"/users/{user_id}/animelist"
         fields = [
             "id",
@@ -45,6 +48,9 @@ class MyAnimeListProvider(provider.AbstractAnimeProvider):
 
     @animecache.cached_dataframe(ttl=timedelta(days=1))
     async def get_seasonal_anime_list(self, year, season):
+        if not year or not season:
+            return None
+
         query = f"/anime/season/{year}/{season}"
         fields = [
             "id",
@@ -65,6 +71,9 @@ class MyAnimeListProvider(provider.AbstractAnimeProvider):
         return mal_formatter.transform_to_animeippo_format(anime_list)
 
     async def get_related_anime(self, anime_id):
+        if not anime_id:
+            return None
+
         query = f"/anime/{anime_id}"
 
         fields = [

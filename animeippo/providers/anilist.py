@@ -18,7 +18,11 @@ class AniListProvider(provider.AbstractAnimeProvider):
 
     @animecache.cached_dataframe(ttl=timedelta(days=1))
     async def get_user_anime_list(self, user_id):
-        # Here we define our query as a multi-line string
+        if user_id is None:
+            return None
+
+        anime_list = {"data": []}
+
         query = """
         query ($userName: String) {
             MediaListCollection(userName: $userName, type: ANIME) {
@@ -53,8 +57,6 @@ class AniListProvider(provider.AbstractAnimeProvider):
 
         collection = await self.connection.request_collection(query, variables)
 
-        anime_list = {"data": []}
-
         for coll in collection["data"]["MediaListCollection"]["lists"]:
             for entry in coll["entries"]:
                 anime_list["data"].append(entry)
@@ -63,7 +65,9 @@ class AniListProvider(provider.AbstractAnimeProvider):
 
     @animecache.cached_dataframe(ttl=timedelta(days=1))
     async def get_seasonal_anime_list(self, year, season):
-        # Here we define our query as a multi-line string
+        if year is None or season is None:
+            return None
+
         query = """
         query ($seasonYear: Int, $season: MediaSeason, $page: Int) {
             Page(page: $page, perPage: 50) {

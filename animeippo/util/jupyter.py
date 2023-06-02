@@ -6,9 +6,9 @@ from ..recommendation import util as pdutil
 
 
 def pandas_display_all_clusters(dataframe):
-    gdf = dataframe.explode("genres")
+    gdf = dataframe.explode("features")
 
-    descriptions = pdutil.extract_features(gdf["genres"], gdf["cluster"], 2)
+    descriptions = pdutil.extract_features(gdf["features"], gdf["cluster"], 2)
 
     with pd.option_context("display.max_rows", None):
         for cluster in np.sort(dataframe["cluster"].unique()):

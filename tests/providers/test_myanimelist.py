@@ -189,3 +189,16 @@ def test_features_can_be_fetched():
 
     assert len(features) > 0
     assert "genres" in features
+
+
+@pytest.mark.asyncio
+async def test_anilist_returns_None_with_empty_parameters():
+    provider = myanimelist.MyAnimeListProvider()
+
+    related_anime = await provider.get_related_anime(None)
+    seasonal_anime = await provider.get_seasonal_anime_list(None, None)
+    user_anime = await provider.get_user_anime_list(None)
+
+    assert related_anime is None
+    assert seasonal_anime is None
+    assert user_anime is None

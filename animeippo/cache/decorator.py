@@ -34,7 +34,9 @@ def cached_dataframe(ttl):
         @functools.wraps(func)
         async def wrapper(self, *args):
             data = None
-            cachekey = ",".join(args) + "_" + str(self.__class__)
+            cachekey = (
+                ",".join([str(arg) if arg else "" for arg in args]) + "_" + str(self.__class__)
+            )
 
             if self.cache:
                 data = self.cache.get_dataframe(cachekey)

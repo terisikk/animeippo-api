@@ -117,7 +117,7 @@ async def test_get_all_pages_returns_all_pages(mocker):
 
 
 @pytest.mark.asyncio
-async def test_reqest_does_not_fail_catastrophically_when_response_is_empty(mocker):
+async def test_request_does_not_fail_catastrophically_when_response_is_empty(mocker):
     response = {}
 
     response = ResponseStub({})
@@ -138,3 +138,14 @@ def test_features_can_be_fetched():
 
     assert len(features) > 0
     assert "genres" in features
+
+
+@pytest.mark.asyncio
+async def test_anilist_returns_None_with_empty_parameters():
+    provider = anilist.AniListProvider()
+
+    seasonal_anime = await provider.get_seasonal_anime_list(None, None)
+    user_anime = await provider.get_user_anime_list(None)
+
+    assert seasonal_anime is None
+    assert user_anime is None
