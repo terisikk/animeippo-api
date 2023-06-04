@@ -32,3 +32,28 @@ def test_extract_features():
         ["Shounen", "Drama"],
         ["Historical", "Drama"],
     ]
+
+
+def test_extract_features_without_feature_count():
+    df = pd.DataFrame(
+        {
+            "genres": [
+                ["Action", "Drama", "Horror"],
+                ["Action", "Shounen", "Romance"],
+                ["Action", "Historical", "Comedy"],
+                ["Shounen", "Drama"],
+                ["Drama", "Historical"],
+            ],
+            "cluster": [0, 0, 0, 1, 2],
+        }
+    )
+
+    gdf = df.explode("genres")
+
+    features = pdutil.extract_features(gdf["genres"], gdf["cluster"])
+
+    assert features.values.tolist() == [
+        ["Action", "Comedy", "Horror", "Romance", "Historical", "Shounen", "Drama"],
+        ["Shounen", "Drama", "Comedy", "Horror", "Romance", "Historical", "Action"],
+        ["Historical", "Drama", "Comedy", "Horror", "Romance", "Shounen", "Action"],
+    ]

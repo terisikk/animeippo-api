@@ -1,10 +1,9 @@
 import abc
 import numpy as np
 import pandas as pd
-import sklearn.preprocessing as skpre
 import sklearn.cluster as skcluster
 
-from animeippo.recommendation import analysis
+from animeippo.recommendation import analysis, encoding
 
 
 class AbstractScorer(abc.ABC):
@@ -25,11 +24,11 @@ class FeaturesSimilarityScorer(AbstractScorer):
         self.weighted = weighted
 
     def score(self, scoring_target_df, compare_df):
-        all_features = (
-            pd.concat([compare_df["features"], scoring_target_df["features"]]).explode().unique()
+        all_features = analysis.unique_features_from_categoricals(
+            compare_df["features"], scoring_target_df["features"]
         )
 
-        encoder = CategoricalEncoder(all_features)
+        encoder = encoding.CategoricalEncoder(all_features)
 
         scores = analysis.similarity_of_anime_lists(
             scoring_target_df["features"], compare_df["features"], encoder
@@ -103,22 +102,19 @@ class ClusterSimilarityScorer(AbstractScorer):
         self.weighted = weighted
 
     def score(self, scoring_target_df, compare_df):
-        all_features = (
-            pd.concat([compare_df["features"], scoring_target_df["features"]]).explode().unique()
+        all_features = analysis.unique_features_from_categoricals(
+            compare_df["features"], scoring_target_df["features"]
         )
 
-        encoder = CategoricalEncoder(all_features)
+        encoder = encoding.CategoricalEncoder(all_features)
 
-        encoded = encoder.encode(compare_df["features"])
-        distances = pd.DataFrame(1 - analysis.similarity(encoded, encoded), index=compare_df.index)
-
-        compare_df["cluster"] = self.model.fit_predict(distances)
-
-        scores = pd.DataFrame(
-            index=scoring_target_df.index, columns=range(0, self.model.n_clusters_)
+        compare_df["cluster"], nclusters = analysis.cluster_by_features(
+            compare_df, "features", encoder, self.model
         )
 
-        print("CLUSTERS: ", self.model.n_clusters_)
+        scores = pd.DataFrame(index=scoring_target_df.index, columns=range(0, nclusters))
+
+        print("CLUSTERS: ", nclusters)
 
         st_encoded = encoder.encode(scoring_target_df["features"])
 
@@ -147,18 +143,14 @@ class DirectSimilarityScorer(AbstractScorer):
     name = "directscore"
 
     def score(self, scoring_target_df, compare_df):
-        all_features = (
-            pd.concat([compare_df["features"], scoring_target_df["features"]]).explode().unique()
+        all_features = analysis.unique_features_from_categoricals(
+            compare_df["features"], scoring_target_df["features"]
         )
 
-        encoder = CategoricalEncoder(all_features)
+        encoder = encoding.CategoricalEncoder(all_features)
 
-        similarities = pd.DataFrame(
-            analysis.similarity(
-                encoder.encode(scoring_target_df["features"]),
-                encoder.encode(compare_df["features"]),
-            ),
-            index=scoring_target_df.index,
+        similarities = analysis.categorical_similarity(
+            scoring_target_df["features"], compare_df["features"], encoder
         )
 
         max_values = similarities.max(axis=1)
@@ -215,13 +207,3 @@ class SourceScorer(AbstractScorer):
         scores = scoring_target_df["source"].apply(lambda x: averages.get(x, 0))
 
         return analysis.normalize_column(scores)
-
-
-class CategoricalEncoder:
-    def __init__(self, classes):
-        self.classes = classes
-        self.mlb = skpre.MultiLabelBinarizer(classes=classes)
-        self.mlb.fit(None)
-
-    def encode(self, series, dtype=bool):
-        return np.array(self.mlb.transform(series), dtype=dtype)

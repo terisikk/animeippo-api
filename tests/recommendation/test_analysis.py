@@ -1,6 +1,12 @@
 import animeippo.recommendation.analysis as analysis
 import pandas as pd
+import numpy as np
 import pytest
+
+
+class EncoderStub:
+    def encode(self, values):
+        return [np.array(value) for value in values]
 
 
 def test_jaccard_similarity():
@@ -81,3 +87,16 @@ def test_weight_categoricals_z_score():
     scores = analysis.weight_categoricals_z_score(original, "genres")
 
     assert scores.at["Action", 0] > scores.at["Horror", 0] > scores.at["Romance", 0]
+
+
+def test_categorical_uses_index_if_given():
+    original1 = pd.Series([[1, 2, 3], [4, 5, 6]], index=[4, 5])
+
+    original2 = pd.Series([[2, 3, 4], [1, 2, 3]], index=[1, 2])
+
+    similarity = analysis.categorical_similarity(
+        original1, original2, EncoderStub(), original2.index
+    )
+
+    assert similarity.index is not None
+    assert similarity.index.to_list() == original2.index.to_list()
