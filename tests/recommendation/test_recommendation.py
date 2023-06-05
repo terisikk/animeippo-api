@@ -36,9 +36,9 @@ def test_recommend_seasonal_anime_for_user_by_genre():
     data = dataset.UserDataSet(
         provider.get_user_anime_list(), provider.get_seasonal_anime_list(), provider.get_features()
     )
-    data.features = provider.get_features()
+    data.feature_names = provider.get_features()
 
-    scorer = scoring.FeaturesSimilarityScorer(data.features)
+    scorer = scoring.FeaturesSimilarityScorer(data.feature_names)
     recengine = engine.AnimeRecommendationEngine()
 
     recengine.add_scorer(scorer)
@@ -57,9 +57,9 @@ def test_multiple_scorers_can_be_added():
         provider.get_user_anime_list(), provider.get_seasonal_anime_list(), provider.get_features()
     )
 
-    data.features = provider.get_features()
+    data.feature_names = provider.get_features()
 
-    scorer = scoring.FeaturesSimilarityScorer(data.features)
+    scorer = scoring.FeaturesSimilarityScorer(data.feature_names)
     scorer2 = scoring.StudioCountScorer()
     recengine = engine.AnimeRecommendationEngine()
 

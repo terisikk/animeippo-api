@@ -2020,6 +2020,21 @@ files = [
 ]
 
 [[package]]
+name = "pydeps"
+version = "1.12.8"
+description = "Display module dependencies"
+category = "dev"
+optional = false
+python-versions = "*"
+files = [
+    {file = "pydeps-1.12.8-py3-none-any.whl", hash = "sha256:9fb2bc708c96c7abab701aacf676c6ae7681c6b12dadd8e8f7000a4c5d4f58ba"},
+    {file = "pydeps-1.12.8.tar.gz", hash = "sha256:9e3064371c574177e288b17ea2ca96871e47add823c142920d3a4bd7c389a8bd"},
+]
+
+[package.dependencies]
+stdlib-list = "*"
+
+[[package]]
 name = "pygments"
 version = "2.14.0"
 description = "Pygments is a syntax highlighting package written in Python."
@@ -2583,6 +2598,21 @@ pure-eval = "*"
 tests = ["cython", "littleutils", "pygments", "pytest", "typeguard"]
 
 [[package]]
+name = "stdlib-list"
+version = "0.8.0"
+description = "A list of Python Standard Libraries (2.6-7, 3.2-9)."
+category = "dev"
+optional = false
+python-versions = "*"
+files = [
+    {file = "stdlib-list-0.8.0.tar.gz", hash = "sha256:a1e503719720d71e2ed70ed809b385c60cd3fb555ba7ec046b96360d30b16d9f"},
+    {file = "stdlib_list-0.8.0-py3-none-any.whl", hash = "sha256:2ae0712a55b68f3fbbc9e58d6fa1b646a062188f49745b495f94d3310a9fdd3e"},
+]
+
+[package.extras]
+develop = ["sphinx"]
+
+[[package]]
 name = "stevedore"
 version = "5.0.0"
 description = "Manage dynamic plugins for Python applications"
@@ -2808,4 +2838,4 @@ multidict = ">=4.0"
 [metadata]
 lock-version = "2.0"
 python-versions = "^3.10"
-content-hash = "b72b2f6d149fb858e049e77831e9ed7f1062e6c90ddf14f190c7ba673c371f8e"
+content-hash = "4224be04e1c8b9bc9caba1ef57ea6c54c71aca2b8b01e392d6c0818e36672db8"

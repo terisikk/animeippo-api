@@ -3,7 +3,7 @@ import numpy as np
 import pandas as pd
 import sklearn.cluster as skcluster
 
-from animeippo.recommendation import analysis, encoding
+from animeippo.recommendation import analysis
 
 
 class AbstractScorer(abc.ABC):
@@ -24,14 +24,8 @@ class FeaturesSimilarityScorer(AbstractScorer):
         self.weighted = weighted
 
     def score(self, scoring_target_df, compare_df):
-        all_features = analysis.unique_features_from_categoricals(
-            compare_df["features"], scoring_target_df["features"]
-        )
-
-        encoder = encoding.CategoricalEncoder(all_features)
-
         scores = analysis.similarity_of_anime_lists(
-            scoring_target_df["features"], compare_df["features"], encoder
+            scoring_target_df["encoded"], compare_df["encoded"]
         )
 
         if self.weighted:
@@ -102,27 +96,22 @@ class ClusterSimilarityScorer(AbstractScorer):
         self.weighted = weighted
 
     def score(self, scoring_target_df, compare_df):
-        all_features = analysis.unique_features_from_categoricals(
-            compare_df["features"], scoring_target_df["features"]
-        )
-
-        encoder = encoding.CategoricalEncoder(all_features)
+        st_encoded = np.vstack(scoring_target_df["encoded"])
+        co_encoded = np.vstack(compare_df["encoded"])
 
         compare_df["cluster"], nclusters = analysis.cluster_by_features(
-            compare_df, "features", encoder, self.model
+            co_encoded, self.model, compare_df.index
         )
 
         scores = pd.DataFrame(index=scoring_target_df.index, columns=range(0, nclusters))
 
         print("CLUSTERS: ", nclusters)
 
-        st_encoded = encoder.encode(scoring_target_df["features"])
+        cluster_groups = compare_df.groupby("cluster")
 
-        for cluster_id, cluster in compare_df.groupby("cluster"):
-            cl_encoded = encoder.encode(cluster["features"])
-
+        for cluster_id, cluster in cluster_groups:
             similarities = pd.DataFrame(
-                analysis.similarity(st_encoded, cl_encoded),
+                analysis.similarity(st_encoded, co_encoded[cluster_groups.indices[cluster_id]]),
                 index=scoring_target_df.index,
             ).mean(axis=1, skipna=True)
 
@@ -143,14 +132,8 @@ class DirectSimilarityScorer(AbstractScorer):
     name = "directscore"
 
     def score(self, scoring_target_df, compare_df):
-        all_features = analysis.unique_features_from_categoricals(
-            compare_df["features"], scoring_target_df["features"]
-        )
-
-        encoder = encoding.CategoricalEncoder(all_features)
-
         similarities = analysis.categorical_similarity(
-            scoring_target_df["features"], compare_df["features"], encoder
+            scoring_target_df["encoded"], compare_df["encoded"]
         )
 
         max_values = similarities.max(axis=1)

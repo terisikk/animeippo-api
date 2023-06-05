@@ -94,9 +94,7 @@ def test_categorical_uses_index_if_given():
 
     original2 = pd.Series([[2, 3, 4], [1, 2, 3]], index=[1, 2])
 
-    similarity = analysis.categorical_similarity(
-        original1, original2, EncoderStub(), original2.index
-    )
+    similarity = analysis.categorical_similarity(original1, original2, original2.index)
 
     assert similarity.index is not None
     assert similarity.index.to_list() == original2.index.to_list()

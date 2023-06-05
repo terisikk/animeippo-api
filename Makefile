@@ -24,3 +24,8 @@ test:
 profile:
 	poetry run python animeippo/main.py
 	poetry run python -m gprof2dot -f pstats .profiling/cprofile.pstats > .profiling/cprofile.dot
+
+# For some reason it does not read pyproject.toml, even though it should
+.PHONY: pydeps
+pydeps:
+	poetry run pydeps --only animeippo --max-bacon 0 animeippo/main.py

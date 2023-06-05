@@ -1,4 +1,3 @@
-import numpy as np
 import sklearn.preprocessing as skpre
 
 
@@ -9,4 +8,4 @@ class CategoricalEncoder:
         self.mlb.fit(None)
 
     def encode(self, series, dtype=bool):
-        return np.array(self.mlb.transform(series), dtype=dtype)
+        return self.mlb.transform(series).astype(dtype)

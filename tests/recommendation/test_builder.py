@@ -105,7 +105,7 @@ async def test_mal_databuilder_does_not_fail_with_missing_data():
 
     assert data.seasonal is None
     assert data.watchlist is None
-    assert data.features == ["genres"]
+    assert data.feature_names == ["genres"]
 
 
 @pytest.mark.asyncio
@@ -122,7 +122,7 @@ async def test_anilist_databuilder_does_not_fail_with_missing_data():
 
     assert data.seasonal is None
     assert data.watchlist is None
-    assert data.features == ["genres"]
+    assert data.feature_names == ["genres"]
 
 
 def test_builder_creation_returns_correct_builders():

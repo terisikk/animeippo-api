@@ -1,5 +1,6 @@
-import animeippo.recommendation.scoring as scoring
 import pandas as pd
+
+from animeippo.recommendation import scoring
 
 
 def test_abstract_scorer_can_be_instantiated():
@@ -22,12 +23,15 @@ def test_feature_similarity_scorer():
         {
             "features": [["Action", "Adventure"], ["Action", "Fantasy"]],
             "title": ["Bleach", "Fate/Zero"],
-        }
+            "encoded": [[True, True, False, False, False], [True, False, True, False, False]],
+        },
     )
+
     target_df = pd.DataFrame(
         {
             "features": [["Romance", "Comedy"], ["Action", "Adventure"]],
             "title": ["Kaguya", "Naruto"],
+            "encoded": [[False, False, False, True, True], [True, True, False, False, False]],
         }
     )
 
@@ -52,6 +56,7 @@ def test_feature_similarity_scorer_weighted():
         {
             "features": [["Action", "Adventure"], ["Fantasy", "Adventure"]],
             "title": ["Bleach", "Fate/Zero"],
+            "encoded": [[True, True, False], [False, True, True]],
             "score": [1, 10],
         }
     )
@@ -59,6 +64,7 @@ def test_feature_similarity_scorer_weighted():
         {
             "features": [["Action", "Adventure"], ["Fantasy", "Adventure"]],
             "title": ["Naruto", "Inuyasha"],
+            "encoded": [[True, True, False], [False, True, True]],
         }
     )
 
@@ -112,16 +118,28 @@ def test_genre_average_scorer():
 
 
 def test_cluster_similarity_scorer():
+    encoded1 = [
+        [True, True, False, False, False],
+        [True, False, True, False, False],
+    ]
+    encoded2 = [
+        [False, False, False, True, True],
+        [True, True, False, False, False],
+    ]
+
     source_df = pd.DataFrame(
         {
             "features": [["Action", "Adventure"], ["Action", "Fantasy"]],
             "title": ["Bleach", "Fate/Zero"],
-        }
+            "encoded": encoded1,
+        },
     )
+
     target_df = pd.DataFrame(
         {
             "features": [["Romance", "Comedy"], ["Action", "Adventure"]],
             "title": ["Kaguya", "Naruto"],
+            "encoded": encoded2,
         }
     )
 
@@ -147,12 +165,14 @@ def test_cluster_similarity_scorer_weighted():
             "features": [["Action", "Adventure"], ["Fantasy", "Adventure"]],
             "title": ["Bleach", "Fate/Zero"],
             "score": [10, 1],
+            "encoded": [[True, True, False], [False, True, True]],
         }
     )
     target_df = pd.DataFrame(
         {
             "features": [["Fantasy", "Adventure"], ["Action", "Adventure"]],
             "title": ["Inuyasha", "Naruto"],
+            "encoded": [[False, True, True], [True, True, False]],
         }
     )
 
@@ -369,12 +389,14 @@ def test_direct_similarity_scorer():
             "features": [["Action", "Adventure"], ["Action", "Fantasy"]],
             "title": ["Bleach", "Fate/Zero"],
             "score": [10, 10],
+            "encoded": [[True, True, False, False, False], [True, False, True, False, False]],
         }
     )
     target_df = pd.DataFrame(
         {
             "features": [["Romance", "Comedy"], ["Action", "Adventure"]],
             "title": ["Kaguya", "Naruto"],
+            "encoded": [[False, False, False, True, True], [True, True, False, False, False]],
         }
     )
 

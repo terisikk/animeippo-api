@@ -5,10 +5,6 @@ import sklearn.preprocessing as skpre
 import sklearn.cluster as skcluster
 
 
-def unique_features_from_categoricals(*args):
-    return pd.concat(args).explode().unique()
-
-
 def distance(x_orig, y_orig, metric="jaccard"):
     return scdistance.cdist(x_orig, y_orig, metric=metric)
 
@@ -18,18 +14,18 @@ def similarity(x_orig, y_orig, metric="jaccard"):
     return 1 - distances
 
 
-def categorical_similarity(features1, features2, encoder, index=None):
+def categorical_similarity(features1, features2, index=None):
     if index is None:
         index = features1.index
 
     return pd.DataFrame(
-        similarity(encoder.encode(features1.values), encoder.encode(features2.values)),
+        similarity(np.vstack(features1), np.vstack(features2)),
         index=index,
     )
 
 
-def similarity_of_anime_lists(features1, features2, encoder):
-    similarities = categorical_similarity(features1, features2, encoder)
+def similarity_of_anime_lists(features1, features2):
+    similarities = categorical_similarity(features1, features2)
 
     return similarities.mean(axis=1, skipna=True)
 
@@ -66,13 +62,12 @@ def weight_categoricals_z_score(dataframe, column):
     return normalize_column(weighted_scores)
 
 
-def cluster_by_features(dataframe, column, encoder, model):
+def cluster_by_features(series, model, index):
     model = skcluster.AgglomerativeClustering(
         n_clusters=None, metric="precomputed", linkage="average", distance_threshold=0.85
     )
 
-    encoded = encoder.encode(dataframe[column])
-    distances = pd.DataFrame(distance(encoded, encoded), index=dataframe.index)
+    distances = pd.DataFrame(distance(series, series), index=index)
 
     return model.fit_predict(distances), model.n_clusters_
 

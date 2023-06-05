@@ -1,22 +1,35 @@
 import numpy as np
 import pandas as pd
 
+from animeippo.recommendation import encoding
+
 
 class UserDataSet:
     def __init__(self, watchlist, seasonal, features=None):
         self.watchlist = watchlist
         self.seasonal = seasonal
-        self.features = features if features else []
+        self.feature_names = features if features else []
         self.recommendations = None
+        self.all_features = pd.Series()
 
         if self.seasonal is not None and self.watchlist is not None:
             self.seasonal = fill_status_data_from_watchlist(self.seasonal, self.watchlist)
 
         if self.seasonal is not None:
-            self.seasonal["features"] = fill_feature_data(self.seasonal, self.features)
+            self.seasonal["features"] = fill_feature_data(self.seasonal, self.feature_names)
+            self.all_features = pd.concat([self.all_features, self.seasonal["features"]])
 
         if self.watchlist is not None:
-            self.watchlist["features"] = fill_feature_data(self.watchlist, self.features)
+            self.watchlist["features"] = fill_feature_data(self.watchlist, self.feature_names)
+            self.all_features = pd.concat([self.all_features, self.watchlist["features"]])
+
+        encoder = encoding.CategoricalEncoder(self.all_features.explode().unique())
+
+        if self.watchlist is not None:
+            self.watchlist["encoded"] = encoder.encode(self.watchlist["features"]).tolist()
+
+        if self.seasonal is not None:
+            self.seasonal["encoded"] = encoder.encode(self.seasonal["features"]).tolist()
 
 
 def fill_status_data_from_watchlist(seasonal, watchlist):
