@@ -37,7 +37,7 @@ async def test_ani_user_anime_list_can_be_fetched(mocker):
 
     animelist = await provider.get_user_anime_list(user)
 
-    assert "Dr. STONE: NEW WORLD" in animelist["title"].values
+    assert "Dr. STRONK: OLD WORLD" in animelist["title"].values
 
 
 @pytest.mark.asyncio

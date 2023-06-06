@@ -89,7 +89,7 @@ ANI_USER_LIST = {
                             "score": 0,
                             "media": {
                                 "id": 131518,
-                                "title": {"romaji": "Dr. STONE: NEW WORLD"},
+                                "title": {"romaji": "Dr. STRONK: OLD WORLD"},
                                 "genres": ["Action", "Adventure", "Comedy", "Sci-Fi"],
                                 "tags": [
                                     {"name": "Post-Apocalyptic", "rank": 95},
@@ -122,7 +122,7 @@ ANI_USER_LIST = {
                             "score": 7,
                             "media": {
                                 "id": 790,
-                                "title": {"romaji": "Ergo Proxy"},
+                                "title": {"romaji": "Argo Roxy"},
                                 "genres": ["Adventure", "Mystery", "Psychological", "Sci-Fi"],
                                 "tags": [
                                     {"name": "Post-Apocalyptic", "rank": 94},
@@ -271,7 +271,7 @@ ANI_SEASONAL_LIST = {
 FORMATTED_MAL_USER_LIST = [
     {
         "id": 30,
-        "title": "Neon Genesis Evangelion",
+        "title": "Pastel Exodus Evangelion",
         "nsfw": "white",
         "genres": [
             "Action",
@@ -283,6 +283,18 @@ FORMATTED_MAL_USER_LIST = [
             "Sci-Fi",
             "Suspense",
         ],
+        "features": [
+            "Action",
+            "Avant Garde",
+            "Award Winning",
+            "Drama",
+            "Mecha",
+            "Psychological",
+            "Sci-Fi",
+            "Suspense",
+            "r",
+        ],
+        "rating": "r",
         "studios": [
             "Test Studio 1",
             "Test Studio 2",
@@ -306,6 +318,17 @@ FORMATTED_MAL_USER_LIST = [
             "Supernatural",
             "Vampire",
         ],
+        "features": [
+            "Action",
+            "Adult Cast",
+            "Gore",
+            "Horror",
+            "Seinen",
+            "Supernatural",
+            "Vampire",
+            "r+",
+        ],
+        "rating": "r+",
         "studios": [
             "Test Studio 1",
             "Test Studio 2",
@@ -321,7 +344,7 @@ FORMATTED_MAL_USER_LIST = [
 FORMATTED_MAL_SEASONAL_LIST = [
     {
         "id": 50528,
-        "title": "Golden Kamuy 4th Season",
+        "title": "Copper Kamuy 4th Season",
         "genres": [
             "Action",
             "Adult Cast",
@@ -329,6 +352,15 @@ FORMATTED_MAL_SEASONAL_LIST = [
             "Historical",
             "Military",
             "Seinen",
+        ],
+        "features": [
+            "Action",
+            "Adult Cast",
+            "Adventure",
+            "Historical",
+            "Military",
+            "Seinen",
+            "r+",
         ],
         "studios": [
             "Test Studio 1",
@@ -354,6 +386,16 @@ FORMATTED_MAL_SEASONAL_LIST = [
             "Survival",
             "Suspense",
         ],
+        "features": [
+            "Action",
+            "Drama",
+            "Gore",
+            "Military",
+            "Shounen",
+            "Survival",
+            "Suspense",
+            "r",
+        ],
         "studios": [
             "Test Studio 1",
             "Test Studio 2",
@@ -377,15 +419,25 @@ FORMATTED_ANI_SEASONAL_LIST = [
         "coverImage": "https://localhost/test.png",
         "popularity": 14090,
         "genres": ["Action", "Adventure", "Drama", "Fantasy", "Supernatural"],
+        "features": [
+            "Action",
+            "Adventure",
+            "Drama",
+            "Fantasy",
+            "Supernatural",
+            "Shounen",
+            "Super Power",
+        ],
     },
     {
         "id": 145139,
-        "title": "Kimetsu no Yaiba: Katanakaji no Sato-hen",
+        "title": "Usotsu no Yaiba: Katanakaji no Sato-hen",
         "start_season": "2023/spring",
         "related_anime": [],
         "coverImage": "https://localhost/test.png",
         "popularity": 131620,
         "genres": ["Action", "Adventure", "Comedy", "Fantasy", "Sci-Fi"],
+        "features": ["Action", "Adventure", "Comedy", "Fantasy", "Sci-Fi", "Mythology", "Gore"],
     },
 ]
 

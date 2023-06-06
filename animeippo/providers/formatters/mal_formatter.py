@@ -4,11 +4,11 @@ import pandas as pd
 from . import util
 
 
-def transform_to_animeippo_format(data):
+def transform_to_animeippo_format(data, feature_names=None, normalize_level=1):
     if len(data.get("data", [])) == 0:
         return pd.DataFrame()
 
-    df = pd.json_normalize(data["data"], max_level=1)
+    df = pd.json_normalize(data["data"], max_level=normalize_level)
 
     column_mapping = util.get_column_name_mappers(df.columns)
     column_mapping["node.num_list_users"] = "popularity"
@@ -17,6 +17,8 @@ def transform_to_animeippo_format(data):
     df = df.rename(columns=column_mapping)
 
     df = util.format_with_formatters(df, formatters)
+
+    df["features"] = df.apply(util.get_features, args=(feature_names,), axis=1)
 
     if "relation_type" in df.columns:
         df = filter_related_anime(df)

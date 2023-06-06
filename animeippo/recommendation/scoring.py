@@ -1,7 +1,6 @@
 import abc
 import numpy as np
 import pandas as pd
-import sklearn.cluster as skcluster
 
 from animeippo.recommendation import analysis
 
@@ -89,10 +88,6 @@ class ClusterSimilarityScorer(AbstractScorer):
     name = "clusterscore"
 
     def __init__(self, weighted=False):
-        self.model = skcluster.AgglomerativeClustering(
-            n_clusters=None, metric="precomputed", linkage="average", distance_threshold=0.85
-        )
-
         self.weighted = weighted
 
     def score(self, scoring_target_df, compare_df):
@@ -100,7 +95,7 @@ class ClusterSimilarityScorer(AbstractScorer):
         co_encoded = np.vstack(compare_df["encoded"])
 
         compare_df["cluster"], nclusters = analysis.cluster_by_features(
-            co_encoded, self.model, compare_df.index
+            co_encoded, compare_df.index
         )
 
         scores = pd.DataFrame(index=scoring_target_df.index, columns=range(0, nclusters))

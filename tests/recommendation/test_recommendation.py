@@ -36,9 +36,8 @@ def test_recommend_seasonal_anime_for_user_by_genre():
     data = dataset.UserDataSet(
         provider.get_user_anime_list(), provider.get_seasonal_anime_list(), provider.get_features()
     )
-    data.feature_names = provider.get_features()
 
-    scorer = scoring.FeaturesSimilarityScorer(data.feature_names)
+    scorer = scoring.FeaturesSimilarityScorer()
     recengine = engine.AnimeRecommendationEngine()
 
     recengine.add_scorer(scorer)
@@ -47,7 +46,7 @@ def test_recommend_seasonal_anime_for_user_by_genre():
 
     assert recommendations["title"].tolist() == [
         "Shingeki no Kyojin: The Fake Season",
-        "Golden Kamuy 4th Season",
+        "Copper Kamuy 4th Season",
     ]
 
 
@@ -57,9 +56,7 @@ def test_multiple_scorers_can_be_added():
         provider.get_user_anime_list(), provider.get_seasonal_anime_list(), provider.get_features()
     )
 
-    data.feature_names = provider.get_features()
-
-    scorer = scoring.FeaturesSimilarityScorer(data.feature_names)
+    scorer = scoring.FeaturesSimilarityScorer()
     scorer2 = scoring.StudioCountScorer()
     recengine = engine.AnimeRecommendationEngine()
 
@@ -70,14 +67,21 @@ def test_multiple_scorers_can_be_added():
 
     assert recommendations["title"].tolist() == [
         "Shingeki no Kyojin: The Fake Season",
-        "Golden Kamuy 4th Season",
+        "Copper Kamuy 4th Season",
     ]
 
 
-def test_runtime_error_is_raised_when_no_scorers_exist():
+def test_runtime_error_is_raised_when_dataset_is_empty():
     recengine = engine.AnimeRecommendationEngine()
 
     data = dataset.UserDataSet(None, None)
 
     with pytest.raises(RuntimeError):
         recengine.fit_predict(data)
+
+
+def test_runtime_error_is_raised_when_no_scorers_exist():
+    recengine = engine.AnimeRecommendationEngine()
+
+    with pytest.raises(RuntimeError):
+        recengine.score_anime(None, None)

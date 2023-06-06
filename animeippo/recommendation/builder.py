@@ -100,6 +100,8 @@ class RecommenderBuilder:
         self._provider = None
         self._databuilder = None
         self._model = None
+        self._seasonal_filters = None
+        self._watchlist_filters = None
 
     def build(self):
         return AnimeRecommender(self._provider, self._model, self._databuilder)

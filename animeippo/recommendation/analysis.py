@@ -62,7 +62,7 @@ def weight_categoricals_z_score(dataframe, column):
     return normalize_column(weighted_scores)
 
 
-def cluster_by_features(series, model, index):
+def cluster_by_features(series, index):
     model = skcluster.AgglomerativeClustering(
         n_clusters=None, metric="precomputed", linkage="average", distance_threshold=0.85
     )

@@ -4,7 +4,7 @@ import pandas as pd
 from . import util
 
 
-def transform_to_animeippo_format(data, normalize_level=1):
+def transform_to_animeippo_format(data, feature_names=None, normalize_level=1):
     if len(data.get("data", [])) == 0:
         return pd.DataFrame()
 
@@ -18,6 +18,8 @@ def transform_to_animeippo_format(data, normalize_level=1):
     df = util.format_with_formatters(df, formatters)
 
     df["start_season"] = df.apply(format_season, axis=1)
+
+    df["features"] = df.apply(util.get_features, args=(feature_names,), axis=1)
 
     dropped = ["seasonYear", "season"]
     df = df.drop(dropped, errors="ignore", axis=1)

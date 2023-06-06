@@ -32,7 +32,7 @@ def test_dataframe_can_be_constructed_from_ani():
     data = ani_formatter.transform_to_animeippo_format(animelist)
 
     assert type(data) == pd.DataFrame
-    assert data.iloc[0]["title"] == "Dr. STONE: NEW WORLD"
+    assert data.iloc[0]["title"] == "Dr. STRONK: OLD WORLD"
     assert data.iloc[0]["genres"] == ["Action", "Adventure", "Comedy", "Sci-Fi"]
     assert len(data) == 2
 

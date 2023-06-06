@@ -68,7 +68,7 @@ async def test_Recommenderbuilder_with_anilist():
     assert actual.databuilder is not None
     assert actual.engine is not None
 
-    assert "Golden Kamuy 4th Season" in data.seasonal["title"].to_list()
+    assert "Copper Kamuy 4th Season" in data.seasonal["title"].to_list()
 
 
 @pytest.mark.asyncio
@@ -88,7 +88,7 @@ async def test_Recommenderbuilder_with_mal():
     assert actual.databuilder is not None
     assert actual.engine is not None
 
-    assert "Golden Kamuy 4th Season" in data.seasonal["title"].to_list()
+    assert "Copper Kamuy 4th Season" in data.seasonal["title"].to_list()
 
 
 @pytest.mark.asyncio

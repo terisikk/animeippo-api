@@ -44,7 +44,7 @@ class MyAnimeListProvider(provider.AbstractAnimeProvider):
 
         anime_list = await self.connection.request_anime_list(query, parameters)
 
-        return mal_formatter.transform_to_animeippo_format(anime_list)
+        return mal_formatter.transform_to_animeippo_format(anime_list, self.get_features())
 
     @animecache.cached_dataframe(ttl=timedelta(days=1))
     async def get_seasonal_anime_list(self, year, season):
@@ -68,7 +68,7 @@ class MyAnimeListProvider(provider.AbstractAnimeProvider):
 
         anime_list = await self.connection.request_anime_list(query, parameters)
 
-        return mal_formatter.transform_to_animeippo_format(anime_list)
+        return mal_formatter.transform_to_animeippo_format(anime_list, self.get_features())
 
     async def get_related_anime(self, anime_id):
         if not anime_id:
@@ -86,7 +86,7 @@ class MyAnimeListProvider(provider.AbstractAnimeProvider):
 
         anime_list = await self.connection.request_related_anime(query, parameters)
 
-        return mal_formatter.transform_to_animeippo_format(anime_list)
+        return mal_formatter.transform_to_animeippo_format(anime_list, self.get_features())
 
     def get_features(self):
         return ["genres", "rating"]

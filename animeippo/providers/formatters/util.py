@@ -1,4 +1,6 @@
 import functools
+import pandas as pd
+import numpy as np
 
 
 def format_with_formatters(df, formatters):
@@ -26,3 +28,20 @@ def default_if_error(default):
         return wrapper
 
     return decorator_function
+
+
+def get_features(row, feature_names):
+    all_features = []
+
+    if feature_names is not None:
+        for feature in feature_names:
+            value = row.get(feature, None)
+
+            if isinstance(value, list) or isinstance(value, np.ndarray):
+                all_features.extend([v for v in value if not pd.isnull(v)])
+            elif value is None or pd.isnull(value):
+                continue
+            else:
+                all_features.append(value)
+
+    return all_features
