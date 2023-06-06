@@ -2,7 +2,6 @@ import pandas as pd
 import numpy as np
 import scipy.spatial.distance as scdistance
 import sklearn.preprocessing as skpre
-import sklearn.cluster as skcluster
 
 
 def distance(x_orig, y_orig, metric="jaccard"):
@@ -60,16 +59,6 @@ def weight_categoricals_z_score(dataframe, column):
     weighted_scores = counts.apply(lambda row: ((scores[row.name] - mean) / std) * row, axis=1)
 
     return normalize_column(weighted_scores)
-
-
-def cluster_by_features(series, index):
-    model = skcluster.AgglomerativeClustering(
-        n_clusters=None, metric="precomputed", linkage="average", distance_threshold=0.85
-    )
-
-    distances = pd.DataFrame(distance(series, series), index=index)
-
-    return model.fit_predict(distances), model.n_clusters_
 
 
 def normalize_column(df_column):

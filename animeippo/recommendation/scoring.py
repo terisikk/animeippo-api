@@ -2,7 +2,7 @@ import abc
 import numpy as np
 import pandas as pd
 
-from animeippo.recommendation import analysis
+from animeippo.recommendation import analysis, clustering
 
 
 class AbstractScorer(abc.ABC):
@@ -89,18 +89,17 @@ class ClusterSimilarityScorer(AbstractScorer):
 
     def __init__(self, weighted=False):
         self.weighted = weighted
+        self.model = clustering.AnimeClustering()
 
     def score(self, scoring_target_df, compare_df):
         st_encoded = np.vstack(scoring_target_df["encoded"])
         co_encoded = np.vstack(compare_df["encoded"])
 
-        compare_df["cluster"], nclusters = analysis.cluster_by_features(
-            co_encoded, compare_df.index
+        compare_df["cluster"] = self.model.cluster_by_features(co_encoded, compare_df.index)
+
+        scores = pd.DataFrame(
+            index=scoring_target_df.index, columns=range(0, self.model.n_clusters)
         )
-
-        scores = pd.DataFrame(index=scoring_target_df.index, columns=range(0, nclusters))
-
-        print("CLUSTERS: ", nclusters)
 
         cluster_groups = compare_df.groupby("cluster")
 
