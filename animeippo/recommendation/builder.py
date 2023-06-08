@@ -3,7 +3,7 @@ import asyncio
 import animeippo.providers as providers
 from animeippo import cache
 from animeippo.recommendation.recommender import AnimeRecommender
-from animeippo.recommendation import engine, filters, scoring, dataset
+from animeippo.recommendation import engine, filters, scoring, dataset, categories
 
 
 DEFAULT_SCORERS = [
@@ -16,6 +16,16 @@ DEFAULT_SCORERS = [
     scoring.ContinuationScorer(),
     scoring.SourceScorer(),
     scoring.DirectSimilarityScorer(),
+]
+
+DEFAULT_CATEGORIZERS = [
+    categories.MostPopularCategory(),
+    categories.ContinueWatchingCategory(),
+    categories.SourceCategory(),
+    categories.StudioCategory(),
+    categories.ClusterCategory(0),
+    categories.ClusterCategory(1),
+    categories.ClusterCategory(2),
 ]
 
 
@@ -127,13 +137,13 @@ def create_builder(providername):
             return (
                 RecommenderBuilder()
                 .provider(providers.anilist.AniListProvider(rcache))
-                .model(engine.AnimeRecommendationEngine(DEFAULT_SCORERS))
+                .model(engine.AnimeRecommendationEngine(DEFAULT_SCORERS, DEFAULT_CATEGORIZERS))
                 .databuilder(construct_anilist_data)
             )
         case _:
             return (
                 RecommenderBuilder()
                 .provider(providers.myanimelist.MyAnimeListProvider(rcache))
-                .model(engine.AnimeRecommendationEngine(DEFAULT_SCORERS))
+                .model(engine.AnimeRecommendationEngine(DEFAULT_SCORERS, DEFAULT_CATEGORIZERS))
                 .databuilder(construct_myanimelist_data)
             )

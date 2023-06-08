@@ -5,8 +5,9 @@ from animeippo.recommendation import encoding, clustering, categories
 
 
 class AnimeRecommendationEngine:
-    def __init__(self, scorers=None):
+    def __init__(self, scorers=None, categorizers=None):
         self.scorers = scorers or []
+        self.categorizers = categorizers or []
         self.clustering_model = clustering.AnimeClustering()
 
     def validate(self, dataset):
@@ -64,19 +65,9 @@ class AnimeRecommendationEngine:
         return scoring_target_df
 
     def categorize_anime(self, data):
-        groupers = [
-            categories.MostPopularCategory(),
-            categories.ContinueWatchingCategory(),
-            categories.SourceCategory(),
-            categories.StudioCategory(),
-            categories.ClusterCategory(0),
-            categories.ClusterCategory(1),
-            categories.ClusterCategory(2),
-        ]
-
         cats = []
 
-        for grouper in groupers:
+        for grouper in self.categorizers:
             groups = grouper.categorize(data)
 
             if groups is not None:
@@ -87,6 +78,9 @@ class AnimeRecommendationEngine:
 
     def add_scorer(self, scorer):
         self.scorers.append(scorer)
+
+    def add_categorizer(self, categorizer):
+        self.categorizers.append(categorizer)
 
     def fill_status_data_from_watchlist(self, seasonal, watchlist):
         seasonal["status"] = np.nan

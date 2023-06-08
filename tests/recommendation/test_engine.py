@@ -1,6 +1,4 @@
-import animeippo.recommendation.engine as engine
-import animeippo.recommendation.scoring as scoring
-from animeippo.recommendation import dataset
+from animeippo.recommendation import engine, scoring, dataset, categories
 import pandas as pd
 import pytest
 
@@ -89,6 +87,9 @@ def test_runtime_error_is_raised_when_no_scorers_exist():
 
 def test_categorize():
     recengine = engine.AnimeRecommendationEngine()
+    recengine.add_categorizer(categories.ContinueWatchingCategory())
+    recengine.add_categorizer(categories.ClusterCategory(0))
+    recengine.add_categorizer(categories.ClusterCategory(100))
 
     data = dataset.UserDataSet(pd.DataFrame(test_data.FORMATTED_MAL_USER_LIST), None, None)
 
@@ -107,8 +108,8 @@ def test_categorize():
         }
     )
 
-    categories = recengine.categorize_anime(data)
+    cats = recengine.categorize_anime(data)
 
-    assert len(categories) > 0
-    assert categories[0].get("name", False)
-    assert categories[1].get("items", False)
+    assert len(cats) > 0
+    assert cats[0].get("name", False)
+    assert cats[1].get("items", False)
