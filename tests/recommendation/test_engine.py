@@ -85,3 +85,30 @@ def test_runtime_error_is_raised_when_no_scorers_exist():
 
     with pytest.raises(RuntimeError):
         recengine.score_anime(None, None)
+
+
+def test_categorize():
+    recengine = engine.AnimeRecommendationEngine()
+
+    data = dataset.UserDataSet(pd.DataFrame(test_data.FORMATTED_MAL_USER_LIST), None, None)
+
+    data.recommendations = pd.DataFrame(
+        {
+            "popularityscore": [1],
+            "continuationscore": [2],
+            "sourcescore": [3],
+            "directscore": [4],
+            "clusterscore": [5],
+            "studioaveragescore": [6],
+            "cluster": [1],
+            "features": [["test"]],
+            "source": ["Other"],
+            "score": [123],
+        }
+    )
+
+    categories = recengine.categorize_anime(data)
+
+    assert len(categories) > 0
+    assert categories[0].get("name", False)
+    assert categories[1].get("items", False)

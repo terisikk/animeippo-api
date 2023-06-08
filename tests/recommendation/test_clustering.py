@@ -10,6 +10,17 @@ class FaultyClusterStub:
         return None
 
 
+def test_clustering():
+    model = clustering.AnimeClustering()
+
+    series = pd.Series([[0, 1, 2], [1, 2, 3]])
+    clusters = model.cluster_by_features(np.vstack(series), series.index)
+
+    clusters = model.cluster_by_features(np.vstack(series), series.index)
+
+    assert clusters.tolist() == [1, 0]
+
+
 def test_predict_cannot_be_called_when_clustring_fails():
     model = clustering.AnimeClustering()
 

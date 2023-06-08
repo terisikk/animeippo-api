@@ -2,7 +2,7 @@ import abc
 import numpy as np
 import pandas as pd
 
-from animeippo.recommendation import analysis, clustering
+from animeippo.recommendation import analysis
 
 
 class AbstractScorer(abc.ABC):
@@ -89,16 +89,13 @@ class ClusterSimilarityScorer(AbstractScorer):
 
     def __init__(self, weighted=False):
         self.weighted = weighted
-        self.model = clustering.AnimeClustering()
 
     def score(self, scoring_target_df, compare_df):
         st_encoded = np.vstack(scoring_target_df["encoded"])
         co_encoded = np.vstack(compare_df["encoded"])
 
-        compare_df["cluster"] = self.model.cluster_by_features(co_encoded, compare_df.index)
-
         scores = pd.DataFrame(
-            index=scoring_target_df.index, columns=range(0, self.model.n_clusters)
+            index=scoring_target_df.index, columns=range(0, len(compare_df["cluster"].unique()))
         )
 
         cluster_groups = compare_df.groupby("cluster")
@@ -152,7 +149,7 @@ class PopularityScorer(AbstractScorer):
 class ContinuationScorer(AbstractScorer):
     name = "continuationscore"
 
-    SCALE_MIDDLE = 6
+    DEFAULT_SCORE = 0
 
     def score(self, scoring_target_df, compare_df):
         mean_score = compare_df["score"].mean()
@@ -165,7 +162,7 @@ class ContinuationScorer(AbstractScorer):
             related_index = row["related_anime"]
             is_continuation = related_index in compare_df.index
             rdf.at[i, "score"] = (
-                compare_df.at[related_index, "score"] if is_continuation else self.SCALE_MIDDLE
+                compare_df.at[related_index, "score"] if is_continuation else self.DEFAULT_SCORE
             )
 
         rdf["score"] = rdf["score"].fillna(mean_score)

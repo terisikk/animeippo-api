@@ -132,6 +132,7 @@ def test_cluster_similarity_scorer():
             "features": [["Action", "Adventure"], ["Action", "Fantasy"]],
             "title": ["Bleach", "Fate/Zero"],
             "encoded": encoded1,
+            "cluster": [1, 0],
         },
     )
 
@@ -165,6 +166,7 @@ def test_cluster_similarity_scorer_weighted():
             "features": [["Action", "Adventure"], ["Fantasy", "Adventure"]],
             "title": ["Bleach", "Fate/Zero"],
             "score": [10, 1],
+            "cluster": [0, 1],
             "encoded": [[True, True, False], [False, True, True]],
         }
     )
@@ -185,7 +187,7 @@ def test_cluster_similarity_scorer_weighted():
 
     recommendations = target_df.sort_values("recommend_score", ascending=False)
 
-    expected = "Inuyasha"
+    expected = "Naruto"
     actual = recommendations.iloc[0]["title"]
 
     assert actual == expected
@@ -328,10 +330,10 @@ def test_continuation_scorer():
 
     actual = scorer.score(original, compare)
 
-    assert actual.to_list() == [0.8, 0.6, 0.7, 0.6]
+    assert actual.to_list() == [0.8, 0, 0.7, 0]
 
 
-def test_continuation_scorer_scores_nan_with_mean_and_new_with_six():
+def test_continuation_scorer_scores_nan_with_zero():
     compare = pd.DataFrame(
         {
             "id": [1, 2, 3, 4],
@@ -355,7 +357,7 @@ def test_continuation_scorer_scores_nan_with_mean_and_new_with_six():
 
     actual = scorer.score(original, compare)
 
-    assert actual.to_list() == [0.7, 0.6, 0.7, 0.6]
+    assert actual.to_list() == [0.7, 0, 0.7, 0]
 
 
 def test_source_scorer():

@@ -24,7 +24,7 @@ class AnimeClustering:
             self.fit = True
             self.n_clusters = self.model.n_clusters_
             self.clustered_series = pd.DataFrame(
-                {"cluster": clusters, "encoded": pd.Series(series.tolist())}, index=index
+                {"cluster": clusters, "encoded": series.tolist()}, index=index
             )
 
         return clusters

@@ -1,12 +1,13 @@
 import numpy as np
 import pandas as pd
 
-from animeippo.recommendation import encoding
+from animeippo.recommendation import encoding, clustering, categories
 
 
 class AnimeRecommendationEngine:
     def __init__(self, scorers=None):
         self.scorers = scorers or []
+        self.clustering_model = clustering.AnimeClustering()
 
     def validate(self, dataset):
         is_missing_seasonal = dataset.seasonal is None
@@ -34,12 +35,16 @@ class AnimeRecommendationEngine:
         dataset.watchlist["encoded"] = encoder.encode(dataset.watchlist["features"]).tolist()
         dataset.seasonal["encoded"] = encoder.encode(dataset.seasonal["features"]).tolist()
 
+        dataset.watchlist["cluster"] = self.get_clustering(dataset.watchlist["encoded"])
+
         return dataset
 
     def fit_predict(self, dataset):
         dataset = self.fit(dataset)
 
         recommendations = self.score_anime(dataset.seasonal, dataset.watchlist)
+
+        recommendations["cluster"] = self.clustering_model.predict(dataset.seasonal["encoded"])
 
         return recommendations.sort_values("recommend_score", ascending=False)
 
@@ -58,6 +63,28 @@ class AnimeRecommendationEngine:
 
         return scoring_target_df
 
+    def categorize_anime(self, data):
+        groupers = [
+            categories.MostPopularCategory(),
+            categories.ContinueWatchingCategory(),
+            categories.SourceCategory(),
+            categories.StudioCategory(),
+            categories.ClusterCategory(0),
+            categories.ClusterCategory(1),
+            categories.ClusterCategory(2),
+        ]
+
+        cats = []
+
+        for grouper in groupers:
+            groups = grouper.categorize(data)
+
+            if groups is not None:
+                items = groups.index.tolist()
+                cats.append({"name": grouper.description, "items": items})
+
+        return cats
+
     def add_scorer(self, scorer):
         self.scorers.append(scorer)
 
@@ -65,3 +92,7 @@ class AnimeRecommendationEngine:
         seasonal["status"] = np.nan
         seasonal["status"].update(watchlist["status"])
         return seasonal
+
+    def get_clustering(self, series):
+        encoded = np.vstack(series)
+        return self.clustering_model.cluster_by_features(encoded, series.index)

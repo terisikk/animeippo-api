@@ -61,7 +61,11 @@ def format_season(row):
 
 @util.default_if_error(None)
 def split_studios(field):
-    return [studio.get("id", None) for studio in field["edges"]]
+    return [
+        studio["node"].get("name", None)
+        for studio in field["edges"]
+        if studio["node"].get("isAnimationStudio", False)
+    ]
 
 
 @util.default_if_error(None)

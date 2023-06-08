@@ -6,6 +6,7 @@ class AnimeRecommender:
         self.provider = provider
         self.engine = engine
         self.databuilder = databuilder
+        self.dataset = None
 
     def get_dataset(self, year, season, user=None):
         return self.databuilder(self.provider, year, season, user)
@@ -23,4 +24,9 @@ class AnimeRecommender:
         else:
             recommendations = self.dataset.seasonal.sort_values("popularity", ascending=False)
 
-        return recommendations
+        self.dataset.recommendations = recommendations
+
+        return self.dataset
+
+    def get_categories(self, recommendations):
+        return self.engine.categorize_anime(recommendations)

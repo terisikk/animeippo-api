@@ -1,9 +1,25 @@
-def web_view(dataframe):
+import json
+
+
+def web_view(dataframe, categories=None):
     if "id" not in dataframe.columns:
         dataframe["id"] = dataframe.index
 
-    return dataframe[["id", "title", "coverImage"]].to_json(orient="records")
+    fields = set(["id", "title", "coverImage", "cluster"])
+
+    filtered_fields = list(set(dataframe.columns.tolist()).intersection(fields))
+
+    df_json = dataframe[filtered_fields].to_dict(orient="records")
+
+    return json.dumps(
+        {
+            "data": {
+                "shows": df_json,
+                "categories": categories,
+            }
+        }
+    )
 
 
 def console_view(dataframe):
-    print(dataframe.reset_index().loc[0:25][["title", "genres"]])
+    print(dataframe.reset_index().loc[0:25][["title", "genres", "cluster"]])

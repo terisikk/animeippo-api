@@ -304,6 +304,8 @@ FORMATTED_MAL_USER_LIST = [
         "status": "completed",
         "start_season": "2020/winter",
         "coverImage": "https://localhost/test.png",
+        "source": "Original",
+        "cluster": 1,
     },
     {
         "id": 270,
@@ -338,6 +340,8 @@ FORMATTED_MAL_USER_LIST = [
         "status": "watching",
         "start_season": "2023/spring",
         "coverImage": "https://localhost/test.png",
+        "source": "Manga",
+        "cluster": 2,
     },
 ]
 
@@ -373,6 +377,8 @@ FORMATTED_MAL_SEASONAL_LIST = [
         "popularity": 1,
         "coverImage": "https://localhost/test.png",
         "related_anime": [],
+        "cluster": 1,
+        "source": "Original",
     },
     {
         "id": 51535,
@@ -407,6 +413,8 @@ FORMATTED_MAL_SEASONAL_LIST = [
         "popularity": 2,
         "coverImage": "https://localhost/test.png",
         "related_anime": [1],
+        "cluster": 0,
+        "source": "Manga",
     },
 ]
 

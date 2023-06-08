@@ -18,7 +18,7 @@ test:
 	poetry run coverage run
 	poetry run coverage report
 
-# Requires @profile decorator with "file=.profiling/cprofile.pstats" 
+# Requires @profile decorator with filename=".profiling/cprofile.pstats" 
 # in function from profilehooks
 .PHOY: profile 
 profile:

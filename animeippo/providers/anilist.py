@@ -42,7 +42,7 @@ class AniListProvider(provider.AbstractAnimeProvider):
                             }
                             meanScore
                             source
-                            studios { edges { id } }
+                            studios { edges { node { name isAnimationStudio } }}
                             seasonYear
                             season
                             coverImage { large }
@@ -84,7 +84,7 @@ class AniListProvider(provider.AbstractAnimeProvider):
                     }
                     meanScore
                     source
-                    studios { edges { id }}
+                    studios { edges { node { name isAnimationStudio } }}
                     seasonYear
                     season
                     relations { edges { relationType, node { id }}}

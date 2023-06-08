@@ -37,6 +37,9 @@ def recommend_anime():
     if not all([user, year, season]):
         return "Validation error", 400
 
-    recommendations = recommender.recommend_seasonal_anime(year, season, user)
+    dataset = recommender.recommend_seasonal_anime(year, season, user)
+    categories = recommender.get_categories(dataset)
 
-    return Response(views.web_view(recommendations), mimetype="application/json")
+    return Response(
+        views.web_view(dataset.recommendations, categories), mimetype="application/json"
+    )
