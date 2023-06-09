@@ -5,10 +5,11 @@ def web_view(dataframe, categories=None):
     if "id" not in dataframe.columns:
         dataframe["id"] = dataframe.index
 
-    fields = set(["id", "title", "coverImage", "cluster"])
+    fields = set(["id", "title", "coverImage", "cluster", "genres"])
 
     filtered_fields = list(set(dataframe.columns.tolist()).intersection(fields))
 
+    dataframe["genres"] = dataframe["genres"].apply(list)
     df_json = dataframe[filtered_fields].to_dict(orient="records")
 
     return json.dumps(
