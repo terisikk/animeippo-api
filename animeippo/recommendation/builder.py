@@ -5,6 +5,7 @@ from animeippo import cache
 from animeippo.recommendation.recommender import AnimeRecommender
 from animeippo.recommendation import engine, filters, scoring, dataset, categories
 
+import pandas as pd
 
 DEFAULT_SCORERS = [
     # scoring.FeatureSimilarityScorer(feature_tags, weighted=True),
@@ -21,23 +22,25 @@ DEFAULT_SCORERS = [
 DEFAULT_CATEGORIZERS = [
     categories.MostPopularCategory(),
     categories.ContinueWatchingCategory(),
-    categories.SourceCategory(),
-    categories.StudioCategory(),
     categories.ClusterCategory(0),
+    categories.SourceCategory(),
     categories.ClusterCategory(1),
+    categories.StudioCategory(),
     categories.ClusterCategory(2),
 ]
 
 
 async def get_dataset(provider, user, year, season):
-    user_data, season_data = await asyncio.gather(
+    user_data, season_data1, season_data2, season_data3 = await asyncio.gather(
         provider.get_user_anime_list(user),
-        provider.get_seasonal_anime_list(year, season),
+        provider.get_seasonal_anime_list(year, "winter"),
+        provider.get_seasonal_anime_list(year, "spring"),
+        provider.get_seasonal_anime_list("2022", "fall"),
     )
 
     data = dataset.UserDataSet(
         user_data,
-        season_data,
+        pd.concat([season_data1, season_data2, season_data3]),
         provider.get_features(),
     )
 
@@ -59,7 +62,7 @@ async def construct_anilist_data(provider, year, season, user):
         seasonal_filters = [
             filters.FeatureFilter("Kids", negative=True),
             filters.FeatureFilter("Hentai", negative=True),
-            filters.StartSeasonFilter((year, season)),
+            filters.StartSeasonFilter((year, "winter"), (year, "spring"), ("2022", "fall")),
         ]
 
         for f in seasonal_filters:
@@ -85,7 +88,7 @@ async def construct_myanimelist_data(provider, year, season, user):
         seasonal_filters = [
             filters.MediaTypeFilter("tv"),
             filters.RatingFilter("g", "rx", negative=True),
-            filters.StartSeasonFilter((year, season)),
+            filters.StartSeasonFilter((year, "winter"), (year, "spring"), ("2022", "fall")),
         ]
 
         for f in seasonal_filters:

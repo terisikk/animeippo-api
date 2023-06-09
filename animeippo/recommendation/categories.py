@@ -17,7 +17,7 @@ class ContinueWatchingCategory:
     description = "Related to Your Completed Shows"
     requires = [scoring.ContinuationScorer.name]
 
-    def categorize(self, dataset, max_items=10):
+    def categorize(self, dataset, max_items=None):
         target = dataset.recommendations
 
         return target[target[scoring.ContinuationScorer.name] > 0].sort_values(
@@ -89,9 +89,6 @@ class ClusterCategory:
 
                 self.description = " ".join(relevant)
 
-                if max_items is not None:
-                    return relevant_shows[0:max_items]
-
-            return relevant_shows[0:]
+            return relevant_shows[0:max_items]
 
         return None
