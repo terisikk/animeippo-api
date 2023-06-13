@@ -105,6 +105,7 @@ def test_categorize():
             "features": [["test"]],
             "source": ["Other"],
             "score": [123],
+            "user_status": ["in_progress"],
         }
     )
 

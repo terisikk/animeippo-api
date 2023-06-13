@@ -1,7 +1,7 @@
 # @profile(filename=".profiling/cprofile.pstats")
 def get_recs():
     year = "2023"
-    season = "spring"
+    season = "winter"
     user = "Janiskeisari"
 
     recommender = builder.create_builder(os.environ.get("DEFAULT_PROVIDER")).build()

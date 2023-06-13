@@ -19,6 +19,9 @@ def transform_to_animeippo_format(data, feature_names=None, normalize_level=1):
 
     df["start_season"] = df.apply(format_season, axis=1)
 
+    if "year" in df.columns:
+        df["user_complete_date"] = pd.to_datetime(df[["year", "month", "day"]], errors="coerce")
+
     df["features"] = df.apply(util.get_features, args=(feature_names,), axis=1)
 
     dropped = ["seasonYear", "season"]

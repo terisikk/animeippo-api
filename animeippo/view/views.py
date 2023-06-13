@@ -5,7 +5,7 @@ def web_view(dataframe, categories=None):
     if "id" not in dataframe.columns:
         dataframe["id"] = dataframe.index
 
-    fields = set(["id", "title", "coverImage", "cluster", "genres"])
+    fields = set(["id", "title", "coverImage", "cluster", "genres", "status", "start_season"])
 
     filtered_fields = list(set(dataframe.columns.tolist()).intersection(fields))
 

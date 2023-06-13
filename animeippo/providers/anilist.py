@@ -32,6 +32,11 @@ class AniListProvider(provider.AbstractAnimeProvider):
                     entries {
                         status
                         score(format:POINT_10)
+                        completedAt {
+                            year
+                            month
+                            day
+                        }
                         media {
                             id
                             title { romaji }
@@ -77,6 +82,7 @@ class AniListProvider(provider.AbstractAnimeProvider):
                 media(seasonYear: $seasonYear, season: $season, type:ANIME) {
                     id
                     title { romaji }
+                    status
                     genres
                     tags {
                         name

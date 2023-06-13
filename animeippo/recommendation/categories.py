@@ -1,10 +1,11 @@
 import numpy as np
+import pandas as pd
 
-from animeippo.recommendation import scoring, util
+from animeippo.recommendation import scoring, util, analysis
 
 
 class MostPopularCategory:
-    description = "Most Popular for This Season"
+    description = "Most Popular for This Year"
     requires = [scoring.PopularityScorer.name]
 
     def categorize(self, dataset, max_items=10):
@@ -20,16 +21,16 @@ class ContinueWatchingCategory:
     def categorize(self, dataset, max_items=None):
         target = dataset.recommendations
 
-        return target[target[scoring.ContinuationScorer.name] > 0].sort_values(
-            scoring.ContinuationScorer.name, ascending=False
-        )[0:max_items]
+        return target[
+            (target[scoring.ContinuationScorer.name] > 0) & (target["user_status"] != "completed")
+        ].sort_values(scoring.ContinuationScorer.name, ascending=False)[0:max_items]
 
 
 class SourceCategory:
     description = "Based on a"
     requires = [scoring.SourceScorer.name, scoring.DirectSimilarityScorer.name]
 
-    def categorize(self, dataset, max_items=10):
+    def categorize(self, dataset, max_items=20):
         target = dataset.recommendations
         compare = dataset.watchlist
 
@@ -56,7 +57,7 @@ class StudioCategory:
     description = "From Your Favourite Studios"
     requires = [scoring.StudioAverageScorer.name]
 
-    def categorize(self, dataset, max_items=10):
+    def categorize(self, dataset, max_items=20):
         target = dataset.recommendations
 
         return target.sort_values(scoring.StudioAverageScorer.name, ascending=False)[0:max_items]
@@ -90,5 +91,68 @@ class ClusterCategory:
                 self.description = " ".join(relevant)
 
             return relevant_shows[0:max_items]
+
+        return None
+
+
+class YourTopPicks:
+    description = "Top New Picks for You"
+    requires = ["recommend_score", scoring.ContinuationScorer.name]
+
+    def categorize(self, dataset, max_items=20):
+        target = dataset.recommendations
+
+        mask = (
+            target[scoring.ContinuationScorer.name] == scoring.ContinuationScorer.DEFAULT_SCORE
+        ) & (pd.isnull(target["user_status"]) & (target["status"].isin(["releasing", "finished"])))
+
+        new_picks = target[mask]
+
+        return new_picks.sort_values("recommend_score", ascending=False)[0:max_items]
+
+
+class TopUpcoming:
+    description = "Top New Picks From Upcoming Anime"
+
+    requires = ["recommend_score", scoring.ContinuationScorer.name]
+
+    def categorize(self, dataset, max_items=20):
+        target = dataset.recommendations
+
+        mask = (
+            target[scoring.ContinuationScorer.name] == scoring.ContinuationScorer.DEFAULT_SCORE
+        ) & (target["status"] == "not_yet_released")
+
+        new_picks = target[mask]
+
+        return new_picks.sort_values("recommend_score", ascending=False)[0:max_items]
+
+
+class BecauseYouLiked:
+    description = "Because You Liked X"
+
+    def __init__(self, nth_liked):
+        self.nth_liked = nth_liked
+
+    def categorize(self, dataset, max_items=20):
+        wl = dataset.watchlist
+
+        mean = wl["score"].mean()
+
+        last_complete = wl[pd.notna(wl["user_complete_date"])].sort_values(
+            "user_complete_date", ascending=False
+        )
+
+        last_liked = last_complete[last_complete["score"].ge(mean)]
+
+        if len(last_liked) > self.nth_liked:
+            # We need a row, not an object
+            liked_item = last_liked.iloc[self.nth_liked : self.nth_liked + 1]
+
+            self.description = "Because You Liked " + last_liked.iloc[self.nth_liked]["title"]
+            similarity = analysis.similarity_of_anime_lists(
+                dataset.recommendations["encoded"], liked_item["encoded"]
+            )
+            return similarity.sort_values(ascending=False)[0:max_items]
 
         return None

@@ -17,7 +17,7 @@ def seasonal_anime():
     year = request.args.get("year", None)
     season = request.args.get("season", None)
 
-    if not all([year, season]):
+    if not year:
         return "Validation error", 400
 
     seasonal = recommender.recommend_seasonal_anime(year, season)
@@ -34,7 +34,7 @@ def recommend_anime():
     year = request.args.get("year", None)
     season = request.args.get("season", None)
 
-    if not all([user, year, season]):
+    if not all([user, year]):
         return "Validation error", 400
 
     dataset = recommender.recommend_seasonal_anime(year, season, user)

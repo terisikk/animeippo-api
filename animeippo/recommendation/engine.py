@@ -1,7 +1,8 @@
 import numpy as np
 import pandas as pd
 
-from animeippo.recommendation import encoding, clustering, categories
+
+from animeippo.recommendation import encoding, clustering
 
 
 class AnimeRecommendationEngine:
@@ -17,15 +18,13 @@ class AnimeRecommendationEngine:
         if is_missing_seasonal or is_missing_watchlist:
             error_desc = (
                 f"Watchlist invalid?: {is_missing_watchlist}."
-                + "Seasonal invalid?: {is_missing_seasonal}"
+                + f"Seasonal invalid?: {is_missing_seasonal}"
             )
 
             raise RuntimeError("Trying to recommend anime without proper data. " + error_desc)
 
     def fit(self, dataset):
         self.validate(dataset)
-
-        dataset.seasonal = self.fill_status_data_from_watchlist(dataset.seasonal, dataset.watchlist)
 
         dataset.all_features = pd.concat(
             [dataset.all_features, dataset.seasonal["features"], dataset.watchlist["features"]]
@@ -68,10 +67,10 @@ class AnimeRecommendationEngine:
         cats = []
 
         for grouper in self.categorizers:
-            groups = grouper.categorize(data)
+            group = grouper.categorize(data)
 
-            if groups is not None:
-                items = groups.index.tolist()
+            if group is not None and len(group) > 0:
+                items = group.index.tolist()
                 cats.append({"name": grouper.description, "items": items})
 
         return cats
@@ -81,11 +80,6 @@ class AnimeRecommendationEngine:
 
     def add_categorizer(self, categorizer):
         self.categorizers.append(categorizer)
-
-    def fill_status_data_from_watchlist(self, seasonal, watchlist):
-        seasonal["status"] = np.nan
-        seasonal["status"].update(watchlist["status"])
-        return seasonal
 
     def get_clustering(self, series):
         encoded = np.vstack(series)

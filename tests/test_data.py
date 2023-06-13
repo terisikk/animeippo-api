@@ -87,6 +87,7 @@ ANI_USER_LIST = {
                         {
                             "status": "CURRENT",
                             "score": 0,
+                            "dateStarted": {"year": 2023, "month": 2, "day": 23},
                             "media": {
                                 "id": 131518,
                                 "title": {"romaji": "Dr. STRONK: OLD WORLD"},
@@ -120,6 +121,7 @@ ANI_USER_LIST = {
                         {
                             "status": "CURRENT",
                             "score": 7,
+                            "dateStarted": {"year": 2022, "month": 2, "day": 22},
                             "media": {
                                 "id": 790,
                                 "title": {"romaji": "Argo Roxy"},
@@ -427,6 +429,7 @@ FORMATTED_ANI_SEASONAL_LIST = [
         "coverImage": "https://localhost/test.png",
         "popularity": 14090,
         "genres": ["Action", "Adventure", "Drama", "Fantasy", "Supernatural"],
+        "status": "releasing",
         "features": [
             "Action",
             "Adventure",
@@ -445,6 +448,7 @@ FORMATTED_ANI_SEASONAL_LIST = [
         "coverImage": "https://localhost/test.png",
         "popularity": 131620,
         "genres": ["Action", "Adventure", "Comedy", "Fantasy", "Sci-Fi"],
+        "status": "not_yet_released",
         "features": ["Action", "Adventure", "Comedy", "Fantasy", "Sci-Fi", "Mythology", "Gore"],
     },
 ]
