@@ -19,12 +19,13 @@ class AbstractScorer(abc.ABC):
 class FeaturesSimilarityScorer(AbstractScorer):
     name = "featuresimilarityscore"
 
-    def __init__(self, weighted=False):
+    def __init__(self, weighted=False, distance_metric=None):
         self.weighted = weighted
+        self.distance_metric = distance_metric or "jaccard"
 
     def score(self, scoring_target_df, compare_df):
         scores = analysis.similarity_of_anime_lists(
-            scoring_target_df["encoded"], compare_df["encoded"]
+            scoring_target_df["encoded"], compare_df["encoded"], self.distance_metric
         )
 
         if self.weighted:
@@ -87,8 +88,9 @@ class StudioAverageScorer:
 class ClusterSimilarityScorer(AbstractScorer):
     name = "clusterscore"
 
-    def __init__(self, weighted=False):
+    def __init__(self, weighted=False, distance_metric=None):
         self.weighted = weighted
+        self.distance_metric = distance_metric or "jaccard"
 
     def score(self, scoring_target_df, compare_df):
         st_encoded = np.vstack(scoring_target_df["encoded"])
@@ -102,7 +104,11 @@ class ClusterSimilarityScorer(AbstractScorer):
 
         for cluster_id, cluster in cluster_groups:
             similarities = pd.DataFrame(
-                analysis.similarity(st_encoded, co_encoded[cluster_groups.indices[cluster_id]]),
+                analysis.similarity(
+                    st_encoded,
+                    co_encoded[cluster_groups.indices[cluster_id]],
+                    metric=self.distance_metric,
+                ),
                 index=scoring_target_df.index,
             ).mean(axis=1, skipna=True)
 
@@ -122,9 +128,12 @@ class ClusterSimilarityScorer(AbstractScorer):
 class DirectSimilarityScorer(AbstractScorer):
     name = "directscore"
 
+    def __init__(self, distance_metric=None):
+        self.distance_metric = distance_metric or "jaccard"
+
     def score(self, scoring_target_df, compare_df):
         similarities = analysis.categorical_similarity(
-            scoring_target_df["encoded"], compare_df["encoded"]
+            scoring_target_df["encoded"], compare_df["encoded"], metric=self.distance_metric
         )
 
         max_values = similarities.max(axis=1)

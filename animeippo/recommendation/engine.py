@@ -6,10 +6,11 @@ from animeippo.recommendation import encoding, clustering
 
 
 class AnimeRecommendationEngine:
-    def __init__(self, scorers=None, categorizers=None):
+    def __init__(self, scorers=None, categorizers=None, clustering_model=None, encoder=None):
         self.scorers = scorers or []
         self.categorizers = categorizers or []
-        self.clustering_model = clustering.AnimeClustering()
+        self.clustering_model = clustering_model or clustering.AnimeClustering()
+        self.encoder = encoder or encoding.CategoricalEncoder()
 
     def validate(self, dataset):
         is_missing_seasonal = dataset.seasonal is None
@@ -26,14 +27,19 @@ class AnimeRecommendationEngine:
     def fit(self, dataset):
         self.validate(dataset)
 
-        dataset.all_features = pd.concat(
-            [dataset.all_features, dataset.seasonal["features"], dataset.watchlist["features"]]
+        dataset.all_features = (
+            pd.concat(
+                [dataset.all_features, dataset.seasonal["features"], dataset.watchlist["features"]]
+            )
+            .explode()
+            .dropna()
+            .unique()
         )
 
-        encoder = encoding.CategoricalEncoder(dataset.all_features.explode().unique())
+        self.encoder.fit(dataset.all_features)
 
-        dataset.watchlist["encoded"] = encoder.encode(dataset.watchlist["features"]).tolist()
-        dataset.seasonal["encoded"] = encoder.encode(dataset.seasonal["features"]).tolist()
+        dataset.watchlist["encoded"] = self.encoder.encode(dataset.watchlist)
+        dataset.seasonal["encoded"] = self.encoder.encode(dataset.seasonal)
 
         dataset.watchlist["cluster"] = self.get_clustering(dataset.watchlist["encoded"])
 

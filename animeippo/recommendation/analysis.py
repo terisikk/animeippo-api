@@ -9,22 +9,22 @@ def distance(x_orig, y_orig, metric="jaccard"):
 
 
 def similarity(x_orig, y_orig, metric="jaccard"):
-    distances = distance(x_orig, y_orig, metric)
+    distances = distance(x_orig, y_orig, metric=metric)
     return 1 - distances
 
 
-def categorical_similarity(features1, features2, index=None):
+def categorical_similarity(features1, features2, index=None, metric="jaccard"):
     if index is None:
         index = features1.index
 
     return pd.DataFrame(
-        similarity(np.vstack(features1), np.vstack(features2)),
+        similarity(np.vstack(features1), np.vstack(features2), metric=metric),
         index=index,
     )
 
 
-def similarity_of_anime_lists(features1, features2):
-    similarities = categorical_similarity(features1, features2)
+def similarity_of_anime_lists(features1, features2, metric="jaccard"):
+    similarities = categorical_similarity(features1, features2, metric=metric)
 
     return similarities.mean(axis=1, skipna=True)
 

@@ -15,6 +15,11 @@ def transform_to_animeippo_format(data, feature_names=None, normalize_level=1):
 
     df = df.rename(columns=column_mapping)
 
+    if "tags" in df.columns:
+        df["ranks"] = df["tags"].apply(
+            lambda items: {item["name"]: item["rank"] / 100 for item in items}
+        )
+
     df = util.format_with_formatters(df, formatters)
 
     df["start_season"] = df.apply(format_season, axis=1)

@@ -23,4 +23,5 @@ def web_view(dataframe, categories=None):
 
 
 def console_view(dataframe):
-    print(dataframe.reset_index().loc[0:25][["title", "genres", "cluster"]])
+    dataframe = dataframe.reset_index()
+    print(dataframe.reset_index().loc[0:25][["title", "features", "cluster"]])

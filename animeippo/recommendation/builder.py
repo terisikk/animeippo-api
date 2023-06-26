@@ -3,38 +3,50 @@ import asyncio
 import animeippo.providers as providers
 from animeippo import cache
 from animeippo.recommendation.recommender import AnimeRecommender
-from animeippo.recommendation import engine, filters, scoring, dataset, categories
+from animeippo.recommendation import (
+    engine,
+    filters,
+    scoring,
+    dataset,
+    categories,
+    clustering,
+    encoding,
+)
 
 import pandas as pd
 import numpy as np
 
-DEFAULT_SCORERS = [
-    # scoring.FeatureSimilarityScorer(feature_tags, weighted=True),
-    scoring.GenreAverageScorer(),
-    scoring.ClusterSimilarityScorer(weighted=True),
-    # scoring.StudioCountScorer(),
-    scoring.StudioAverageScorer(),
-    scoring.PopularityScorer(),
-    scoring.ContinuationScorer(),
-    scoring.SourceScorer(),
-    scoring.DirectSimilarityScorer(),
-]
 
-DEFAULT_CATEGORIZERS = [
-    categories.MostPopularCategory(),
-    categories.ContinueWatchingCategory(),
-    categories.YourTopPicks(),
-    categories.TopUpcoming(),
-    categories.ClusterCategory(0),
-    categories.SourceCategory(),
-    categories.ClusterCategory(1),
-    categories.StudioCategory(),
-    categories.ClusterCategory(2),
-    categories.BecauseYouLiked(0),
-    categories.ClusterCategory(3),
-    categories.BecauseYouLiked(1),
-    categories.ClusterCategory(4),
-]
+def get_default_scorers(distance_metric="jaccard"):
+    return [
+        # scoring.FeatureSimilarityScorer(feature_tags, weighted=True),
+        scoring.GenreAverageScorer(),
+        scoring.ClusterSimilarityScorer(weighted=True, distance_metric=distance_metric),
+        # scoring.StudioCountScorer(),
+        scoring.StudioAverageScorer(),
+        scoring.PopularityScorer(),
+        scoring.ContinuationScorer(),
+        scoring.SourceScorer(),
+        scoring.DirectSimilarityScorer(distance_metric=distance_metric),
+    ]
+
+
+def get_default_categorizers(distance_metric="jaccard"):
+    return [
+        categories.MostPopularCategory(),
+        categories.ContinueWatchingCategory(),
+        categories.YourTopPicks(),
+        categories.TopUpcoming(),
+        categories.ClusterCategory(0),
+        categories.SourceCategory(),
+        categories.ClusterCategory(1),
+        categories.StudioCategory(),
+        categories.ClusterCategory(2),
+        categories.BecauseYouLiked(0, distance_metric),
+        categories.ClusterCategory(3),
+        categories.BecauseYouLiked(1, distance_metric),
+        categories.ClusterCategory(4),
+    ]
 
 
 async def get_dataset(provider, user, year, season):
@@ -170,16 +182,28 @@ def create_builder(providername):
 
     match providername:
         case "anilist":
+            metric = "cosine"
             return (
                 RecommenderBuilder()
                 .provider(providers.anilist.AniListProvider(rcache))
-                .model(engine.AnimeRecommendationEngine(DEFAULT_SCORERS, DEFAULT_CATEGORIZERS))
+                .model(
+                    engine.AnimeRecommendationEngine(
+                        get_default_scorers(metric),
+                        get_default_categorizers(metric),
+                        clustering.AnimeClustering(distance_metric=metric, distance_threshold=0.65),
+                        encoding.WeightedCategoricalEncoder(),
+                    )
+                )
                 .databuilder(construct_anilist_data)
             )
         case _:
             return (
                 RecommenderBuilder()
                 .provider(providers.myanimelist.MyAnimeListProvider(rcache))
-                .model(engine.AnimeRecommendationEngine(DEFAULT_SCORERS, DEFAULT_CATEGORIZERS))
+                .model(
+                    engine.AnimeRecommendationEngine(
+                        get_default_scorers(), get_default_categorizers()
+                    )
+                )
                 .databuilder(construct_myanimelist_data)
             )

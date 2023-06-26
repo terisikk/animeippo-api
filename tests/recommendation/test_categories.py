@@ -93,7 +93,11 @@ def test_studio_category():
     cat = categories.StudioCategory()
 
     recommendations = pd.DataFrame(
-        {"studioaveragescore": [1, 3, 2], "title": ["Test 1", "Test 2", "Test 3"]}
+        {
+            "studioaveragescore": [1, 3, 2],
+            "title": ["Test 1", "Test 2", "Test 3"],
+            "user_status": [pd.NA, pd.NA, pd.NA],
+        }
     )
 
     data = dataset.UserDataSet(None, None, None)
@@ -122,6 +126,7 @@ def test_cluster_category():
         {
             "cluster": [0, 1, 1],
             "title": ["Test 1", "Test 2", "Test 3"],
+            "user_status": [pd.NA, pd.NA, pd.NA],
         }
     )
 
@@ -141,6 +146,7 @@ def test_cluster_category():
         {
             "cluster": [1, 1, 1],
             "title": ["Test 1", "Test 2", "Test 3"],
+            "user_status": [pd.NA, pd.NA, pd.NA],
         }
     )
 
@@ -206,6 +212,7 @@ def test_top_upcoming_category():
         {
             "status": ["not_yet_released", "finished", "cancelled"],
             "user_status": [None, None, None],
+            "start_season": [1, 1, 1],
             "title": ["Test 1", "Test 2", "Test 3"],
             "recommend_score": [0, 1, 2],
             "continuationscore": [0, 0, 0],
@@ -233,7 +240,12 @@ def test_because_you_liked():
     )
 
     recommendations = pd.DataFrame(
-        {"title": ["Test 1", "Test 2", "Test 3"], "encoded": [[0, 1], [1, 0], [0, 0]]}
+        {
+            "title": ["Test 1", "Test 2", "Test 3"],
+            "encoded": [[0, 1], [1, 0], [0, 0]],
+            "start_season": [1, 1, 1],
+            "user_status": [pd.NA, pd.NA, pd.NA],
+        }
     )
 
     data = dataset.UserDataSet(user_data, None, None)
@@ -248,13 +260,11 @@ def test_because_you_liked_does_not_fail_with_empty_likes():
     cat = categories.BecauseYouLiked(99)
 
     user_data = pd.DataFrame(
-        {
-            "score": [1, 1],
-            "user_complete_date": [1, 2],
-        }
+        {"score": [1, 1], "user_complete_date": [1, 2], "user_status": [pd.NA, pd.NA]}
     )
 
     data = dataset.UserDataSet(user_data, None, None)
+    data.recommendations = user_data
 
     actual = cat.categorize(data)
 

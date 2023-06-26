@@ -88,7 +88,7 @@ def test_runtime_error_is_raised_when_no_scorers_exist():
 def test_categorize():
     recengine = engine.AnimeRecommendationEngine()
     recengine.add_categorizer(categories.ContinueWatchingCategory())
-    recengine.add_categorizer(categories.ClusterCategory(0))
+    recengine.add_categorizer(categories.SourceCategory())
     recengine.add_categorizer(categories.ClusterCategory(100))
 
     data = dataset.UserDataSet(pd.DataFrame(test_data.FORMATTED_MAL_USER_LIST), None, None)
@@ -103,9 +103,9 @@ def test_categorize():
             "studioaveragescore": [6],
             "cluster": [1],
             "features": [["test"]],
-            "source": ["Other"],
+            "source": ["Original"],
             "score": [123],
-            "user_status": ["in_progress"],
+            "user_status": [pd.NA],
         }
     )
 
