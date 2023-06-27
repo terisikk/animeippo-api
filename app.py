@@ -2,7 +2,7 @@ from flask import Flask, Response, request
 from flask_cors import CORS
 
 from animeippo.view import views
-from animeippo.recommendation import builder
+from animeippo.recommendation import builder, util as pdutil
 
 
 app = Flask(__name__)
@@ -43,3 +43,24 @@ def recommend_anime():
     return Response(
         views.web_view(dataset.recommendations, categories), mimetype="application/json"
     )
+
+
+@app.route("/api/analyze")
+def analyze_profile():
+    user = request.args.get("user", None)
+
+    if user is None:
+        return "Validation error", 400
+
+    dataset = recommender.async_get_dataset("2023", "spring", user)
+    dataset = recommender.engine.fit(dataset)
+
+    gdf = dataset.watchlist.explode("features")
+    descriptions = pdutil.extract_features(gdf["features"], gdf["cluster"], 2)
+
+    categories = [
+        {"name": " ".join(descriptions.iloc[key].tolist()), "items": value.tolist()}
+        for key, value in dataset.watchlist.sort_values("title").groupby("cluster").groups.items()
+    ]
+
+    return Response(views.web_view(dataset.watchlist, categories), mimetype="application/json")
