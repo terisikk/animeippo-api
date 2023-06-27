@@ -60,7 +60,6 @@ async def get_dataset(provider, user, year, season):
         )
 
         season_data = pd.concat([season_data1, season_data2, season_data3, season_data4])
-
     else:
         user_data, season_data = await asyncio.gather(
             provider.get_user_anime_list(user),
