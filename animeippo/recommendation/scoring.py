@@ -163,12 +163,12 @@ class ContinuationScorer(AbstractScorer):
     def score(self, scoring_target_df, compare_df):
         mean_score = compare_df["score"].mean()
 
-        rdf = scoring_target_df.explode("related_anime")
+        rdf = scoring_target_df.explode("relations")
 
         rdf["score"] = np.nan
 
         for i, row in rdf.iterrows():
-            related_index = row["related_anime"]
+            related_index = row["relations"]
             is_continuation = related_index in compare_df.index
             rdf.at[i, "score"] = (
                 compare_df.at[related_index, "score"] if is_continuation else self.DEFAULT_SCORE

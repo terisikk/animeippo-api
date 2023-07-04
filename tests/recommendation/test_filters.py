@@ -104,7 +104,7 @@ def test_continuation_filter():
         {
             "id": [5, 6, 7, 8],
             "title": ["Anime A Season 2", "Anime E Season 2", "Anime B Season 2", "Anime F"],
-            "related_anime": [[1], [9], [2, 3], []],
+            "relations": [[1], [9], [2, 3], []],
         }
     )
     original = original.set_index("id")

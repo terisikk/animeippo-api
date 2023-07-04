@@ -18,9 +18,9 @@ def get_column_name_mappers(columns):
 def default_if_error(default):
     def decorator_function(func):
         @functools.wraps(func)
-        def wrapper(field):
+        def wrapper(*args):
             try:
-                return func(field)
+                return func(*args)
             except (TypeError, ValueError, AttributeError, KeyError) as error:
                 print(error)
                 return default

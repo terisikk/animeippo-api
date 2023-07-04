@@ -138,7 +138,7 @@ async def construct_myanimelist_data(provider, year, season, user):
             data.seasonal = f.filter(data.seasonal)
 
         indices = data.seasonal.index.to_list()
-        data.seasonal["related_anime"] = await get_related_anime(indices, provider)
+        data.seasonal["relations"] = await get_related_anime(indices, provider)
 
     if data.watchlist is not None and data.seasonal is not None:
         data.seasonal = fill_user_status_data_from_watchlist(data.seasonal, data.watchlist)

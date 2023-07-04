@@ -67,7 +67,7 @@ class AniListProvider(provider.AbstractAnimeProvider):
                 anime_list["data"].append(entry)
 
         return ani_formatter.transform_to_animeippo_format(
-            anime_list, self.get_features(), normalize_level=1
+            anime_list, self.get_features(), ani_formatter.WATCHLIST_MAPPING
         )
 
     @animecache.cached_dataframe(ttl=timedelta(days=1))
@@ -108,7 +108,7 @@ class AniListProvider(provider.AbstractAnimeProvider):
         anime_list = {"data": data["data"].get("media", [])}
 
         return ani_formatter.transform_to_animeippo_format(
-            anime_list, self.get_features(), normalize_level=0
+            anime_list, self.get_features(), ani_formatter.SEASONAL_MAPPING
         )
 
     def get_features(self):

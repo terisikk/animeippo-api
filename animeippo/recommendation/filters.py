@@ -101,7 +101,7 @@ class ContinuationFilter(AbstractFilter):
     def filter(self, dataframe):
         completed = set(self.compare_df[self.compare_df["status"] == "completed"].index)
 
-        mask = dataframe["related_anime"].apply(lambda x: bool(set(x) & completed) or len(x) == 0)
+        mask = dataframe["relations"].apply(lambda x: bool(set(x) & completed) or len(x) == 0)
 
         if self.negative:
             mask = ~mask
