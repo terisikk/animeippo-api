@@ -52,16 +52,16 @@ def test_id_filter():
 
 def test_status_filter():
     original = pd.DataFrame(
-        {"status": ["dropped", "completed", "on_hold", "completed", "unwatched"]}
+        {"user_status": ["dropped", "completed", "on_hold", "completed", "unwatched"]}
     )
 
-    filter = filters.StatusFilter("completed")
+    filter = filters.UserStatusFilter("completed")
 
-    assert filter.filter(original)["status"].tolist() == ["completed", "completed"]
+    assert filter.filter(original)["user_status"].tolist() == ["completed", "completed"]
 
     filter.negative = True
 
-    assert filter.filter(original)["status"].tolist() == ["dropped", "on_hold", "unwatched"]
+    assert filter.filter(original)["user_status"].tolist() == ["dropped", "on_hold", "unwatched"]
 
 
 def test_rating_filter():
@@ -93,7 +93,7 @@ def test_continuation_filter():
         {
             "id": [1, 2, 3, 4],
             "title": ["Anime A", "Anime B", "Anime B Spinoff", "Anime C"],
-            "status": ["completed", "completed", "completed", "completed"],
+            "user_status": ["completed", "completed", "completed", "completed"],
         }
     )
     compare = compare.set_index("id")

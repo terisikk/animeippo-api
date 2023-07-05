@@ -37,13 +37,13 @@ class FeatureFilter(AbstractFilter):
         return dataframe[mask]
 
 
-class StatusFilter(AbstractFilter):
+class UserStatusFilter(AbstractFilter):
     def __init__(self, *statuses, negative=False):
         self.statuses = statuses
         self.negative = negative
 
     def filter(self, dataframe):
-        mask = dataframe["status"].isin(self.statuses)
+        mask = dataframe["user_status"].isin(self.statuses)
 
         if self.negative:
             mask = ~mask
@@ -99,7 +99,7 @@ class ContinuationFilter(AbstractFilter):
         self.negative = negative
 
     def filter(self, dataframe):
-        completed = set(self.compare_df[self.compare_df["status"] == "completed"].index)
+        completed = set(self.compare_df[self.compare_df["user_status"] == "completed"].index)
 
         mask = dataframe["relations"].apply(lambda x: bool(set(x) & completed) or len(x) == 0)
 

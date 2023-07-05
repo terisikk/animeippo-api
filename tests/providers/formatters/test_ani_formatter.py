@@ -16,9 +16,9 @@ def test_tags_can_be_extracted():
 
 
 def test_season_can_be_extracted():
-    assert ani_formatter.format_season(2023, "summer") == "2023/summer"
-    assert ani_formatter.format_season(None, "winter") == "?/winter"
-    assert ani_formatter.format_season(np.nan, np.nan) == "?/?"
+    assert ani_formatter.get_season(2023, "summer") == "2023/summer"
+    assert ani_formatter.get_season(None, "winter") == "?/winter"
+    assert ani_formatter.get_season(np.nan, np.nan) == "?/?"
 
 
 def test_user_score_cannot_be_zero():
@@ -39,9 +39,7 @@ def test_dataframe_can_be_constructed_from_ani():
         "data": test_data.ANI_USER_LIST["data"]["MediaListCollection"]["lists"][0]["entries"]
     }
 
-    data = ani_formatter.transform_to_animeippo_format(
-        animelist, ["genres", "tags"], ani_formatter.WATCHLIST_MAPPING
-    )
+    data = ani_formatter.transform_watchlist_data(animelist, ["genres", "tags"])
 
     assert type(data) == pd.DataFrame
     assert data.iloc[0]["title"] == "Dr. STRONK: OLD WORLD"
@@ -50,18 +48,16 @@ def test_dataframe_can_be_constructed_from_ani():
 
 
 def test_transformation_does_not_fail_with_empty_data():
-    data = ani_formatter.transform_to_animeippo_format(
-        {}, ["genres", "tags"], ani_formatter.WATCHLIST_MAPPING
-    )
+    data = ani_formatter.transform_to_animeippo_format({}, ["genres", "tags"], [])
 
     assert type(data) == pd.DataFrame
     assert len(data) == 0
 
     data = ani_formatter.transform_to_animeippo_format(
-        {"data": {"test": "test"}}, ["genres", "tags"], ani_formatter.WATCHLIST_MAPPING
+        {"data": {"test": "test"}}, ["genres", "tags"], []
     )
     assert type(data) == pd.DataFrame
-    assert len(data) == 1
+    assert len(data) == 0
 
 
 def test_mapping_skips_keys_not_in_dataframe():

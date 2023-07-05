@@ -29,7 +29,7 @@ class SingleMapper:
         try:
             return func(row, *args)
         except (TypeError, ValueError, AttributeError, KeyError) as error:
-            print(error)
+            print(f"Error extracting {self.name}: {error}")
             return default
 
 
@@ -47,5 +47,5 @@ class MultiMapper:
         try:
             return func(row, *args)
         except (TypeError, ValueError, AttributeError, KeyError) as error:
-            print(error)
+            print(f"Error extracting with function {func}: {error}")
             return default

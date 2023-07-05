@@ -311,7 +311,7 @@ def test_continuation_scorer():
         {
             "id": [1, 2, 3, 4],
             "title": ["Anime A", "Anime B", "Anime B Spinoff", "Anime C"],
-            "status": ["completed", "completed", "completed", "completed"],
+            "user_status": ["completed", "completed", "completed", "completed"],
             "score": [8, 6, 7, 9],
         }
     )
@@ -338,7 +338,7 @@ def test_continuation_scorer_scores_nan_with_zero():
         {
             "id": [1, 2, 3, 4],
             "title": ["Anime A", "Anime B", "Anime B Spinoff", "Anime C"],
-            "status": ["completed", "completed", "completed", "completed"],
+            "user_status": ["completed", "completed", "completed", "completed"],
             "score": [pd.NA, 6, 7, 8],
         }
     )

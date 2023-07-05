@@ -1,5 +1,6 @@
 import numpy as np
 import pandas as pd
+import datetime
 
 from animeippo.recommendation import scoring, util, analysis
 
@@ -102,7 +103,7 @@ class ClusterCategory:
         return None
 
 
-class YourTopPicks:
+class YourTopPicksCategory:
     description = "Top New Picks for You"
     requires = ["recommend_score", scoring.ContinuationScorer.name]
 
@@ -118,7 +119,7 @@ class YourTopPicks:
         return new_picks.sort_values("recommend_score", ascending=False)[0:max_items]
 
 
-class TopUpcoming:
+class TopUpcomingCategory:
     description = "Top New Picks From Upcoming Anime"
 
     requires = ["recommend_score", scoring.ContinuationScorer.name]
@@ -137,7 +138,7 @@ class TopUpcoming:
         )[0:max_items]
 
 
-class BecauseYouLiked:
+class BecauseYouLikedCategory:
     description = "Because You Liked X"
 
     def __init__(self, nth_liked, distance_metric="jaccard"):
@@ -169,3 +170,35 @@ class BecauseYouLiked:
             return similarity.sort_values(ascending=False)[0:max_items]
 
         return None
+
+
+class SimulcastsCategory:
+    description = "Top Simulcasts for You"
+
+    def categorize(self, dataset, max_items=30):
+        target = dataset.recommendations
+
+        mask = target["start_season"] == self.get_current_season()
+        simulcasts = target[mask]
+
+        return simulcasts.sort_values(by=["recommend_score"], ascending=[False])[0:max_items]
+
+    def get_current_season(self):
+        today = datetime.date.today()
+
+        season = ""
+
+        if today.month in [1, 2, 3]:
+            season = "winter"
+        elif today.month in [4, 5, 6]:
+            season = "spring"
+        elif today.month in [7, 8, 9]:
+            season = "summer"
+        elif today.month in [10, 11, 12]:
+            season = "fall"
+        else:
+            season = "?"
+
+        yearseason = f"{today.year}/{season}"
+
+        return yearseason

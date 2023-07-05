@@ -1,23 +1,69 @@
 import pandas as pd
 import datetime
+import numpy as np
 
 from . import util
 from animeippo.providers.formatters.schema import DefaultMapper, SingleMapper, MultiMapper
 
 
-def transform_to_animeippo_format(data, feature_names, mapping):
-    df = pd.DataFrame(columns=mapping.keys())
+def transform_seasonal_data(data, feature_names):
+    original = pd.json_normalize(data["data"], "media", record_prefix="media.")
 
-    if len(data.get("data", [])) == 0:
-        return df
+    keys = [
+        "id",
+        "title",
+        "genres",
+        "coverImage",
+        "mean_score",
+        "popularity",
+        "status",
+        "relations",
+        "score",
+        "source",
+        "tags",
+        "ranks",
+        "studios",
+        "start_season",
+    ]
 
+    return transform_to_animeippo_format(original, feature_names, keys)
+
+
+def transform_watchlist_data(data, feature_names):
     original = pd.json_normalize(data["data"])
 
-    df = run_mappers(df, original, mapping)
+    keys = [
+        "id",
+        "title",
+        "genres",
+        "coverImage",
+        "user_status",
+        "score",
+        "source",
+        "tags",
+        "ranks",
+        "studios",
+        "user_complete_date",
+        "start_season",
+    ]
+
+    return transform_to_animeippo_format(original, feature_names, keys)
+
+
+def transform_to_animeippo_format(original, feature_names, keys):
+    df = pd.DataFrame(columns=keys)
+
+    if len(original) == 0:
+        return df
+
+    df = run_mappers(df, original, ANILIST_MAPPING)
 
     df["features"] = df.apply(util.get_features, args=(feature_names,), axis=1)
 
-    return df.set_index("id")
+    if "id" in df.columns:
+        df = df.set_index("id")
+
+    return df.infer_objects()
 
 
 def run_mappers(dataframe, original, mapping):
@@ -48,10 +94,14 @@ def get_tags(tags):
 
 
 def get_user_complete_date(year, month, day):
+    if pd.isna(year) or pd.isna(month) or pd.isna(day):
+        return pd.NA
+
     return datetime.date(int(year), int(month), int(day))
 
 
-def format_season(year, season):
+@util.default_if_error(pd.NA)
+def get_season(year, season):
     if year == 0 or pd.isna(year):
         year = "?"
     else:
@@ -64,31 +114,41 @@ def format_season(year, season):
 
 
 def get_score(score):
-    return score if score != 0 else pd.NA
+    # np.nan is a float, pd.NA is not, causes problems
+    return score if score != 0 else np.nan
 
+
+def get_ranks(items):
+    return {item["name"]: item["rank"] / 100 for item in items}
+
+
+def get_studios(studios):
+    return [
+        studio["node"]["name"]
+        for studio in studios
+        if studio["node"].get("isAnimationStudio", False)
+    ]
+
+
+get_user_complete_date
 
 # fmt: off
 
-WATCHLIST_MAPPING = {
+ANILIST_MAPPING = {
     "id":           DefaultMapper("media.id"),
     "title":        DefaultMapper("media.title.romaji"),
     "genres":       DefaultMapper("media.genres"),
     "coverImage":   DefaultMapper("media.coverImage.large"),
-    "status":       SingleMapper("status", str.lower),
+    "mean_score":   DefaultMapper("media.meanScore"),
+    "popularity":   DefaultMapper("media.popularity"),
+    "user_status":  SingleMapper("status", str.lower),
+    "status":       SingleMapper("media.status", str.lower),
     "score":        SingleMapper("score", get_score),
     "source":       SingleMapper("media.source", str.lower),
     "tags":         SingleMapper("media.tags", get_tags),
-    "ranks":        SingleMapper("media.tags",
-                                 lambda items: 
-                                 {item["name",]: item["rank"] / 100 for item in items}
-    ),
-    "studios":      SingleMapper("media.studios.edges",
-                                lambda studios: [
-                                    studio["node"]["name"]
-                                    for studio in studios
-                                    if studio["node"].get("isAnimationStudio", False)
-                                ],
-    ),
+    "relations":    SingleMapper("media.relations.edges", filter_related_anime),
+    "ranks":        SingleMapper("media.tags", get_ranks),
+    "studios":      SingleMapper("media.studios.edges", get_studios),
     "user_complete_date": 
                     MultiMapper(
                         lambda row: get_user_complete_date(
@@ -99,34 +159,7 @@ WATCHLIST_MAPPING = {
                     pd.NaT,
     ),
     "start_season": MultiMapper(
-        lambda row: format_season(row["media.seasonYear"], row["media.season"]),
-    ),
-}
-
-SEASONAL_MAPPING = {
-    "id":           DefaultMapper("id"),
-    "title":        DefaultMapper("title.romaji"),
-    "genres":       DefaultMapper("genres"),
-    "coverImage":   DefaultMapper("coverImage.large"),
-    "mean_score":   DefaultMapper("meanScore"),
-    "popularity":   DefaultMapper("popularity"),
-    "status":       SingleMapper("status", str.lower),
-    "relations":    SingleMapper("relations.edges", filter_related_anime),
-    "source":       SingleMapper("source", str.lower),
-    "tags":         SingleMapper("tags", get_tags),
-    "ranks":        SingleMapper("tags",
-                                 lambda items: 
-                                 {item["name"]: item["rank"] / 100 for item in items}
-    ),
-    "studios":      SingleMapper("studios.edges",
-                                lambda studios: [
-                                    studio["node"]["name"]
-                                    for studio in studios
-                                    if studio["node"].get("isAnimationStudio", False)
-                                ],
-    ),
-    "start_season": MultiMapper(
-        lambda row: format_season(row["seasonYear"], row["season"]),
+        lambda row: get_season(row["media.seasonYear"], row["media.season"]),
     ),
 }
 # fmt: on

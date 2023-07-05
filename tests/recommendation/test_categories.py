@@ -1,4 +1,7 @@
 import pandas as pd
+import datetime
+
+from collections import namedtuple
 
 from animeippo.recommendation import categories, dataset
 
@@ -185,7 +188,7 @@ def test_cluster_category_returns_none_if_not_enough_clusters():
 
 
 def test_your_top_picks_category():
-    cat = categories.YourTopPicks()
+    cat = categories.YourTopPicksCategory()
 
     recommendations = pd.DataFrame(
         {
@@ -206,7 +209,7 @@ def test_your_top_picks_category():
 
 
 def test_top_upcoming_category():
-    cat = categories.TopUpcoming()
+    cat = categories.TopUpcomingCategory()
 
     recommendations = pd.DataFrame(
         {
@@ -228,7 +231,7 @@ def test_top_upcoming_category():
 
 
 def test_because_you_liked():
-    cat = categories.BecauseYouLiked(0)
+    cat = categories.BecauseYouLikedCategory(0)
 
     user_data = pd.DataFrame(
         {
@@ -257,7 +260,7 @@ def test_because_you_liked():
 
 
 def test_because_you_liked_does_not_fail_with_empty_likes():
-    cat = categories.BecauseYouLiked(99)
+    cat = categories.BecauseYouLikedCategory(99)
 
     user_data = pd.DataFrame(
         {"score": [1, 1], "user_complete_date": [1, 2], "user_status": [pd.NA, pd.NA]}
@@ -269,3 +272,74 @@ def test_because_you_liked_does_not_fail_with_empty_likes():
     actual = cat.categorize(data)
 
     assert actual is None
+
+
+def test_simulcastscategory(mocker):
+    cat = categories.SimulcastsCategory()
+
+    recommendations = pd.DataFrame(
+        {
+            "start_season": ["2022/summer", "2022/summer", "2022/winter"],
+            "title": ["Test 1", "Test 2", "Test 3"],
+            "recommend_score": [0, 1, 2],
+            "continuationscore": [0, 0, 0],
+        }
+    )
+
+    mocker.patch(
+        "animeippo.recommendation.categories.SimulcastsCategory.get_current_season",
+        return_value="2022/summer",
+    )
+
+    data = dataset.UserDataSet(None, None, None)
+    data.recommendations = recommendations
+
+    actual = cat.categorize(data)
+
+    assert actual["title"].tolist() == ["Test 2", "Test 1"]
+
+
+def test_simulcastscategory_current_season_getter(monkeypatch):
+    class FakeDateWinter:
+        @classmethod
+        def today(cls):
+            return datetime.datetime(2022, 2, 2)
+
+    class FakeDateSpring:
+        @classmethod
+        def today(cls):
+            return datetime.datetime(2022, 5, 2)
+
+    class FakeDateSummer:
+        @classmethod
+        def today(cls):
+            return datetime.datetime(2022, 9, 2)
+
+    class FakeDateFall:
+        @classmethod
+        def today(cls):
+            return datetime.datetime(2022, 12, 2)
+
+    class FakeDateMalformed:
+        @classmethod
+        def today(cls):
+            FakeToday = namedtuple("fakedate", ["year", "month"])
+            return FakeToday(2022, 15)
+
+    cat = categories.SimulcastsCategory()
+
+    monkeypatch.setattr(datetime, "date", FakeDateWinter)
+    assert cat.get_current_season() == "2022/winter"
+
+    monkeypatch.setattr(datetime, "date", FakeDateSpring)
+    assert cat.get_current_season() == "2022/spring"
+
+    monkeypatch.setattr(datetime, "date", FakeDateSummer)
+    assert cat.get_current_season() == "2022/summer"
+
+    monkeypatch.setattr(datetime, "date", FakeDateFall)
+    assert cat.get_current_season() == "2022/fall"
+
+    # Probably not possible but for coverage
+    monkeypatch.setattr(datetime, "date", FakeDateMalformed)
+    assert cat.get_current_season() == "2022/?"

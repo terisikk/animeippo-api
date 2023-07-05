@@ -162,7 +162,7 @@ def test_builder_creation_returns_correct_builders():
 
 def test_status_data_is_filled_to_dataset():
     watchlist = pd.DataFrame(
-        {"id": [110, 120, 130], "status": ["completed", "watching", "completed"]}
+        {"id": [110, 120, 130], "user_status": ["completed", "watching", "completed"]}
     ).set_index("id")
 
     seasonal = pd.DataFrame(

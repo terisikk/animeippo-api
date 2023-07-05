@@ -34,17 +34,18 @@ def get_default_scorers(distance_metric="jaccard"):
 def get_default_categorizers(distance_metric="jaccard"):
     return [
         categories.MostPopularCategory(),
+        categories.SimulcastsCategory(),
         categories.ContinueWatchingCategory(),
-        categories.YourTopPicks(),
-        categories.TopUpcoming(),
+        categories.YourTopPicksCategory(),
+        categories.TopUpcomingCategory(),
         categories.ClusterCategory(0),
         categories.SourceCategory(),
         categories.ClusterCategory(1),
         categories.StudioCategory(),
         categories.ClusterCategory(2),
-        categories.BecauseYouLiked(0, distance_metric),
+        categories.BecauseYouLikedCategory(0, distance_metric),
         categories.ClusterCategory(3),
-        categories.BecauseYouLiked(1, distance_metric),
+        categories.BecauseYouLikedCategory(1, distance_metric),
         categories.ClusterCategory(4),
     ]
 
@@ -77,7 +78,7 @@ async def get_dataset(provider, user, year, season):
 
 def fill_user_status_data_from_watchlist(seasonal, watchlist):
     seasonal["user_status"] = np.nan
-    seasonal["user_status"].update(watchlist["status"])
+    seasonal["user_status"].update(watchlist["user_status"])
     return seasonal
 
 

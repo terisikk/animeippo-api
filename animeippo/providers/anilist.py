@@ -66,9 +66,7 @@ class AniListProvider(provider.AbstractAnimeProvider):
             for entry in coll["entries"]:
                 anime_list["data"].append(entry)
 
-        return ani_formatter.transform_to_animeippo_format(
-            anime_list, self.get_features(), ani_formatter.WATCHLIST_MAPPING
-        )
+        return ani_formatter.transform_watchlist_data(anime_list, self.get_features())
 
     @animecache.cached_dataframe(ttl=timedelta(days=1))
     async def get_seasonal_anime_list(self, year, season):
@@ -103,13 +101,9 @@ class AniListProvider(provider.AbstractAnimeProvider):
 
         variables = {"seasonYear": int(year), "season": str(season).upper()}
 
-        data = await self.connection.request_paginated(query, variables)
+        anime_list = await self.connection.request_paginated(query, variables)
 
-        anime_list = {"data": data["data"].get("media", [])}
-
-        return ani_formatter.transform_to_animeippo_format(
-            anime_list, self.get_features(), ani_formatter.SEASONAL_MAPPING
-        )
+        return ani_formatter.transform_seasonal_data(anime_list, self.get_features())
 
     def get_features(self):
         return ["genres", "tags"]
