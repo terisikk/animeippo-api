@@ -77,6 +77,12 @@ jobs:
   build-and-publish:
     runs-on: ubuntu-latest
     name: "Docker image build & publish"
+    needs:
+      - build
+      - unit-test
+      - static-analysis
+      - security-analysis
+      - formatting
     steps:
       - uses: actions/checkout@v3
       - uses: docker/login-action@v2
