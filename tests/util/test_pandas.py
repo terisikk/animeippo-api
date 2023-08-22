@@ -28,7 +28,7 @@ def test_extract_features():
     features = pdutil.extract_features(gdf["genres"], gdf["cluster"], 2)
 
     assert features.values.tolist() == [
-        ["Drama", "Action"],
+        ["Action", "Comedy"],
         ["Shounen", "Drama"],
         ["Historical", "Drama"],
     ]
@@ -53,7 +53,7 @@ def test_extract_features_without_feature_count():
     features = pdutil.extract_features(gdf["genres"], gdf["cluster"])
 
     assert features.values.tolist() == [
-        ["Drama", "Action", "Historical", "Shounen", "Comedy", "Horror", "Romance"],
-        ["Shounen", "Drama", "Action", "Historical", "Comedy", "Horror", "Romance"],
-        ["Historical", "Drama", "Action", "Shounen", "Comedy", "Horror", "Romance"],
+        ["Action", "Comedy", "Horror", "Romance", "Historical", "Shounen", "Drama"],
+        ["Shounen", "Drama", "Comedy", "Horror", "Romance", "Historical", "Action"],
+        ["Historical", "Drama", "Comedy", "Horror", "Romance", "Shounen", "Action"],
     ]

@@ -182,6 +182,8 @@ def create_builder(providername):
 
     match providername:
         case "anilist":
+            # Cosine works better for anilist because we have genre weights.
+            # Jaccard assumes all weights are 1.
             metric = "cosine"
             return (
                 RecommenderBuilder()

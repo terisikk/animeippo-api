@@ -18,7 +18,7 @@ class AnimeRecommendationEngine:
 
         if is_missing_seasonal or is_missing_watchlist:
             error_desc = (
-                f"Watchlist invalid?: {is_missing_watchlist}."
+                f"Watchlist invalid?: {is_missing_watchlist}. "
                 + f"Seasonal invalid?: {is_missing_seasonal}"
             )
 

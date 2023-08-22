@@ -139,7 +139,7 @@ def test_cluster_category():
     actual = cat.categorize(data)
 
     assert actual["title"].tolist() == ["Test 1"]
-    assert cat.description == "Comedy Action"
+    assert cat.description == "Action Romance"
 
     actual = cat.categorize(data, 0)
 

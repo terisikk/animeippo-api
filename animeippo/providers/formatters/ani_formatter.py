@@ -38,6 +38,7 @@ def transform_watchlist_data(data, feature_names):
         "genres",
         "coverImage",
         "user_status",
+        "mean_score",
         "score",
         "source",
         "tags",

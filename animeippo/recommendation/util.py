@@ -21,5 +21,7 @@ def extract_features(features, columns, n_features=None):
 
 
 def calculate_residuals(contingency_table, expected):
-    residuals = ((contingency_table - expected) ** 2) / np.sqrt(expected)
+    residuals = ((contingency_table - expected) * np.abs((contingency_table - expected))) / np.sqrt(
+        expected
+    )
     return residuals
