@@ -7,14 +7,12 @@ readme = "README.md"
 
 [tool.poetry.dependencies]
 python = "^3.10"
-ipykernel = "^6.21.3"
 requests = "^2.28.2"
 python-dotenv = "^1.0.0"
-ijson = "^3.2.0.post0"
 pandas = "^2.0.0"
 scikit-learn = "^1.2.2"
-kmodes = "^0.12.2"
 flask = "^2.2.3"
+flask-cors = "^3.0.10"
 gunicorn = "^20.1.0"
 redis = "^4.5.4"
 pyarrow = "^12.0.0"
@@ -22,6 +20,7 @@ aiohttp = "^3.8.4"
 
 
 [tool.poetry.group.dev.dependencies]
+ipykernel = "^6.21.3"
 requests-mock = "^1.10.0"
 black = "^23.1.0"
 ruff = "^0.0.257"
@@ -31,7 +30,6 @@ pytest-dotenv = "^0.5.2"
 coverage = "^7.2.2"
 pytest-mock = "^3.10.0"
 matplotlib = "^3.7.1"
-flask-cors = "^3.0.10"
 gprof2dot = "^2022.7.29"
 profilehooks = "^1.12.0"
 pytest-asyncio = "^0.21.0"
@@ -61,19 +59,17 @@ skip_covered = true
 sort = "-Cover"
 show_missing = true
 exclude_lines = [
-    # Don't complain if non-runnable code isn't run:
-    "if __name__ == .__main__.:",
+  # Don't complain if non-runnable code isn't run:
+  "if __name__ == .__main__.:",
 ]
 omit = ["animeippo/main.py"]
 
 [tool.pytest.ini_options]
 filterwarnings = [
   "ignore:pkg_resources is deprecated as an API:DeprecationWarning:.*",
-  "ignore:Deprecated call to `pkg_resources.declare_namespace.*:DeprecationWarning:.*"
+  "ignore:Deprecated call to `pkg_resources.declare_namespace.*:DeprecationWarning:.*",
 ]
-env_files = [
-  "conf/prod.env",
-]
+env_files = ["conf/prod.env"]
 
 [tool.ruff]
 line-length = 100
@@ -84,7 +80,7 @@ exclude = [
   ".devcontainer",
   "__pycache__",
   ".pytest_cache",
-  ".github"
+  ".github",
 ]
 
 [tool.black]
@@ -93,6 +89,4 @@ line-length = 100
 [tool.pydeps]
 max-bacon = 0
 verbose = true
-exclude = [
-  "flask*"
-]
+exclude = ["flask*"]

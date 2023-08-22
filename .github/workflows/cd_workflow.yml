@@ -74,3 +74,23 @@ jobs:
           cache: 'poetry'
       - run: poetry install
       - run: poetry run black -q --check .
+  publish:
+    name: "Publish to registry"
+    if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
+    needs:
+      - build
+      - unit-test
+      - static-analysis
+      - security-analysis
+      - formatting
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v1
+    - name: Publish to Registry
+      uses: HurricanKai/Publish-Docker-Github-Action@1.12.1
+      with:
+        name: ${{ secrets.DOCKER_REGISTRY }}/animeippo-api
+        registry: ${{ secrets.DOCKER_REGISTRY }}
+        username: ${{ secrets.DOCKER_USERNAME }}
+        password: ${{ secrets.DOCKER_PASSWORD }}
+        cache: true

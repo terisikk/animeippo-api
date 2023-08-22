@@ -16,3 +16,7 @@ To allow caching (and probably to allow starting the container at all), create a
 and run redis with 
 
 `docker run -d --name redis-stack-server -p 6379:6379 redis/redis-stack-server:latest`
+
+and add the container to the correct network with
+
+`docker network connect animeippo-network [redis-stack-server]`.

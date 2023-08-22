@@ -14,7 +14,7 @@ recommender = recommender_builder.create_builder("anilist").build()
 profiler = profile.ProfileAnalyser(recommender.provider)
 
 
-@app.route("/api/seasonal")
+@app.route("/seasonal")
 def seasonal_anime():
     year = request.args.get("year", None)
     season = request.args.get("season", None)
@@ -30,7 +30,7 @@ def seasonal_anime():
     )
 
 
-@app.route("/api/recommend")
+@app.route("/recommend")
 def recommend_anime():
     user = request.args.get("user", None)
     year = request.args.get("year", None)
