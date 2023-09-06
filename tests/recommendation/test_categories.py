@@ -43,13 +43,36 @@ def test_continue_watching_category():
 def test_source_category():
     cat = categories.SourceCategory()
 
-    watchlist = pd.DataFrame({"source": ["Manga", "Light_Novel", "Other"], "score": [10, 9, 8]})
+    watchlist = pd.DataFrame({"source": ["manga", "light_novel", "other"], "score": [10, 9, 8]})
 
     recommendations = pd.DataFrame(
         {
             "directscore": [1, 2, 3],
             "title": ["Test 1", "Test 2", "Test 3"],
-            "source": ["Manga", "Manga", "Ligh_Novel"],
+            "source": ["manga", "manga", "ligh_novel"],
+        }
+    )
+
+    data = dataset.UserDataSet(watchlist, None, None)
+    data.recommendations = recommendations
+
+    actual = cat.categorize(data)
+
+    assert actual["title"].tolist() == ["Test 2", "Test 1"]
+
+
+def test_source_category_defaults_to_manga_without_scores():
+    cat = categories.SourceCategory()
+
+    watchlist = pd.DataFrame(
+        {"source": ["manga", "light_novel", "other"], "score": [None, None, None]}
+    )
+
+    recommendations = pd.DataFrame(
+        {
+            "directscore": [1, 2, 3],
+            "title": ["Test 1", "Test 2", "Test 3"],
+            "source": ["manga", "manga", "ligh_novel"],
         }
     )
 
@@ -64,13 +87,13 @@ def test_source_category():
 def test_source_category_descriptions():
     cat = categories.SourceCategory()
 
-    watchlist = pd.DataFrame({"source": ["Manga", "Original", "Other"], "score": [10, 9, 8]})
+    watchlist = pd.DataFrame({"source": ["manga", "original", "other"], "score": [10, 9, 8]})
 
     recommendations = pd.DataFrame(
         {
             "directscore": [1, 2, 3],
             "title": ["Test 1", "Test 2", "Test 3"],
-            "source": ["Manga", "Other", "Original"],
+            "source": ["manga", "other", "original"],
         }
     )
 
@@ -81,12 +104,12 @@ def test_source_category_descriptions():
 
     assert cat.description == "Based on a Manga"
 
-    data.watchlist = pd.DataFrame({"source": ["Manga", "Original", "Other"], "score": [9, 10, 8]})
+    data.watchlist = pd.DataFrame({"source": ["manga", "original", "other"], "score": [9, 10, 8]})
     cat.categorize(data)
 
     assert cat.description == "Anime Originals"
 
-    data.watchlist = pd.DataFrame({"source": ["Manga", "Original", "Other"], "score": [9, 8, 10]})
+    data.watchlist = pd.DataFrame({"source": ["manga", "original", "other"], "score": [9, 8, 10]})
     cat.categorize(data)
 
     assert cat.description == "Unusual Sources"

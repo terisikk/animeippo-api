@@ -103,7 +103,7 @@ def test_categorize():
             "studioaveragescore": [6],
             "cluster": [1],
             "features": [["test"]],
-            "source": ["Original"],
+            "source": ["original"],
             "score": [123],
             "user_status": [pd.NA],
         }

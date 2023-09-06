@@ -39,23 +39,25 @@ class SourceCategory:
         weights = np.sqrt(compare["source"].value_counts())
         scores = weights * source_mean
 
-        best_source = scores.idxmax()
+        best_source = pd.to_numeric(scores).idxmax(skipna=True)
+
+        if pd.isna(best_source) or len(best_source) <= 0:
+            best_source = "Manga"
 
         if "user_status" in target.columns:
             target = target[(pd.isnull(target["user_status"]))]
 
-        if not np.isnan(best_source):
-            match best_source.lower():
-                case "original":
-                    self.description = "Anime Originals"
-                case "other":
-                    self.description = "Unusual Sources"
-                case _:
-                    self.description = "Based on a " + str.title(best_source)
+        match best_source.lower():
+            case "original":
+                self.description = "Anime Originals"
+            case "other":
+                self.description = "Unusual Sources"
+            case _:
+                self.description = "Based on a " + str.title(best_source)
 
-            return target[target["source"] == best_source].sort_values(
-                scoring.DirectSimilarityScorer.name, ascending=False
-            )[0:max_items]
+        return target[target["source"] == best_source.lower()].sort_values(
+            scoring.DirectSimilarityScorer.name, ascending=False
+        )[0:max_items]
 
 
 class StudioCategory:
