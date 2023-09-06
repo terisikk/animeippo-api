@@ -44,17 +44,18 @@ class SourceCategory:
         if "user_status" in target.columns:
             target = target[(pd.isnull(target["user_status"]))]
 
-        match best_source.lower():
-            case "original":
-                self.description = "Anime Originals"
-            case "other":
-                self.description = "Unusual Sources"
-            case _:
-                self.description = "Based on a " + str.title(best_source)
+        if not np.isnan(best_source):
+            match best_source.lower():
+                case "original":
+                    self.description = "Anime Originals"
+                case "other":
+                    self.description = "Unusual Sources"
+                case _:
+                    self.description = "Based on a " + str.title(best_source)
 
-        return target[target["source"] == best_source].sort_values(
-            scoring.DirectSimilarityScorer.name, ascending=False
-        )[0:max_items]
+            return target[target["source"] == best_source].sort_values(
+                scoring.DirectSimilarityScorer.name, ascending=False
+            )[0:max_items]
 
 
 class StudioCategory:

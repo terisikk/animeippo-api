@@ -77,9 +77,13 @@ class StudioAverageScorer:
     def score(self, scoring_target_df, compare_df):
         weights = analysis.weight_categoricals(compare_df, "studios")
 
+        mode = weights.mode()
+
+        mode = mode[0] if len(mode) > 0 else mode
+
         scores = scoring_target_df["studios"].apply(
             analysis.weighted_mean_for_categorical_values,
-            args=(weights.fillna(weights.mode()[0]),),
+            args=(weights.fillna(mode),),
         )
 
         return analysis.normalize_column(scores)

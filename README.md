@@ -13,11 +13,13 @@ Cannot process people with no scores added
 
 For testing with web-api version:
 
-`poetry shell && flask --app app run --host 0.0.0.0`
+`poetry shell`
+`flask --app app run --host 0.0.0.0`
 
 For testing without web front:
 
-`potery shell && python animeippo/main.py``
+`poetry shell`
+`python animeippo/main.py`
 
 # VSCode devcontainers
 
