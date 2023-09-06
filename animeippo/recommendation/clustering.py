@@ -6,12 +6,9 @@ from animeippo.recommendation import analysis
 
 
 class AnimeClustering:
-    def __init__(self, distance_metric="jaccard", distance_threshold=0.85):
+    def __init__(self, distance_metric="jaccard", distance_threshold=0.85, **kwargs):
         self.model = skcluster.AgglomerativeClustering(
-            n_clusters=None,
-            metric="precomputed",
-            linkage="average",
-            distance_threshold=distance_threshold,
+            n_clusters=None, metric=distance_metric, distance_threshold=distance_threshold, **kwargs
         )
 
         self.n_clusters = None
@@ -20,11 +17,7 @@ class AnimeClustering:
         self.distance_metric = distance_metric
 
     def cluster_by_features(self, series, index):
-        distances = pd.DataFrame(
-            analysis.distance(series, series, self.distance_metric), index=index
-        )
-
-        clusters = self.model.fit_predict(distances)
+        clusters = self.model.fit_predict(series)
 
         if clusters is not None:
             self.fit = True

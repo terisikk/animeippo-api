@@ -62,13 +62,10 @@ def transform_to_animeippo_format(original, feature_names, keys):
     df["features"] = df.apply(util.get_features, args=(feature_names,), axis=1)
 
     if "id" in df.columns:
+        df = df.drop_duplicates(subset="id")
         df = df.set_index("id")
 
-    return remove_duplicates(df).infer_objects()
-
-
-def remove_duplicates(dataframe):
-    return dataframe[~dataframe.index.duplicated(keep="first")]
+    return df.infer_objects()
 
 
 def run_mappers(dataframe, original, mapping):

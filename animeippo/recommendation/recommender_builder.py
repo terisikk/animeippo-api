@@ -182,8 +182,7 @@ def create_builder(providername):
 
     match providername:
         case "anilist":
-            # Cosine works better for anilist because we have genre weights.
-            # Jaccard assumes all weights are 1.
+            # Cosine seems to work better for anilist than jaccard.
             metric = "cosine"
             return (
                 RecommenderBuilder()
@@ -192,7 +191,9 @@ def create_builder(providername):
                     engine.AnimeRecommendationEngine(
                         get_default_scorers(metric),
                         get_default_categorizers(metric),
-                        clustering.AnimeClustering(distance_metric=metric, distance_threshold=0.65),
+                        clustering.AnimeClustering(
+                            distance_metric=metric, distance_threshold=0.65, linkage="average"
+                        ),
                         encoding.WeightedCategoricalEncoder(),
                     )
                 )

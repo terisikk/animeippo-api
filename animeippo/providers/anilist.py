@@ -44,6 +44,7 @@ class AniListProvider(provider.AbstractAnimeProvider):
                             tags {
                                 name
                                 rank
+                                isAdult
                             }
                             meanScore
                             source
@@ -85,6 +86,7 @@ class AniListProvider(provider.AbstractAnimeProvider):
                     tags {
                         name
                         rank
+                        isAdult
                     }
                     meanScore
                     source

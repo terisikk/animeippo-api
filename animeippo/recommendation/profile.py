@@ -11,7 +11,7 @@ class ProfileAnalyser:
         self.provider = provider
         self.encoder = encoding.WeightedCategoricalEncoder()
         self.clusterer = clustering.AnimeClustering(
-            distance_metric="cosine", distance_threshold=0.65
+            distance_metric="cosine", distance_threshold=0.65, linkage="average"
         )
 
     def async_get_dataset(self, user):

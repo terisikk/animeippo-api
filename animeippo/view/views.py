@@ -17,8 +17,6 @@ def web_view(dataframe, categories=None):
 
     df_json = dataframe[filtered_fields].fillna("").to_dict(orient="records")
 
-    print(df_json[0])
-
     return json.dumps(
         {
             "data": {

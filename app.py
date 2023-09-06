@@ -22,10 +22,10 @@ def seasonal_anime():
     if not year:
         return "Validation error", 400
 
-    seasonal = recommender.recommend_seasonal_anime(year, season)
+    dataset = recommender.recommend_seasonal_anime(year, season)
 
     return Response(
-        views.web_view(seasonal.sort_values("popularity", ascending=False)),
+        views.web_view(dataset.seasonal.sort_values("popularity", ascending=False)),
         mimetype="application/json",
     )
 
@@ -47,7 +47,7 @@ def recommend_anime():
     )
 
 
-@app.route("/api/analyse")
+@app.route("/analyse")
 def analyze_profile():
     user = request.args.get("user", None)
 
@@ -56,15 +56,9 @@ def analyze_profile():
 
     categories = profiler.analyse(user)
 
-    # TODO: Extract elsewhere. Possibly create categorical columns already in the formatters.
-    profiler.dataset.watchlist["categorical_user_status"] = pd.Categorical(
-        profiler.dataset.watchlist["user_status"],
-        categories=["current", "planned", "completed", "paused", "dropped"],
-    )
-
     return Response(
         views.web_view(
-            profiler.dataset.watchlist.sort_values(["categorical_user_status", "title"]),
+            profiler.dataset.watchlist.sort_values(["title"]),
             sorted(categories, key=lambda item: len(item["items"]), reverse=True),
         ),
         mimetype="application/json",
