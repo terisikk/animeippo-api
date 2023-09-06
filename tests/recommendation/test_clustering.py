@@ -21,7 +21,7 @@ def test_clustering():
     assert clusters.tolist() == [1, 0]
 
 
-def test_predict_cannot_be_called_when_clustring_fails():
+def test_predict_cannot_be_called_when_clustering_fails():
     model = clustering.AnimeClustering()
 
     model.model = FaultyClusterStub()

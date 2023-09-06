@@ -1,6 +1,7 @@
 import sklearn.cluster as skcluster
 
 import pandas as pd
+import numpy as np
 
 from animeippo.recommendation import analysis
 
@@ -28,7 +29,9 @@ class AnimeClustering:
         self.distance_metric = distance_metric
 
     def cluster_by_features(self, series, index):
-        clusters = self.model.fit_predict(series)
+        # Cosine is undefined for zero-vectors, need to hack (or change metric)
+        clusters = self.model.fit_predict(self.remove_rows_with_no_features(series))
+        clusters = self.reinsert_rows_with_no_features_as_a_new_cluster(clusters, series)
 
         if clusters is not None:
             self.fit = True
@@ -38,6 +41,15 @@ class AnimeClustering:
             )
 
         return clusters
+
+    def remove_rows_with_no_features(self, series):
+        return series[series.sum(axis=1) > 0]
+
+    def reinsert_rows_with_no_features_as_a_new_cluster(self, clusters, series):
+        if clusters is None:
+            return None
+
+        return np.insert(clusters, np.where(series.sum(axis=1) == 0)[0], -1)
 
     def predict(self, series):
         if not self.fit:
