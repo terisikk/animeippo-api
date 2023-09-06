@@ -9,7 +9,7 @@ from tests import test_provider
 
 class CacheStub:
     def is_available(self):
-        return False
+        return self.is_available
 
 
 @pytest.mark.asyncio
@@ -120,7 +120,12 @@ def test_builder_creation_returns_correct_builders():
     )
 
 
-def test_builder_passes_even_if_cache_is_not_available(mocker):
+def test_builder_passes_with_or_without_cache(mocker):
+    assert (
+        recommender_builder.create_builder("anilist")._provider.__class__
+        == providers.anilist.AniListProvider
+    )
+
     mocker.patch("animeippo.cache.RedisCache", CacheStub)
 
     assert (
