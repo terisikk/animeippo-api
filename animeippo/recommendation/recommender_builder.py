@@ -73,7 +73,17 @@ async def get_dataset(provider, user, year, season):
         provider.get_features(),
     )
 
+    data.nsfw_tags += get_nswf_tags(user_data)
+    data.nsfw_tags += get_nswf_tags(season_data)
+
     return data
+
+
+def get_nswf_tags(df):
+    if df is not None and "nsfw_tags" in df.columns:
+        return df["nsfw_tags"].explode().dropna().unique().tolist()
+
+    return []
 
 
 def fill_user_status_data_from_watchlist(seasonal, watchlist):

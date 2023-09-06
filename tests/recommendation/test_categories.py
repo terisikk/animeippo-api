@@ -181,6 +181,38 @@ def test_cluster_category():
     assert len(actual) == 0
 
 
+def test_nsfw_tags_are_filtered_from_cluster_category():
+    cat = categories.ClusterCategory(0)
+
+    watchlist = pd.DataFrame(
+        {
+            "features": [
+                ["NSFW-1", "Sports", "Romance"],
+                ["NSFW-1", "Romance"],
+                ["Sports", "Comedy"],
+            ],
+            "cluster": [0, 0, 1],
+        }
+    )
+
+    recommendations = pd.DataFrame(
+        {
+            "cluster": [0, 1, 1],
+            "title": ["Test 1", "Test 2", "Test 3"],
+            "user_status": [pd.NA, pd.NA, pd.NA],
+        }
+    )
+
+    data = dataset.UserDataSet(watchlist, None, None)
+    data.recommendations = recommendations
+    data.nsfw_tags = ["NSFW-1"]
+
+    actual = cat.categorize(data)
+
+    assert actual["title"].tolist() == ["Test 1"]
+    assert cat.description == "Romance Sports"
+
+
 def test_cluster_category_returns_none_if_not_enough_clusters():
     cat = categories.ClusterCategory(5)
 

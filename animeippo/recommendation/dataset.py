@@ -4,3 +4,4 @@ class UserDataSet:
         self.seasonal = seasonal
         self.recommendations = None
         self.all_features = None
+        self.nsfw_tags = []

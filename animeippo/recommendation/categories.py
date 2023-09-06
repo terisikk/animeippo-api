@@ -85,6 +85,8 @@ class ClusterCategory:
 
         gdf = compare.explode("features")
 
+        gdf = gdf[~gdf["features"].isin(dataset.nsfw_tags)]
+
         descriptions = util.extract_features(gdf["features"], gdf["cluster"], 2)
 
         biggest_clusters = compare["cluster"].value_counts().index.to_list()

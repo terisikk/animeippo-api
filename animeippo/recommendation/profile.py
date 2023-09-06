@@ -42,7 +42,15 @@ class ProfileAnalyser:
             encoded, data.watchlist.index
         )
 
+        data.nsfw_tags = self.get_nsfw_tags(data.watchlist)
+
         return data
+
+    def get_nsfw_tags(self, df):
+        if "nsfw_tags" in df.columns:
+            return df["nsfw_tags"].explode().dropna().unique().tolist()
+
+        return []
 
     def analyse(self, user):
         self.dataset = self.async_get_dataset(user)
@@ -53,6 +61,9 @@ class ProfileAnalyser:
         target = dataset.watchlist
 
         gdf = target.explode("features")
+
+        gdf = gdf[~gdf["features"].isin(dataset.nsfw_tags)]
+
         descriptions = pdutil.extract_features(gdf["features"], gdf["cluster"], 2)
 
         clustergroups = target.sort_values(["title"]).groupby("cluster")

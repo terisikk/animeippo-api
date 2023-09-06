@@ -21,6 +21,7 @@ def transform_seasonal_data(data, feature_names):
         "score",
         "source",
         "tags",
+        "nsfw_tags",
         "ranks",
         "studios",
         "start_season",
@@ -43,6 +44,7 @@ def transform_watchlist_data(data, feature_names):
         "source",
         "tags",
         "ranks",
+        "nsfw_tags",
         "studios",
         "user_complete_date",
         "start_season",
@@ -124,6 +126,10 @@ def get_ranks(items):
     return {item["name"]: item["rank"] / 100 for item in items}
 
 
+def get_nsfw_tags(items):
+    return [item["name"] for item in items if item["isAdult"] is True]
+
+
 def get_studios(studios):
     return [
         studio["node"]["name"]
@@ -150,6 +156,7 @@ ANILIST_MAPPING = {
     "tags":         SingleMapper("media.tags", get_tags),
     "relations":    SingleMapper("media.relations.edges", filter_related_anime),
     "ranks":        SingleMapper("media.tags", get_ranks),
+    "nsfw_tags":    SingleMapper("media.tags", get_nsfw_tags),
     "studios":      SingleMapper("media.studios.edges", get_studios),
     "user_complete_date": 
                     MultiMapper(
