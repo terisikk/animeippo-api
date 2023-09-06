@@ -4,6 +4,8 @@ import pandas as pd
 from animeippo import cache
 from tests import test_data
 
+import redis
+
 import pytest
 
 
@@ -44,6 +46,7 @@ class RedisStub:
     def __init__(self, *args, **kwargs):
         self.store = RedisJsonStub()
         self.plainstore = {}
+        self.available = True
 
     def json(self):
         return self.store
@@ -56,6 +59,12 @@ class RedisStub:
 
     def set(self, key, data):
         self.plainstore[key] = data
+
+    def ping(self):
+        if self.available:
+            return True
+        else:
+            raise redis.exceptions.ConnectionError()
 
 
 def test_items_can_be_added_to_redis_cache(mocker):
@@ -181,3 +190,26 @@ def test_none_frames_are_not_added_to_cache(mocker):
     rcache.set_dataframe("test", data)
 
     assert rcache.connection.plainstore == {}
+
+
+@pytest.mark.asyncio
+async def test_data_can_be_fetched_even_with_cache_connection_error(mocker):
+    mocker.patch("redis.Redis", RedisStub)
+
+    rcache = cache.RedisCache()
+    rcache.connection.available = False
+
+    provider = mal.MyAnimeListProvider(rcache)
+
+    year = "2023"
+    season = "winter"
+
+    response = ResponseStub(test_data.MAL_SEASONAL_LIST)
+    mocker.patch("aiohttp.ClientSession.get", side_effect=[response, None])
+
+    seasonal_list = await provider.get_seasonal_anime_list(year, season)
+
+    assert seasonal_list["title"].tolist() == [
+        "Golden Kamuy 4th Season",
+        "Shingeki no Kyojin: The Fake Season",
+    ]

@@ -180,6 +180,9 @@ class RecommenderBuilder:
 def create_builder(providername):
     rcache = cache.RedisCache()
 
+    if not rcache.is_available():
+        print("Warning: Redis cache is not available.")
+
     match providername:
         case "anilist":
             # Cosine seems to work better for anilist than jaccard.

@@ -17,7 +17,7 @@ For testing with web-api version:
 
 For testing without web front:
 
-`potery shell && python animeippo/main.py`
+`potery shell && python animeippo/main.py``
 
 # VSCode devcontainers
 

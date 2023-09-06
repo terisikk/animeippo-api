@@ -12,8 +12,6 @@ class RedisCache:
     def __init__(self):
         # TODO: Remove this hardcoded server value, add to config
         self.connection = redis.Redis(host="redis-stack-server", port=6379)
-        if not self.is_available():
-            print("Warning: Redis cache is not available.")
 
     def set_json(self, key, value, ttl=timedelta(days=7)):
         # We are using query strings as keys, better to hash them for perf

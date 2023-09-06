@@ -7,6 +7,11 @@ import animeippo.providers as providers
 from tests import test_provider
 
 
+class CacheStub:
+    def is_available(self):
+        return False
+
+
 @pytest.mark.asyncio
 async def test_Recommenderbuilder_with_anilist():
     b = (
@@ -112,6 +117,15 @@ def test_builder_creation_returns_correct_builders():
     assert (
         recommender_builder.create_builder("faulty-provider")._provider.__class__
         == providers.myanimelist.MyAnimeListProvider
+    )
+
+
+def test_builder_passes_even_if_cache_is_not_available(mocker):
+    mocker.patch("animeippo.cache.RedisCache", CacheStub)
+
+    assert (
+        recommender_builder.create_builder("anilist")._provider.__class__
+        == providers.anilist.AniListProvider
     )
 
 
