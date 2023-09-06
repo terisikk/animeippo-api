@@ -3,9 +3,21 @@
 
 Cannot process people with no scores added
 
+# Dependencies for development
+
+* Poetry >= 1.4.0
+
 # How to run locally
 
-`flask --app app run --host 0.0.0.0`
+`poetry install` or `make install`
+
+For testing with web-api version:
+
+`poetry shell && flask --app app run --host 0.0.0.0`
+
+For testing without web front:
+
+`potery shell && python animeippo/main.py`
 
 # VSCode devcontainers
 

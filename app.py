@@ -4,7 +4,7 @@ from flask_cors import CORS
 from animeippo.view import views
 from animeippo.recommendation import recommender_builder, profile
 
-import pandas as pd
+from aiohttp.client_exceptions import ClientError
 
 app = Flask(__name__)
 app.config["JSON_AS_ASCII"] = False
@@ -39,8 +39,11 @@ def recommend_anime():
     if not all([user, year]):
         return "Validation error", 400
 
-    dataset = recommender.recommend_seasonal_anime(year, season, user)
-    categories = recommender.get_categories(dataset)
+    try:
+        dataset = recommender.recommend_seasonal_anime(year, season, user)
+        categories = recommender.get_categories(dataset)
+    except ClientError:
+        return f"Could nof fetch data for user {user}.", 404
 
     return Response(
         views.web_view(dataset.recommendations, categories), mimetype="application/json"

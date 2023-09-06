@@ -6,9 +6,20 @@ from animeippo.recommendation import analysis
 
 
 class AnimeClustering:
-    def __init__(self, distance_metric="jaccard", distance_threshold=0.85, **kwargs):
+    def __init__(
+        self,
+        distance_metric="jaccard",
+        distance_threshold=0.85,
+        linkage="average",
+        n_clusters=None,
+        **kwargs
+    ):
         self.model = skcluster.AgglomerativeClustering(
-            n_clusters=None, metric=distance_metric, distance_threshold=distance_threshold, **kwargs
+            n_clusters=n_clusters,
+            metric=distance_metric,
+            distance_threshold=distance_threshold,
+            linkage=linkage,
+            **kwargs
         )
 
         self.n_clusters = None

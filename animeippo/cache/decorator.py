@@ -8,7 +8,7 @@ def cached_query(ttl):
             data = None
             cachekey = "".join(query.split()) + str(parameters)
 
-            if self.cache:
+            if self.cache and self.cache.is_available():
                 data = self.cache.get_json(cachekey)
 
             if data:
@@ -18,7 +18,7 @@ def cached_query(ttl):
                 print(f"Cache miss for {cachekey}")
                 data = await func(self, query, parameters)
 
-                if self.cache:
+                if self.cache and self.cache.is_available():
                     print(f"Cache save for {cachekey}")
                     self.cache.set_json(cachekey, data, ttl)
 
@@ -38,7 +38,7 @@ def cached_dataframe(ttl):
                 ",".join([str(arg) if arg else "" for arg in args]) + "_" + str(self.__class__)
             )
 
-            if self.cache:
+            if self.cache and self.cache.is_available():
                 data = self.cache.get_dataframe(cachekey)
 
             if data is not None:
@@ -48,7 +48,7 @@ def cached_dataframe(ttl):
                 print(f"Cache miss for {cachekey}")
                 data = await func(self, *args)
 
-                if self.cache:
+                if self.cache and self.cache.is_available():
                     print(f"Cache save for {cachekey}")
                     self.cache.set_dataframe(cachekey, data, ttl)
 
