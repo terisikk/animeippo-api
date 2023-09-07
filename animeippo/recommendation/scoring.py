@@ -180,9 +180,12 @@ class ContinuationScorer(AbstractScorer):
 
         rdf["score"] = rdf["score"].fillna(mean_score)
 
-        scores = rdf.groupby("id")["score"].max()
+        scores = self.get_max_score_of_duplicate_relations(rdf)
 
         return scores / 10
+
+    def get_max_score_of_duplicate_relations(self, rdf):
+        return rdf.groupby(rdf.index)["score"].max()
 
 
 class SourceScorer(AbstractScorer):

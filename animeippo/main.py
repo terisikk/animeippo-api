@@ -1,6 +1,6 @@
 # @profile(filename=".profiling/cprofile.pstats")
 def get_recs():
-    year = "2024"
+    year = "2023"
     season = None
     user = "Janiskeisari"
 

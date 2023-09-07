@@ -97,11 +97,6 @@ async def construct_anilist_data(provider, year, season, user):
 
     if data.seasonal is not None and data.watchlist is not None:
         data.seasonal = fill_user_status_data_from_watchlist(data.seasonal, data.watchlist)
-        watchlist_filters = [filters.IdFilter(*data.seasonal.index.to_list(), negative=True)]
-
-        for f in watchlist_filters:
-            data.watchlist = f.filter(data.watchlist)
-
         data.seasonal = filters.ContinuationFilter(data.watchlist).filter(data.seasonal)
 
     if data.seasonal is not None:
@@ -153,11 +148,6 @@ async def construct_myanimelist_data(provider, year, season, user):
 
     if data.watchlist is not None and data.seasonal is not None:
         data.seasonal = fill_user_status_data_from_watchlist(data.seasonal, data.watchlist)
-        watchlist_filters = [filters.IdFilter(*data.seasonal.index.to_list(), negative=True)]
-
-        for f in watchlist_filters:
-            data.watchlist = f.filter(data.watchlist)
-
         data.seasonal = filters.ContinuationFilter(data.watchlist).filter(data.seasonal)
 
     return data
