@@ -360,6 +360,33 @@ def test_continuation_scorer_scores_nan_with_zero():
     assert actual.to_list() == [0.7, 0, 0.7, 0]
 
 
+def test_continuation_scorer_takes_max_of_duplicate_relations():
+    compare = pd.DataFrame(
+        {
+            "id": [1, 2],
+            "title": ["Anime A", "Anime A Spinoff"],
+            "user_status": ["completed", "completed"],
+            "score": [2, 8],
+        }
+    )
+    compare = compare.set_index("id")
+
+    original = pd.DataFrame(
+        {
+            "id": [5],
+            "title": ["Anime A Season 2"],
+            "relations": [[1, 2]],
+        }
+    )
+    original = original.set_index("id")
+
+    scorer = scoring.ContinuationScorer()
+
+    actual = scorer.score(original, compare)
+
+    assert actual.to_list() == [0.8]
+
+
 def test_source_scorer():
     compare = pd.DataFrame(
         {"title": ["Anime A", "Anime B"], "source": ["original", "manga"], "score": [5, 10]}
