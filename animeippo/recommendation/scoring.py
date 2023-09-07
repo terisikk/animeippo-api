@@ -144,7 +144,7 @@ class DirectSimilarityScorer(AbstractScorer):
         max_columns = similarities[similarities.ge(max_values, axis=0)]
 
         scores = max_values * max_columns.notna().apply(
-            lambda row: compare_df.iloc[max_columns.columns[row]]["score"].mean(), axis=1
+            lambda row: compare_df.loc[max_columns.columns[row]]["score"].mean(), axis=1
         ).fillna(6.0)
 
         return analysis.normalize_column(scores)

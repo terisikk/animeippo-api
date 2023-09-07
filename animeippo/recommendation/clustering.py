@@ -61,6 +61,8 @@ class AnimeClustering:
 
         max_columns = similarities.idxmax(axis=1).fillna(-1).astype(int)
 
-        nearest_clusters = max_columns.apply(lambda x: self.clustered_series.iloc[x]["cluster"])
+        nearest_clusters = max_columns.apply(
+            lambda x: self.clustered_series.loc[x]["cluster"] if x >= 0 else -1
+        )
 
         return nearest_clusters

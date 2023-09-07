@@ -17,10 +17,22 @@ def categorical_similarity(features1, features2, index=None, metric="jaccard"):
     if index is None:
         index = features1.index
 
-    return pd.DataFrame(
+    similarities = pd.DataFrame(
         similarity(np.vstack(features1), np.vstack(features2), metric=metric),
         index=index,
+        columns=features2.index,
     )
+
+    similarities = discard_similarities_with_self(similarities)
+
+    return similarities
+
+
+def discard_similarities_with_self(dataframe):
+    for column in dataframe.columns:
+        dataframe.loc[column, column] = 0
+
+    return dataframe
 
 
 def similarity_of_anime_lists(features1, features2, metric="jaccard"):
