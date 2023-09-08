@@ -16,6 +16,7 @@ profiler = profile.ProfileAnalyser(recommender.provider)
 
 @app.route("/seasonal")
 def seasonal_anime():
+    """Returns a json-list of seasonal or yearly anime titles."""
     year = request.args.get("year", None)
     season = request.args.get("season", None)
 
@@ -32,6 +33,9 @@ def seasonal_anime():
 
 @app.route("/recommend")
 def recommend_anime():
+    """Recommends new anime to a user, either from a year or a single season.
+    Currently users are accepted only from Anilist. Returns a json-representation.
+    """
     user = request.args.get("user", None)
     year = request.args.get("year", None)
     season = request.args.get("season", None)
@@ -52,6 +56,8 @@ def recommend_anime():
 
 @app.route("/analyse")
 def analyze_profile():
+    """Analyses an Anilist user profile and clusters the watchlist to groups of
+    simila anime with descriptions. Returns a json-representation."""
     user = request.args.get("user", None)
 
     if user is None:

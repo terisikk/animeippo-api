@@ -154,6 +154,17 @@ async def construct_myanimelist_data(provider, year, season, user):
 
 
 class RecommenderBuilder:
+    """Helps building a new anime recommender from several
+    parts by returning self for each new part added, allowing
+    chaining together different parts.
+
+    Currently only uses on kind of recommender, so questionable
+    if this class is really needed in between. In theory though
+    this allows abstracting away different recommenders and
+    also deffering building until build method is explicitly
+    called.
+    """
+
     def __init__(self):
         self._provider = None
         self._databuilder = None
@@ -178,6 +189,16 @@ class RecommenderBuilder:
 
 
 def create_builder(providername):
+    """
+    Creates a recommender builder based on a third party data provider name.
+
+    Different providers require a slightly different
+    configuration to work effectively.
+
+    Current options are "anilist" or "myanimelist".
+
+    Final recommender is created when builder.build() is called.
+    """
     rcache = cache.RedisCache()
 
     if not rcache.is_available():

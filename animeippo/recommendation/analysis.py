@@ -5,15 +5,23 @@ import sklearn.preprocessing as skpre
 
 
 def distance(x_orig, y_orig, metric="jaccard"):
+    """
+    Calculate pairwise distance between two series.
+    Just a wrapper for scipy cdist for a matching
+    signature with analysis.similairty."""
     return scdistance.cdist(x_orig, y_orig, metric=metric)
 
 
 def similarity(x_orig, y_orig, metric="jaccard"):
+    """Calculate similarity between two series."""
     distances = distance(x_orig, y_orig, metric=metric)
     return 1 - distances
 
 
 def categorical_similarity(features1, features2, index=None, metric="jaccard"):
+    """Calculate similarity between two series of categorical features. Assumes a series
+    that contains vector-encoded representation of features. Discards similarities
+    with identical id:s by setting them to nan."""
     if index is None:
         index = features1.index
 
@@ -30,7 +38,7 @@ def categorical_similarity(features1, features2, index=None, metric="jaccard"):
 
 def discard_similarities_with_self(dataframe):
     for column in dataframe.columns:
-        dataframe.loc[column, column] = 0
+        dataframe.loc[column, column] = np.nan
 
     return dataframe
 

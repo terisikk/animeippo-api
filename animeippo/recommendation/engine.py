@@ -6,6 +6,9 @@ from animeippo.recommendation import encoding, clustering
 
 
 class AnimeRecommendationEngine:
+    """Generates recommendations based on given scorers and categorizers. Optionally accepts
+    a custom clustering model and feature encoder."""
+
     def __init__(self, scorers=None, categorizers=None, clustering_model=None, encoder=None):
         self.scorers = scorers or []
         self.categorizers = categorizers or []

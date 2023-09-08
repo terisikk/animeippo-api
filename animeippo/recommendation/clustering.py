@@ -7,6 +7,15 @@ from animeippo.recommendation import analysis
 
 
 class AnimeClustering:
+    """Wraps an sklearn or similar clustering model
+    to some boilerplate to allow switching to one
+    clustering model from one place.
+
+    Also allows to do do crude cluster predictions
+    for new data even when the underlying model does
+    not directly support it.
+    """
+
     def __init__(
         self,
         distance_metric="jaccard",

@@ -7,6 +7,8 @@ from animeippo.recommendation import clustering, encoding, dataset, util as pdut
 
 
 class ProfileAnalyser:
+    """Clusters a user watchlist titles to clusters of similar anime."""
+
     def __init__(self, provider):
         self.provider = provider
         self.encoder = encoding.WeightedCategoricalEncoder()

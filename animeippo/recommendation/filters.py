@@ -8,6 +8,9 @@ class AbstractFilter(abc.ABC):
 
 
 class MediaTypeFilter(AbstractFilter):
+    """Filters a dataframe based on the media type (TV, Movie, etc.)
+    field."""
+
     def __init__(self, *media_types, negative=False):
         self.media_types = media_types
         self.negative = negative
@@ -22,6 +25,9 @@ class MediaTypeFilter(AbstractFilter):
 
 
 class FeatureFilter(AbstractFilter):
+    """Filters a dataframe based on feature names,
+    for example genres or tags."""
+
     def __init__(self, *features, negative=False):
         self.features = features
         self.negative = negative
@@ -38,6 +44,9 @@ class FeatureFilter(AbstractFilter):
 
 
 class UserStatusFilter(AbstractFilter):
+    """Filters a dataframe based on user status
+    (completed, in_progress etc.) field."""
+
     def __init__(self, *statuses, negative=False):
         self.statuses = statuses
         self.negative = negative
@@ -52,6 +61,8 @@ class UserStatusFilter(AbstractFilter):
 
 
 class IdFilter(AbstractFilter):
+    """Filters a dataframe based on index labels."""
+
     def __init__(self, *ids, negative=False):
         self.ids = ids
         self.negative = negative
@@ -66,6 +77,8 @@ class IdFilter(AbstractFilter):
 
 
 class RatingFilter(AbstractFilter):
+    """Filters a dataframe based on rating (pg, r etc.) field."""
+
     def __init__(self, *ratings, negative=False):
         self.ratings = ratings
         self.negative = negative
@@ -80,6 +93,8 @@ class RatingFilter(AbstractFilter):
 
 
 class StartSeasonFilter(AbstractFilter):
+    """Filtres a dataframe based on start season (2023/summer for example) field."""
+
     def __init__(self, *seasons, negative=False):
         self.seasons = ["/".join(season) for season in seasons]
         self.negative = negative
@@ -94,6 +109,10 @@ class StartSeasonFilter(AbstractFilter):
 
 
 class ContinuationFilter(AbstractFilter):
+    """Filters a dataframe based on whether a series
+    is a continuation or side story to a title that
+    the user has already completed."""
+
     def __init__(self, compare_df, negative=False):
         self.compare_df = compare_df
         self.negative = negative

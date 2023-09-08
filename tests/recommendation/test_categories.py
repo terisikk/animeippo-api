@@ -1,4 +1,5 @@
 import pandas as pd
+import numpy as np
 import datetime
 
 from collections import namedtuple
@@ -309,9 +310,10 @@ def test_because_you_liked():
     data = dataset.UserDataSet(user_data, None, None)
     data.recommendations = recommendations
 
-    actual = cat.categorize(data)
+    actual = cat.categorize(data).to_list()
 
-    assert actual.to_list() == [1, 0, 0]
+    assert actual[0:2] == [1, 0]
+    assert pd.isna(actual[2])
 
 
 def test_because_you_liked_does_not_fail_with_empty_likes():

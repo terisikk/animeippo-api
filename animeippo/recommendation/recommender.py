@@ -2,6 +2,10 @@ import asyncio
 
 
 class AnimeRecommender:
+    """Recommends new anime to a user if provided,
+    or returns a filtered list of seasonal anime
+    not tailored to a specific user."""
+
     def __init__(self, provider, engine, databuilder):
         self.provider = provider
         self.engine = engine

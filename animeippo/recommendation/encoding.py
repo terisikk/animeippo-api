@@ -2,6 +2,10 @@ import sklearn.preprocessing as skpre
 
 
 class CategoricalEncoder:
+    """Encodes categorical data (e.g. genres or similar) to a vector representation
+    of whether a dataframe row has a category from all possible categories or not.
+    """
+
     def fit(self, classes, class_field="features"):
         self.classes = classes
         self.class_field = class_field
@@ -13,6 +17,10 @@ class CategoricalEncoder:
 
 
 class WeightedCategoricalEncoder:
+    """Encoded categorical data (e.g. genres or similar) to a vector representation
+    from 0 to 1 of how much each category for all possible categories applies to a
+    dataframe row."""
+
     def fit(self, classes, class_field="features", weight_field="ranks"):
         self.class_field = class_field
         self.weight_field = weight_field
