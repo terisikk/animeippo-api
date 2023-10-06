@@ -158,10 +158,10 @@ class RecommenderBuilder:
     parts by returning self for each new part added, allowing
     chaining together different parts.
 
-    Currently only uses on kind of recommender, so questionable
+    Currently only uses one kind of recommender, so questionable
     if this class is really needed in between. In theory though
     this allows abstracting away different recommenders and
-    also deffering building until build method is explicitly
+    also deferring building until build method is explicitly
     called.
     """
 
