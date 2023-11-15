@@ -57,6 +57,10 @@ def weighted_mean_for_categorical_values(categoricals, weights, fillna=0.0):
     return np.nanmean([weights.get(categorical, fillna) for categorical in categoricals])
 
 
+def correlated_mean_for_categorical_values(categoricals, weights, fillna=0.0):
+    return
+
+
 def weight_categoricals(dataframe, column):
     exploded = dataframe.explode(column)
     averages = mean_score_per_categorical(exploded, column)
@@ -79,6 +83,19 @@ def weight_categoricals_z_score(dataframe, column):
     weighted_scores = counts.apply(lambda row: ((scores[row.name] - mean) / std) * row, axis=1)
 
     return normalize_column(weighted_scores)
+
+
+def weight_categoricals_correlation(dataframe, column, features):
+    df_expanded = pd.DataFrame(
+        dataframe[column].to_list(),
+        columns=sorted(features),
+        index=dataframe.index,
+    )
+    df_expanded["score"] = dataframe["score"]
+
+    correlation_matrix = df_expanded.corr(numeric_only=True)
+
+    return correlation_matrix["score"].sort_values(ascending=False)
 
 
 def normalize_column(df_column):

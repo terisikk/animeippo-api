@@ -29,4 +29,4 @@ def web_view(dataframe, categories=None):
 
 def console_view(dataframe):
     dataframe = dataframe.reset_index()
-    print(dataframe.reset_index().loc[0:25][["title", "features"]])
+    print(dataframe.reset_index().loc[0:25][["title", "features", "recommend_score"]])

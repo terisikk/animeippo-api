@@ -23,7 +23,10 @@ class FeaturesSimilarityScorer(AbstractScorer):
         self.weighted = weighted
         self.distance_metric = distance_metric or "jaccard"
 
-    def score(self, scoring_target_df, compare_df):
+    def score(self, data):
+        scoring_target_df = data.seasonal
+        compare_df = data.watchlist
+
         scores = analysis.similarity_of_anime_lists(
             scoring_target_df["encoded"], compare_df["encoded"], self.distance_metric
         )
@@ -40,10 +43,34 @@ class FeaturesSimilarityScorer(AbstractScorer):
         return analysis.normalize_column(scores)
 
 
+class FeatureCorrelationScorer(AbstractScorer):
+    name = "featurecorrelationscore"
+
+    def score(self, data):
+        scoring_target_df = data.seasonal
+        compare_df = data.watchlist
+
+        score_correlations = analysis.weight_categoricals_correlation(
+            compare_df, "encoded", data.all_features
+        )
+
+        scores = scoring_target_df["features"].apply(
+            # For once, np.sum is the wanted metric, so that titles with only a few genres get lower scores
+            # and titles with multiple good genres get on top.
+            lambda row: np.sum([score_correlations.loc[feature] for feature in row])
+            * np.sqrt(len(row))
+        )
+
+        return analysis.normalize_column(scores)
+
+
 class GenreAverageScorer(AbstractScorer):
     name = "genreaveragescore"
 
-    def score(self, scoring_target_df, compare_df):
+    def score(self, data):
+        scoring_target_df = data.seasonal
+        compare_df = data.watchlist
+
         weights = analysis.weight_categoricals(compare_df, "genres")
 
         scores = scoring_target_df["genres"].apply(
@@ -57,7 +84,10 @@ class GenreAverageScorer(AbstractScorer):
 class StudioCountScorer(AbstractScorer):
     name = "studiocountscore"
 
-    def score(self, scoring_target_df, compare_df):
+    def score(self, data):
+        scoring_target_df = data.seasonal
+        compare_df = data.watchlist
+
         counts = compare_df.explode("studios")["studios"].value_counts()
 
         scores = scoring_target_df.apply(self.max_studio_count, axis=1, args=(counts,))
@@ -74,7 +104,10 @@ class StudioCountScorer(AbstractScorer):
 class StudioAverageScorer:
     name = "studioaveragescore"
 
-    def score(self, scoring_target_df, compare_df):
+    def score(self, data):
+        scoring_target_df = data.seasonal
+        compare_df = data.watchlist
+
         weights = analysis.weight_categoricals(compare_df, "studios")
 
         mode = weights.mode()
@@ -96,7 +129,10 @@ class ClusterSimilarityScorer(AbstractScorer):
         self.weighted = weighted
         self.distance_metric = distance_metric or "jaccard"
 
-    def score(self, scoring_target_df, compare_df):
+    def score(self, data):
+        scoring_target_df = data.seasonal
+        compare_df = data.watchlist
+
         st_encoded = np.vstack(scoring_target_df["encoded"])
         co_encoded = np.vstack(compare_df["encoded"])
 
@@ -135,7 +171,10 @@ class DirectSimilarityScorer(AbstractScorer):
     def __init__(self, distance_metric=None):
         self.distance_metric = distance_metric or "jaccard"
 
-    def score(self, scoring_target_df, compare_df):
+    def score(self, data):
+        scoring_target_df = data.seasonal
+        compare_df = data.watchlist
+
         similarities = analysis.categorical_similarity(
             scoring_target_df["encoded"], compare_df["encoded"], metric=self.distance_metric
         )
@@ -153,7 +192,9 @@ class DirectSimilarityScorer(AbstractScorer):
 class PopularityScorer(AbstractScorer):
     name = "popularityscore"
 
-    def score(self, scoring_target_df, compare_df):
+    def score(self, data):
+        scoring_target_df = data.seasonal
+
         scores = scoring_target_df["popularity"]
 
         return analysis.normalize_column(scores.rank())
@@ -164,7 +205,10 @@ class ContinuationScorer(AbstractScorer):
 
     DEFAULT_SCORE = 0
 
-    def score(self, scoring_target_df, compare_df):
+    def score(self, data):
+        scoring_target_df = data.seasonal
+        compare_df = data.watchlist
+
         mean_score = compare_df["score"].mean()
 
         rdf = scoring_target_df.explode("relations")
@@ -191,7 +235,10 @@ class ContinuationScorer(AbstractScorer):
 class SourceScorer(AbstractScorer):
     name = "sourcescore"
 
-    def score(self, scoring_target_df, compare_df):
+    def score(self, data):
+        scoring_target_df = data.seasonal
+        compare_df = data.watchlist
+
         averages = compare_df.groupby("source")["score"].mean() / 10
 
         scores = scoring_target_df["source"].apply(lambda x: averages.get(x, 0))

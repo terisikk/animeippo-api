@@ -19,15 +19,16 @@ import numpy as np
 
 def get_default_scorers(distance_metric="jaccard"):
     return [
-        # scoring.FeatureSimilarityScorer(feature_tags, weighted=True),
-        scoring.GenreAverageScorer(),
+        # scoring.FeatureCorrelationScorer()
+        ## scoring.FeatureSimilarityScorer(weighted=True),
+        # scoring.GenreAverageScorer(),
         scoring.ClusterSimilarityScorer(weighted=True, distance_metric=distance_metric),
-        # scoring.StudioCountScorer(),
-        scoring.StudioAverageScorer(),
-        scoring.PopularityScorer(),
-        scoring.ContinuationScorer(),
-        scoring.SourceScorer(),
-        scoring.DirectSimilarityScorer(distance_metric=distance_metric),
+        ## scoring.StudioCountScorer(),
+        # scoring.StudioAverageScorer(),
+        # scoring.PopularityScorer(),
+        # scoring.ContinuationScorer(),
+        # scoring.SourceScorer(),
+        # scoring.DirectSimilarityScorer(distance_metric=distance_metric),
     ]
 
 

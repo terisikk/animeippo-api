@@ -51,18 +51,20 @@ class AnimeRecommendationEngine:
     def fit_predict(self, dataset):
         dataset = self.fit(dataset)
 
-        recommendations = self.score_anime(dataset.seasonal, dataset.watchlist)
+        recommendations = self.score_anime(dataset)
 
         recommendations["cluster"] = self.clustering_model.predict(dataset.seasonal["encoded"])
 
         return recommendations.sort_values("recommend_score", ascending=False)
 
-    def score_anime(self, scoring_target_df, compare_df):
+    def score_anime(self, dataset):
+        scoring_target_df = dataset.seasonal
+
         if len(self.scorers) > 0:
             names = []
 
             for scorer in self.scorers:
-                scoring = scorer.score(scoring_target_df, compare_df)
+                scoring = scorer.score(dataset)
                 scoring_target_df.loc[:, scorer.name] = scoring
                 names.append(scorer.name)
 
