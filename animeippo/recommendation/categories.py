@@ -62,14 +62,16 @@ class SourceCategory:
 
 class StudioCategory:
     description = "From Your Favourite Studios"
-    requires = [scoring.StudioAverageScorer.name]
+    requires = [scoring.StudioCorrelationScorer.name]
 
     def categorize(self, dataset, max_items=20):
         target = dataset.recommendations
 
         target = target[(pd.isnull(target["user_status"]))]
 
-        return target.sort_values(scoring.StudioAverageScorer.name, ascending=False)[0:max_items]
+        return target.sort_values(scoring.StudioCorrelationScorer.name, ascending=False)[
+            0:max_items
+        ]
 
 
 class ClusterCategory:

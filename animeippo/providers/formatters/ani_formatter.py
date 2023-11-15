@@ -131,14 +131,14 @@ def get_nsfw_tags(items):
 
 
 def get_studios(studios):
-    return [
-        studio["node"]["name"]
-        for studio in studios
-        if studio["node"].get("isAnimationStudio", False)
-    ]
+    return set(
+        [
+            studio["node"]["name"]
+            for studio in studios
+            if studio["node"].get("isAnimationStudio", False)
+        ]
+    )
 
-
-get_user_complete_date
 
 # fmt: off
 

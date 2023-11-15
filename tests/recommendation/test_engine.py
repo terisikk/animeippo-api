@@ -102,7 +102,7 @@ def test_categorize():
             "sourcescore": [3],
             "directscore": [4],
             "clusterscore": [5],
-            "studioaveragescore": [6],
+            "studiocorrelationscore": [6],
             "cluster": [1],
             "features": [["test"]],
             "source": ["original"],

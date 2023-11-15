@@ -85,7 +85,7 @@ def weight_categoricals_z_score(dataframe, column):
     return normalize_column(weighted_scores)
 
 
-def weight_categoricals_correlation(dataframe, column, features):
+def weight_encoded_categoricals_correlation(dataframe, column, features):
     df_expanded = pd.DataFrame(
         dataframe[column].to_list(),
         columns=sorted(features),
@@ -93,9 +93,24 @@ def weight_categoricals_correlation(dataframe, column, features):
     )
     df_expanded["score"] = dataframe["score"]
 
-    correlation_matrix = df_expanded.corr(numeric_only=True)
+    correlation_matrix = df_expanded.corr()
+    weights = np.sqrt(dataframe.explode(column)[column].value_counts())
 
-    return correlation_matrix["score"].sort_values(ascending=False)
+    return correlation_matrix["score"].sort_values(ascending=False) * weights
+
+
+def weight_categoricals_correlation(dataframe, column):
+    df_expanded = pd.DataFrame(
+        pd.get_dummies(dataframe.explode(column)[column]),
+        index=dataframe.explode(column).index,
+    )
+    df_expanded["score"] = dataframe["score"]
+
+    correlation_matrix = df_expanded.corr()
+
+    weights = np.sqrt(dataframe.explode(column)[column].value_counts())
+
+    return correlation_matrix["score"].sort_values(ascending=False) * weights
 
 
 def normalize_column(df_column):

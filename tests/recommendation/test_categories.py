@@ -120,7 +120,7 @@ def test_studio_category():
 
     recommendations = pd.DataFrame(
         {
-            "studioaveragescore": [1, 3, 2],
+            "studiocorrelationscore": [1, 3, 2],
             "title": ["Test 1", "Test 2", "Test 3"],
             "user_status": [pd.NA, pd.NA, pd.NA],
         }

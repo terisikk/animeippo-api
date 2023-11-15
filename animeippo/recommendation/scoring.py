@@ -50,7 +50,7 @@ class FeatureCorrelationScorer(AbstractScorer):
         scoring_target_df = data.seasonal
         compare_df = data.watchlist
 
-        score_correlations = analysis.weight_categoricals_correlation(
+        score_correlations = analysis.weight_encoded_categoricals_correlation(
             compare_df, "encoded", data.all_features
         )
 
@@ -103,14 +103,17 @@ class StudioCountScorer(AbstractScorer):
         return np.max([counts.get(studio, 0.0) for studio in row["studios"]])
 
 
-class StudioAverageScorer:
-    name = "studioaveragescore"
+class StudioCorrelationScorer:
+    name = "studiocorrelationscore"
 
     def score(self, data):
         scoring_target_df = data.seasonal
         compare_df = data.watchlist
 
-        weights = analysis.weight_categoricals(compare_df, "studios")
+        weights = analysis.weight_categoricals_correlation(
+            compare_df,
+            "studios",
+        )
 
         mode = weights.mode()
 

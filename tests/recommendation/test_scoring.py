@@ -281,7 +281,7 @@ def test_studio_average_scorer():
         }
     )
 
-    scorer = scoring.StudioAverageScorer()
+    scorer = scoring.StudioCorrelationScorer()
 
     target_df["recommend_score"] = scorer.score(dataset.UserDataSet(source_df, target_df))
 
