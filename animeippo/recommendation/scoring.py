@@ -57,10 +57,9 @@ class FeatureCorrelationScorer(AbstractScorer):
         scores = scoring_target_df["features"].apply(
             # For once, np.sum is the wanted metric, so that titles with only a few features get lower scores
             # and titles with multiple good features get on top. Slightly diminished effect with sqrt.
-            lambda row: np.sum([score_correlations.loc[feature] for feature in row])
-            / np.sqrt(len(row))
-        )
-
+            analysis.weighted_sum_for_categorical_values,
+            args=(score_correlations,),
+        ) / np.sqrt(scoring_target_df["features"].str.len())
 
         return analysis.normalize_column(scores)
 

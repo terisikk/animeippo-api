@@ -67,7 +67,7 @@ class AniListProvider(provider.AbstractAnimeProvider):
             for entry in coll["entries"]:
                 anime_list["data"].append(entry)
 
-        return ani_formatter.transform_watchlist_data(anime_list, self.get_features())
+        return ani_formatter.transform_watchlist_data(anime_list, self.get_feature_fields())
 
     @animecache.cached_dataframe(ttl=timedelta(days=1))
     async def get_seasonal_anime_list(self, year, season):
@@ -105,9 +105,9 @@ class AniListProvider(provider.AbstractAnimeProvider):
 
         anime_list = await self.connection.request_paginated(query, variables)
 
-        return ani_formatter.transform_seasonal_data(anime_list, self.get_features())
+        return ani_formatter.transform_seasonal_data(anime_list, self.get_feature_fields())
 
-    def get_features(self):
+    def get_feature_fields(self):
         return ["genres", "tags"]
 
     def get_related_anime(self, id):

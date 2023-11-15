@@ -29,16 +29,4 @@ def web_view(dataframe, categories=None):
 
 def console_view(dataframe):
     dataframe = dataframe.reset_index()
-    print(dataframe.reset_index().loc[0:25][["title", "genres", "recommend_score"]])
-
-
-    print(
-        "Average features length for top 25: ",
-        dataframe.sort_values("recommend_score", ascending=False)[0:25][
-            "genres"
-        ]
-        .str.len()
-        .mean(),
-    )
-
-    print("Average for all: ", dataframe["genres"].str.len().mean())
+    print(dataframe.reset_index().loc[0:25][["title", "genres"]])

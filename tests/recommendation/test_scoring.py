@@ -1,6 +1,6 @@
 import pandas as pd
 
-from animeippo.recommendation import scoring
+from animeippo.recommendation import scoring, dataset
 
 
 def test_abstract_scorer_can_be_instantiated():
@@ -37,14 +37,48 @@ def test_feature_similarity_scorer():
 
     scorer = scoring.FeaturesSimilarityScorer()
 
-    target_df["recommend_score"] = scorer.score(
-        target_df,
-        source_df,
-    )
+    target_df["recommend_score"] = scorer.score(dataset.UserDataSet(source_df, target_df))
 
     recommendations = target_df.sort_values("recommend_score", ascending=False)
 
     expected = "Naruto"
+    actual = recommendations.iloc[0]["title"]
+
+    assert actual == expected
+    assert not recommendations["recommend_score"].isnull().values.any()
+
+
+def test_feature_correlation_scorer():
+    source_df = pd.DataFrame(
+        {
+            "features": [["Action", "Adventure"], ["Action", "Fantasy"]],
+            "title": ["Bleach", "Fate/Zero"],
+            "encoded": [[True, True, False, False, False], [True, False, True, False, False]],
+            "score": [5, 10],
+        },
+    )
+
+    target_df = pd.DataFrame(
+        {
+            "features": [["Action", "Fantasy"], ["Action", "Adventure"]],
+            "title": ["Fate/Grand Order", "Naruto"],
+            "encoded": [[True, False, True, False, False], [True, True, False, False, False]],
+        }
+    )
+
+    scorer = scoring.FeatureCorrelationScorer()
+
+    target_df["recommend_score"] = scorer.score(
+        dataset.UserDataSet(
+            source_df,
+            target_df,
+            features=pd.Series(["Action", "Adventure", "Fantasy", "Romance", "Sci-fi"]),
+        )
+    )
+
+    recommendations = target_df.sort_values("recommend_score", ascending=False)
+
+    expected = "Fate/Grand Order"
     actual = recommendations.iloc[0]["title"]
 
     assert actual == expected
@@ -72,10 +106,7 @@ def test_feature_similarity_scorer_weighted():
         weighted=True,
     )
 
-    target_df["recommend_score"] = scorer.score(
-        target_df,
-        source_df,
-    )
+    target_df["recommend_score"] = scorer.score(dataset.UserDataSet(source_df, target_df))
 
     recommendations = target_df.sort_values("recommend_score", ascending=False)
 
@@ -103,10 +134,7 @@ def test_genre_average_scorer():
 
     scorer = scoring.GenreAverageScorer()
 
-    target_df["recommend_score"] = scorer.score(
-        target_df,
-        source_df,
-    )
+    target_df["recommend_score"] = scorer.score(dataset.UserDataSet(source_df, target_df))
 
     recommendations = target_df.sort_values("recommend_score", ascending=False)
 
@@ -146,10 +174,7 @@ def test_cluster_similarity_scorer():
 
     scorer = scoring.ClusterSimilarityScorer()
 
-    target_df["recommend_score"] = scorer.score(
-        target_df,
-        source_df,
-    )
+    target_df["recommend_score"] = scorer.score(dataset.UserDataSet(source_df, target_df))
 
     recommendations = target_df.sort_values("recommend_score", ascending=False)
 
@@ -180,10 +205,7 @@ def test_cluster_similarity_scorer_weighted():
 
     scorer = scoring.ClusterSimilarityScorer(weighted=True)
 
-    target_df["recommend_score"] = scorer.score(
-        target_df,
-        source_df,
-    )
+    target_df["recommend_score"] = scorer.score(dataset.UserDataSet(source_df, target_df))
 
     recommendations = target_df.sort_values("recommend_score", ascending=False)
 
@@ -210,10 +232,7 @@ def test_studio_count_scorer():
 
     scorer = scoring.StudioCountScorer()
 
-    target_df["recommend_score"] = scorer.score(
-        target_df,
-        source_df,
-    )
+    target_df["recommend_score"] = scorer.score(dataset.UserDataSet(source_df, target_df))
 
     recommendations = target_df.sort_values("recommend_score", ascending=False)
 
@@ -240,10 +259,7 @@ def test_studio_count_scorer_does_not_fail_with_zero_studios():
 
     scorer = scoring.StudioCountScorer()
 
-    target_df["recommend_score"] = scorer.score(
-        target_df,
-        source_df,
-    )
+    target_df["recommend_score"] = scorer.score(dataset.UserDataSet(source_df, target_df))
 
     recommendations = target_df.sort_values("recommend_score", ascending=False)
 
@@ -267,10 +283,7 @@ def test_studio_average_scorer():
 
     scorer = scoring.StudioAverageScorer()
 
-    target_df["recommend_score"] = scorer.score(
-        target_df,
-        source_df,
-    )
+    target_df["recommend_score"] = scorer.score(dataset.UserDataSet(source_df, target_df))
 
     recommendations = target_df.sort_values("recommend_score", ascending=False)
 
@@ -292,10 +305,7 @@ def test_popularity_scorer():
 
     scorer = scoring.PopularityScorer()
 
-    target_df["recommend_score"] = scorer.score(
-        target_df,
-        None,
-    )
+    target_df["recommend_score"] = scorer.score(dataset.UserDataSet(None, target_df))
 
     recommendations = target_df.sort_values("recommend_score", ascending=False)
 
@@ -328,7 +338,7 @@ def test_continuation_scorer():
 
     scorer = scoring.ContinuationScorer()
 
-    actual = scorer.score(original, compare)
+    actual = scorer.score(dataset.UserDataSet(compare, original))
 
     assert actual.to_list() == [0.8, 0, 0.7, 0]
 
@@ -355,7 +365,7 @@ def test_continuation_scorer_scores_nan_with_zero():
 
     scorer = scoring.ContinuationScorer()
 
-    actual = scorer.score(original, compare)
+    actual = scorer.score(dataset.UserDataSet(compare, original))
 
     assert actual.to_list() == [0.7, 0, 0.7, 0]
 
@@ -382,7 +392,7 @@ def test_continuation_scorer_takes_max_of_duplicate_relations():
 
     scorer = scoring.ContinuationScorer()
 
-    actual = scorer.score(original, compare)
+    actual = scorer.score(dataset.UserDataSet(compare, original))
 
     assert actual.to_list() == [0.8]
 
@@ -401,7 +411,7 @@ def test_source_scorer():
 
     scorer = scoring.SourceScorer()
 
-    actual["recommend_score"] = scorer.score(actual, compare)
+    actual["recommend_score"] = scorer.score(dataset.UserDataSet(compare, actual))
 
     recommendations = actual.sort_values("recommend_score", ascending=False)
 
@@ -431,10 +441,7 @@ def test_direct_similarity_scorer():
 
     scorer = scoring.DirectSimilarityScorer()
 
-    target_df["recommend_score"] = scorer.score(
-        target_df,
-        source_df,
-    )
+    target_df["recommend_score"] = scorer.score(dataset.UserDataSet(source_df, target_df))
 
     recommendations = target_df.sort_values("recommend_score", ascending=False)
 

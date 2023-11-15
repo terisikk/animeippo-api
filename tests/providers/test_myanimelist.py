@@ -185,7 +185,7 @@ async def test_reqest_does_not_fail_catastrophically_when_response_is_empty(mock
 def test_features_can_be_fetched():
     provider = myanimelist.MyAnimeListProvider()
 
-    features = provider.get_features()
+    features = provider.get_feature_fields()
 
     assert len(features) > 0
     assert "genres" in features

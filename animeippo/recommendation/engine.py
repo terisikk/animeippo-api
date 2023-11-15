@@ -32,7 +32,11 @@ class AnimeRecommendationEngine:
 
         dataset.all_features = (
             pd.concat(
-                [dataset.all_features, dataset.seasonal["features"], dataset.watchlist["features"]]
+                [
+                    dataset.all_features if dataset.all_features is not None else pd.Series(),
+                    dataset.seasonal["features"],
+                    dataset.watchlist["features"],
+                ]
             )
             .explode()
             .dropna()

@@ -6,5 +6,5 @@ class UserDataSet:
         self.watchlist = watchlist
         self.seasonal = seasonal
         self.recommendations = None
-        self.all_features = None
+        self.all_features = features
         self.nsfw_tags = []

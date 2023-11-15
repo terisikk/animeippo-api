@@ -25,14 +25,15 @@ class ProviderStub:
     def get_related_anime(self, *args, **kwargs):
         return pd.DataFrame()
 
-    def get_features(self, *args, **kwargs):
+    def get_feature_names(self, *args, **kwargs):
         return ["genres"]
 
 
 def test_recommend_seasonal_anime_for_user_by_genre():
     provider = ProviderStub()
     data = dataset.UserDataSet(
-        provider.get_user_anime_list(), provider.get_seasonal_anime_list(), provider.get_features()
+        provider.get_user_anime_list(),
+        provider.get_seasonal_anime_list(),
     )
 
     scorer = scoring.FeaturesSimilarityScorer()
@@ -51,7 +52,8 @@ def test_recommend_seasonal_anime_for_user_by_genre():
 def test_multiple_scorers_can_be_added():
     provider = ProviderStub()
     data = dataset.UserDataSet(
-        provider.get_user_anime_list(), provider.get_seasonal_anime_list(), provider.get_features()
+        provider.get_user_anime_list(),
+        provider.get_seasonal_anime_list(),
     )
 
     scorer = scoring.FeaturesSimilarityScorer()
@@ -82,7 +84,7 @@ def test_runtime_error_is_raised_when_no_scorers_exist():
     recengine = engine.AnimeRecommendationEngine()
 
     with pytest.raises(RuntimeError):
-        recengine.score_anime(None, None)
+        recengine.score_anime(dataset.UserDataSet(None, None))
 
 
 def test_categorize():

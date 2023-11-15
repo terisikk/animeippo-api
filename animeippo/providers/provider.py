@@ -14,7 +14,7 @@ class AbstractAnimeProvider(abc.ABC):
         pass
 
     @abc.abstractmethod
-    def get_features(self):
+    def get_feature_fields(self):
         pass
 
     @abc.abstractmethod
