@@ -71,7 +71,6 @@ async def get_dataset(provider, user, year, season):
     data = dataset.UserDataSet(
         user_data,
         season_data,
-        provider.get_features(),
     )
 
     data.nsfw_tags += get_nswf_tags(user_data)
