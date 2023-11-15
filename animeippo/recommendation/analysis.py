@@ -57,6 +57,10 @@ def weighted_mean_for_categorical_values(categoricals, weights, fillna=0.0):
     return np.nanmean([weights.get(categorical, fillna) for categorical in categoricals])
 
 
+def weighted_sum_for_categorical_values(categoricals, weights, fillna=0.0):
+    return np.nansum([weights.get(categorical, fillna) for categorical in categoricals])
+
+
 def correlated_mean_for_categorical_values(categoricals, weights, fillna=0.0):
     return
 

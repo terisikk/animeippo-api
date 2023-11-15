@@ -55,11 +55,12 @@ class FeatureCorrelationScorer(AbstractScorer):
         )
 
         scores = scoring_target_df["features"].apply(
-            # For once, np.sum is the wanted metric, so that titles with only a few genres get lower scores
-            # and titles with multiple good genres get on top.
+            # For once, np.sum is the wanted metric, so that titles with only a few features get lower scores
+            # and titles with multiple good features get on top. Slightly diminished effect with sqrt.
             lambda row: np.sum([score_correlations.loc[feature] for feature in row])
-            * np.sqrt(len(row))
+            / np.sqrt(len(row))
         )
+
 
         return analysis.normalize_column(scores)
 
@@ -74,8 +75,8 @@ class GenreAverageScorer(AbstractScorer):
         weights = analysis.weight_categoricals(compare_df, "genres")
 
         scores = scoring_target_df["genres"].apply(
-            analysis.weighted_mean_for_categorical_values, args=(weights.fillna(0.0),)
-        )
+            analysis.weighted_sum_for_categorical_values, args=(weights.fillna(0.0),)
+        ) / np.sqrt(scoring_target_df["genres"].str.len())
 
         return analysis.normalize_column(scores)
 
