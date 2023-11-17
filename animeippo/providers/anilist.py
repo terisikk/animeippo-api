@@ -107,6 +107,55 @@ class AniListProvider(provider.AbstractAnimeProvider):
 
         return ani_formatter.transform_seasonal_data(anime_list, self.get_feature_fields())
 
+    @animecache.cached_dataframe(ttl=timedelta(days=1))
+    async def get_user_manga_list(self, user_id):
+        if user_id is None:
+            return None
+
+        manga_list = {"data": []}
+
+        query = """
+        query ($userName: String) {
+            MediaListCollection(userName: $userName, type: MANGA) {
+                lists {
+                    name
+                    status
+                    entries {
+                        status
+                        score(format:POINT_10)
+                        completedAt {
+                            year
+                            month
+                            day
+                        }
+                        media {
+                            id
+                            title { romaji }
+                            genres
+                            tags {
+                                name
+                                rank
+                                isAdult
+                            }
+                            meanScore
+                            source
+                        }
+                    }
+                }
+            }
+        }
+        """
+
+        variables = {"userName": user_id}
+
+        collection = await self.connection.request_collection(query, variables)
+
+        for coll in collection["data"]["MediaListCollection"]["lists"]:
+            for entry in coll["entries"]:
+                manga_list["data"].append(entry)
+
+        return ani_formatter.transform_watchlist_data(manga_list, self.get_feature_fields())
+
     def get_feature_fields(self):
         return ["genres", "tags"]
 

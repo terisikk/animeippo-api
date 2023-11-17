@@ -120,9 +120,12 @@ class ContinuationFilter(AbstractFilter):
     def filter(self, dataframe):
         completed = set(self.compare_df[self.compare_df["user_status"] == "completed"].index)
 
-        mask = dataframe["relations"].apply(lambda x: bool(set(x) & completed) or len(x) == 0)
+        mask = dataframe["continuation_to"].apply(self.filter_relations, args=(completed,))
 
         if self.negative:
             mask = ~mask
 
         return dataframe[mask]
+
+    def filter_relations(self, item, completed):
+        return bool(set(item) & completed) or len(item) == 0

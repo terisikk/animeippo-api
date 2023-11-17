@@ -35,7 +35,11 @@ def cached_dataframe(ttl):
         async def wrapper(self, *args):
             data = None
             cachekey = (
-                ",".join([str(arg) if arg else "" for arg in args]) + "_" + str(self.__class__)
+                func.__name__
+                + " "
+                + ",".join([str(arg) if arg else "" for arg in args])
+                + "_"
+                + str(self.__class__)
             )
 
             if self.cache and self.cache.is_available():

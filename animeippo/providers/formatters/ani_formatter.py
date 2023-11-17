@@ -17,7 +17,8 @@ def transform_seasonal_data(data, feature_names):
         "mean_score",
         "popularity",
         "status",
-        "relations",
+        "continuation_to",
+        "adaptation_of",
         "score",
         "source",
         "tags",
@@ -78,19 +79,30 @@ def run_mappers(dataframe, original, mapping):
     return dataframe
 
 
-def filter_related_anime(field):
-    meaningful_relations = ["PARENT", "PREQUEL"]
-
+def filter_relations(field, meaningful_relations):
     relations = []
 
     for item in field:
         relationType = item.get("relationType", "")
         node = item.get("node", {})
+        id = node.get("id", None)
 
-        if relationType in meaningful_relations:
-            relations.append(node.get("id", None))
+        if relationType in meaningful_relations and id is not None:
+            relations.append(id)
 
     return relations
+
+
+def get_continuation(field):
+    meaningful_relations = ["PARENT", "PREQUEL"]
+
+    return filter_relations(field, meaningful_relations)
+
+
+def get_adaptation(field):
+    meaningful_relations = ["ADAPTATION"]
+
+    return filter_relations(field, meaningful_relations)
 
 
 def get_tags(tags):
@@ -154,7 +166,10 @@ ANILIST_MAPPING = {
     "score":        SingleMapper("score", get_score),
     "source":       SingleMapper("media.source", str.lower),
     "tags":         SingleMapper("media.tags", get_tags),
-    "relations":    SingleMapper("media.relations.edges", filter_related_anime),
+    "continuation_to":    
+                    SingleMapper("media.relations.edges", get_continuation),
+    "adaptation_of":
+                    SingleMapper("media.relations.edges", get_adaptation),
     "ranks":        SingleMapper("media.tags", get_ranks),
     "nsfw_tags":    SingleMapper("media.tags", get_nsfw_tags),
     "studios":      SingleMapper("media.studios.edges", get_studios),

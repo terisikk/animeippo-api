@@ -19,16 +19,18 @@ import numpy as np
 
 def get_default_scorers(distance_metric="jaccard"):
     return [
-        # scoring.FeatureCorrelationScorer(),
+        scoring.FeatureCorrelationScorer(),
         ## scoring.FeatureSimilarityScorer(weighted=True),
-        # scoring.GenreAverageScorer(),
-        # scoring.ClusterSimilarityScorer(weighted=True, distance_metric=distance_metric),
+        scoring.GenreAverageScorer(),
+        scoring.ClusterSimilarityScorer(weighted=True, distance_metric=distance_metric),
         ## scoring.StudioCountScorer(),
         scoring.StudioCorrelationScorer(),
-        # scoring.PopularityScorer(),
-        # scoring.ContinuationScorer(),
-        # scoring.SourceScorer(),
-        # scoring.DirectSimilarityScorer(distance_metric=distance_metric),
+        scoring.PopularityScorer(),
+        scoring.ContinuationScorer(),
+        scoring.ContinuationScorer(),
+        scoring.AdaptationScorer(),
+        scoring.SourceScorer(),
+        scoring.DirectSimilarityScorer(distance_metric=distance_metric),
     ]
 
 
@@ -37,6 +39,7 @@ def get_default_categorizers(distance_metric="jaccard"):
         categories.MostPopularCategory(),
         categories.SimulcastsCategory(),
         categories.ContinueWatchingCategory(),
+        categories.AdaptationCategory(),
         categories.YourTopPicksCategory(),
         categories.TopUpcomingCategory(),
         categories.ClusterCategory(0),
@@ -53,8 +56,16 @@ def get_default_categorizers(distance_metric="jaccard"):
 
 async def get_dataset(provider, user, year, season):
     if season is None:
-        user_data, season_data1, season_data2, season_data3, season_data4 = await asyncio.gather(
+        (
+            user_data,
+            manga_data,
+            season_data1,
+            season_data2,
+            season_data3,
+            season_data4,
+        ) = await asyncio.gather(
             provider.get_user_anime_list(user),
+            provider.get_user_manga_list(user),
             provider.get_seasonal_anime_list(year, "winter"),
             provider.get_seasonal_anime_list(year, "spring"),
             provider.get_seasonal_anime_list(year, "summer"),
@@ -63,8 +74,9 @@ async def get_dataset(provider, user, year, season):
 
         season_data = pd.concat([season_data1, season_data2, season_data3, season_data4])
     else:
-        user_data, season_data = await asyncio.gather(
+        user_data, manga_data, season_data = await asyncio.gather(
             provider.get_user_anime_list(user),
+            provider.get_user_manga_list(user),
             provider.get_seasonal_anime_list(year, season),
         )
 
@@ -72,6 +84,8 @@ async def get_dataset(provider, user, year, season):
         user_data,
         season_data,
     )
+
+    data.mangalist = manga_data
 
     data.nsfw_tags += get_nswf_tags(user_data)
     data.nsfw_tags += get_nswf_tags(season_data)
@@ -144,7 +158,7 @@ async def construct_myanimelist_data(provider, year, season, user):
             data.seasonal = f.filter(data.seasonal)
 
         indices = data.seasonal.index.to_list()
-        data.seasonal["relations"] = await get_related_anime(indices, provider)
+        data.seasonal["continuation_to"] = await get_related_anime(indices, provider)
 
     if data.watchlist is not None and data.seasonal is not None:
         data.seasonal = fill_user_status_data_from_watchlist(data.seasonal, data.watchlist)

@@ -10,6 +10,10 @@ class AbstractAnimeProvider(abc.ABC):
         pass
 
     @abc.abstractmethod
+    def get_user_manga_list(self, user_id):
+        pass
+
+    @abc.abstractmethod
     def get_seasonal_anime_list(self, year, season):
         pass
 

@@ -69,7 +69,7 @@ class AnimeRecommendationEngine:
 
             for scorer in self.scorers:
                 scoring = scorer.score(dataset)
-                scoring_target_df.loc[:, scorer.name] = scoring
+                scoring_target_df.loc[:, scorer.name] = scoring.fillna(0)
                 names.append(scorer.name)
 
             scoring_target_df["recommend_score"] = scoring_target_df[names].mean(axis=1)

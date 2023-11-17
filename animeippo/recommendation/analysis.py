@@ -94,9 +94,9 @@ def weight_encoded_categoricals_correlation(dataframe, column, features):
     df_expanded["score"] = dataframe["score"]
 
     correlation_matrix = df_expanded.corr()
-    weights = np.sqrt(dataframe.explode(column)[column].value_counts())
+    # weights = np.sqrt(dataframe.explode(column)[column].value_counts())
 
-    return correlation_matrix["score"].sort_values(ascending=False) * weights
+    return correlation_matrix["score"].sort_values(ascending=False)
 
 
 def weight_categoricals_correlation(dataframe, column):

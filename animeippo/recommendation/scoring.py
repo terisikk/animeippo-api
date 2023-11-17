@@ -216,18 +216,63 @@ class ContinuationScorer(AbstractScorer):
 
         mean_score = compare_df["score"].mean()
 
-        rdf = scoring_target_df.explode("relations")
+        if mean_score == 0 or pd.isna(mean_score):
+            mean_score = 5
 
-        rdf["score"] = np.nan
+        rdf = scoring_target_df.explode("continuation_to")
+
+        rdf["score"] = self.DEFAULT_SCORE
 
         for i, row in rdf.iterrows():
-            related_index = row["relations"]
+            related_index = row["continuation_to"]
             is_continuation = related_index in compare_df.index
-            rdf.at[i, "score"] = (
-                compare_df.at[related_index, "score"] if is_continuation else self.DEFAULT_SCORE
-            )
 
-        rdf["score"] = rdf["score"].fillna(mean_score)
+            score = compare_df.at[related_index, "score"] if is_continuation else self.DEFAULT_SCORE
+
+            if pd.isna(score):
+                score = mean_score
+
+            rdf.at[i, "score"] = score if is_continuation else self.DEFAULT_SCORE
+
+        scores = self.get_max_score_of_duplicate_relations(rdf)
+
+        return scores / 10
+
+    def get_max_score_of_duplicate_relations(self, rdf):
+        return rdf.groupby(rdf.index)["score"].max()
+
+
+class AdaptationScorer(AbstractScorer):
+    name = "adaptationscore"
+
+    DEFAULT_SCORE = 0
+
+    def score(self, data):
+        scoring_target_df = data.seasonal
+        compare_df = data.mangalist
+
+        if compare_df is None:
+            return np.nan
+
+        mean_score = compare_df["score"].mean()
+
+        if mean_score == 0 or np.isnan(mean_score):
+            mean_score = 5
+
+        rdf = scoring_target_df.explode("adaptation_of")
+
+        rdf["score"] = self.DEFAULT_SCORE
+
+        for i, row in rdf.iterrows():
+            related_index = row["adaptation_of"]
+            is_adaptation = related_index in compare_df.index
+
+            score = compare_df.at[related_index, "score"] if is_adaptation else self.DEFAULT_SCORE
+
+            if pd.isna(score):
+                score = mean_score
+
+            rdf.at[i, "score"] = score if is_adaptation else self.DEFAULT_SCORE
 
         scores = self.get_max_score_of_duplicate_relations(rdf)
 

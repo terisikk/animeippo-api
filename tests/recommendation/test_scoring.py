@@ -331,7 +331,7 @@ def test_continuation_scorer():
         {
             "id": [5, 6, 7, 8],
             "title": ["Anime A Season 2", "Anime E Season 2", "Anime B Season 2", "Anime F"],
-            "relations": [[1], [9], [2, 3], []],
+            "continuation_to": [[1], [9], [2, 3], []],
         }
     )
     original = original.set_index("id")
@@ -385,7 +385,7 @@ def test_continuation_scorer_takes_max_of_duplicate_relations():
         {
             "id": [5],
             "title": ["Anime A Season 2"],
-            "relations": [[1, 2]],
+            "continuation_to": [[1, 2]],
         }
     )
     original = original.set_index("id")

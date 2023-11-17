@@ -27,6 +27,18 @@ class ContinueWatchingCategory:
         ].sort_values(scoring.ContinuationScorer.name, ascending=False)[0:max_items]
 
 
+class AdaptationCategory:
+    description = "Because You Read the Manga"
+    requires = [scoring.AdaptationScorer]
+
+    def categorize(self, dataset, max_items=None):
+        target = dataset.recommendations
+
+        return target[
+            (target[scoring.AdaptationScorer.name] > 0) & (target["user_status"] != "completed")
+        ].sort_values(scoring.AdaptationScorer.name, ascending=False)[0:max_items]
+
+
 class SourceCategory:
     description = "Based on a"
     requires = [scoring.SourceScorer.name, scoring.DirectSimilarityScorer.name]
@@ -127,7 +139,7 @@ class YourTopPicksCategory:
 
 
 class TopUpcomingCategory:
-    description = "Top New Picks From Upcoming Anime"
+    description = "Top New Picks from Upcoming Anime"
 
     requires = ["recommend_score", scoring.ContinuationScorer.name]
 
