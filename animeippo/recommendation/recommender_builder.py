@@ -31,6 +31,7 @@ def get_default_scorers(distance_metric="jaccard"):
         scoring.AdaptationScorer(),
         scoring.SourceScorer(),
         scoring.DirectSimilarityScorer(distance_metric=distance_metric),
+        scoring.FormatScorer(),
     ]
 
 
@@ -39,18 +40,26 @@ def get_default_categorizers(distance_metric="jaccard"):
         categories.MostPopularCategory(),
         categories.SimulcastsCategory(),
         categories.ContinueWatchingCategory(),
-        categories.AdaptationCategory(),
         categories.YourTopPicksCategory(),
         categories.TopUpcomingCategory(),
-        categories.ClusterCategory(0),
+        # categories.ClusterCategory(0),
+        categories.GenreCategory(0),
+        categories.AdaptationCategory(),
+        # categories.ClusterCategory(1),
+        categories.GenreCategory(1),
         categories.SourceCategory(),
-        categories.ClusterCategory(1),
+        # categories.ClusterCategory(2),
+        categories.GenreCategory(2),
         categories.StudioCategory(),
-        categories.ClusterCategory(2),
+        # categories.ClusterCategory(3),
+        categories.GenreCategory(3),
         categories.BecauseYouLikedCategory(0, distance_metric),
-        categories.ClusterCategory(3),
+        # categories.ClusterCategory(4),
+        categories.GenreCategory(4),
         categories.BecauseYouLikedCategory(1, distance_metric),
-        categories.ClusterCategory(4),
+        categories.GenreCategory(5),
+        categories.BecauseYouLikedCategory(2, distance_metric),
+        categories.GenreCategory(6),
     ]
 
 
@@ -117,9 +126,7 @@ async def construct_anilist_data(provider, year, season, user):
         seasonal_filters = [
             filters.FeatureFilter("Kids", negative=True),
             filters.FeatureFilter("Hentai", negative=True),
-            filters.StartSeasonFilter(
-                (year, "winter"), (year, "spring"), (year, "summer"), (year, "fall")
-            )
+            filters.StartSeasonFilter((year, "winter"), (year, "spring"), (year, "summer"), (year, "fall"))
             if season is None
             else filters.StartSeasonFilter((year, season)),
         ]
@@ -147,9 +154,7 @@ async def construct_myanimelist_data(provider, year, season, user):
         seasonal_filters = [
             filters.MediaTypeFilter("tv"),
             filters.RatingFilter("g", "rx", negative=True),
-            filters.StartSeasonFilter(
-                (year, "winter"), (year, "spring"), (year, "summer"), (year, "fall")
-            )
+            filters.StartSeasonFilter((year, "winter"), (year, "spring"), (year, "summer"), (year, "fall"))
             if season is None
             else filters.StartSeasonFilter((year, season)),
         ]
@@ -229,22 +234,23 @@ def create_builder(providername):
                     engine.AnimeRecommendationEngine(
                         get_default_scorers(metric),
                         get_default_categorizers(metric),
-                        clustering.AnimeClustering(
-                            distance_metric=metric, distance_threshold=0.65, linkage="average"
-                        ),
+                        clustering.AnimeClustering(distance_metric=metric, distance_threshold=0.65, linkage="average"),
                         encoding.WeightedCategoricalEncoder(),
                     )
                 )
                 .databuilder(construct_anilist_data)
             )
         case _:
+            metric = "cosine"
             return (
                 RecommenderBuilder()
-                .provider(providers.myanimelist.MyAnimeListProvider(rcache))
+                .provider(providers.mixed_provider.MixedProvider(rcache))
                 .model(
                     engine.AnimeRecommendationEngine(
-                        get_default_scorers(), get_default_categorizers()
+                        get_default_scorers(metric),
+                        get_default_categorizers(metric),
+                        clustering.AnimeClustering(distance_metric=metric, distance_threshold=0.65, linkage="average"),
                     )
                 )
-                .databuilder(construct_myanimelist_data)
+                .databuilder(construct_anilist_data)
             )

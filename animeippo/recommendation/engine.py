@@ -20,10 +20,7 @@ class AnimeRecommendationEngine:
         is_missing_watchlist = dataset.watchlist is None
 
         if is_missing_seasonal or is_missing_watchlist:
-            error_desc = (
-                f"Watchlist invalid?: {is_missing_watchlist}. "
-                + f"Seasonal invalid?: {is_missing_seasonal}"
-            )
+            error_desc = f"Watchlist invalid?: {is_missing_watchlist}. " + f"Seasonal invalid?: {is_missing_seasonal}"
 
             raise RuntimeError("Trying to recommend anime without proper data. " + error_desc)
 
@@ -73,6 +70,7 @@ class AnimeRecommendationEngine:
                 names.append(scorer.name)
 
             scoring_target_df["recommend_score"] = scoring_target_df[names].mean(axis=1)
+            scoring_target_df["discourage_score"] = 1
         else:
             raise RuntimeError("No scorers added for engine. Please add at least one.")
 

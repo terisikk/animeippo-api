@@ -39,7 +39,9 @@ class AniListProvider(provider.AbstractAnimeProvider):
                         }
                         media {
                             id
+                            idMal
                             title { romaji }
+                            format
                             genres
                             tags {
                                 name
@@ -80,8 +82,10 @@ class AniListProvider(provider.AbstractAnimeProvider):
                 pageInfo { hasNextPage currentPage lastPage total perPage }
                 media(seasonYear: $seasonYear, season: $season, type:ANIME) {
                     id
+                    idMal
                     title { romaji }
                     status
+                    format
                     genres
                     tags {
                         name
@@ -89,11 +93,13 @@ class AniListProvider(provider.AbstractAnimeProvider):
                         isAdult
                     }
                     meanScore
+                    duration
+                    episodes
                     source
                     studios { edges { node { name isAnimationStudio } }}
                     seasonYear
                     season
-                    relations { edges { relationType, node { id }}}
+                    relations { edges { relationType, node { id, idMal }}}
                     popularity
                     coverImage { large }
                 }
@@ -130,6 +136,7 @@ class AniListProvider(provider.AbstractAnimeProvider):
                         }
                         media {
                             id
+                            idMal
                             title { romaji }
                             genres
                             tags {

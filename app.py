@@ -10,7 +10,7 @@ app = Flask(__name__)
 app.config["JSON_AS_ASCII"] = False
 cors = CORS(app, origins="http://localhost:3000")
 
-recommender = recommender_builder.create_builder("anilist").build()
+recommender = recommender_builder.create_builder("mal").build()
 profiler = profile.ProfileAnalyser(recommender.provider)
 
 
@@ -49,9 +49,7 @@ def recommend_anime():
     except ClientError:
         return f"Could nof fetch data for user {user}.", 404
 
-    return Response(
-        views.web_view(dataset.recommendations, categories), mimetype="application/json"
-    )
+    return Response(views.web_view(dataset.recommendations, categories), mimetype="application/json")
 
 
 @app.route("/analyse")

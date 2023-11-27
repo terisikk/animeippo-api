@@ -7,9 +7,7 @@ def web_view(dataframe, categories=None):
     else:
         dataframe["id"] = dataframe["id"].fillna(dataframe.index.to_series())
 
-    fields = set(
-        ["id", "title", "coverImage", "cluster", "genres", "status", "user_status", "start_season"]
-    )
+    fields = set(["id", "title", "coverImage", "cluster", "genres", "status", "user_status", "start_season"])
 
     filtered_fields = list(set(dataframe.columns.tolist()).intersection(fields))
 
@@ -28,5 +26,5 @@ def web_view(dataframe, categories=None):
 
 
 def console_view(dataframe):
-    dataframe = dataframe.reset_index()
-    print(dataframe.reset_index().loc[0:25][["title", "genres"]])
+    # dataframe = dataframe.reset_index()
+    print(dataframe.iloc[0:25][["title", "genres"]])

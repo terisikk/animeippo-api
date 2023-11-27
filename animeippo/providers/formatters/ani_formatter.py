@@ -11,7 +11,9 @@ def transform_seasonal_data(data, feature_names):
 
     keys = [
         "id",
+        "idMal",
         "title",
+        "format",
         "genres",
         "coverImage",
         "mean_score",
@@ -20,6 +22,8 @@ def transform_seasonal_data(data, feature_names):
         "continuation_to",
         "adaptation_of",
         "score",
+        "duration",
+        "episodes",
         "source",
         "tags",
         "nsfw_tags",
@@ -36,7 +40,9 @@ def transform_watchlist_data(data, feature_names):
 
     keys = [
         "id",
+        "idMal",
         "title",
+        "format",
         "genres",
         "coverImage",
         "user_status",
@@ -143,24 +149,22 @@ def get_nsfw_tags(items):
 
 
 def get_studios(studios):
-    return set(
-        [
-            studio["node"]["name"]
-            for studio in studios
-            if studio["node"].get("isAnimationStudio", False)
-        ]
-    )
+    return set([studio["node"]["name"] for studio in studios if studio["node"].get("isAnimationStudio", False)])
 
 
 # fmt: off
 
 ANILIST_MAPPING = {
     "id":           DefaultMapper("media.id"),
+    "idMal":        DefaultMapper("media.idMal"),
     "title":        DefaultMapper("media.title.romaji"),
+    "format":       DefaultMapper("media.format"),
     "genres":       DefaultMapper("media.genres"),
     "coverImage":   DefaultMapper("media.coverImage.large"),
     "mean_score":   DefaultMapper("media.meanScore"),
     "popularity":   DefaultMapper("media.popularity"),
+    "duration":     DefaultMapper("media.duration"),
+    "episodes":     DefaultMapper("media.episodes"),
     "user_status":  SingleMapper("status", str.lower),
     "status":       SingleMapper("media.status", str.lower),
     "score":        SingleMapper("score", get_score),
