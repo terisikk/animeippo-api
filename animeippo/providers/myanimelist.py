@@ -32,19 +32,23 @@ class MyAnimeListProvider(provider.AbstractAnimeProvider):
         fields = [
             "id",
             "title",
+            "media_type",
             "genres",
-            "list_status{score,status}",
+            "list_status{score,status,finish_date}",
+            "status",
             "studios",
             "rating{value}",
+            "mean",
             "start_season",
             "source",
+            "main_picture{medium}",
         ]
 
         parameters = {"nsfw": "true", "fields": ",".join(fields)}
 
         anime_list = await self.connection.request_anime_list(query, parameters)
 
-        return mal_formatter.transform_to_animeippo_format(anime_list, self.get_feature_fields())
+        return mal_formatter.transform_watchlist_data(anime_list, self.get_feature_fields())
 
     @animecache.cached_dataframe(ttl=timedelta(days=1))
     async def get_seasonal_anime_list(self, year, season):
@@ -55,14 +59,16 @@ class MyAnimeListProvider(provider.AbstractAnimeProvider):
         fields = [
             "id",
             "title",
-            "genres",
             "media_type",
+            "genres",
+            "status",
             "studios",
-            "mean",
             "num_list_users",
             "rating{value}",
+            "mean",
             "start_season",
             "source",
+            "main_picture{medium}",
         ]
         parameters = {"nsfw": "true", "fields": ",".join(fields)}
 
@@ -87,6 +93,33 @@ class MyAnimeListProvider(provider.AbstractAnimeProvider):
         anime_list = await self.connection.request_related_anime(query, parameters)
 
         return mal_formatter.transform_to_animeippo_format(anime_list, self.get_feature_fields())
+
+    @animecache.cached_dataframe(ttl=timedelta(days=1))
+    async def get_user_manga_list(self, user_id):
+        if not user_id:
+            return None
+
+        query = f"/users/{user_id}/mangalist"
+        fields = [
+            "id",
+            "title",
+            "media_type",
+            "genres",
+            "list_status{score,status,finish_date}",
+            "status",
+            "studios",
+            "rating{value}",
+            "mean",
+            "start_season",
+            "source",
+            "main_picture{medium}",
+        ]
+
+        parameters = {"nsfw": "true", "fields": ",".join(fields)}
+
+        anime_list = await self.connection.request_anime_list(query, parameters)
+
+        return mal_formatter.transform_watchlist_data(anime_list, self.get_feature_fields())
 
     def get_feature_fields(self):
         return ["genres", "rating"]
