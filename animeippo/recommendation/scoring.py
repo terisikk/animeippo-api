@@ -32,9 +32,7 @@ class FeaturesSimilarityScorer(AbstractScorer):
         )
 
         if self.weighted:
-            averages = analysis.mean_score_per_categorical(
-                compare_df.explode("features"), "features"
-            )
+            averages = analysis.mean_score_per_categorical(compare_df.explode("features"), "features")
             weights = scoring_target_df["features"].apply(
                 analysis.weighted_mean_for_categorical_values, args=(averages.fillna(0.0),)
             )
@@ -50,9 +48,7 @@ class FeatureCorrelationScorer(AbstractScorer):
         scoring_target_df = data.seasonal
         compare_df = data.watchlist
 
-        score_correlations = analysis.weight_encoded_categoricals_correlation(
-            compare_df, "encoded", data.all_features
-        )
+        score_correlations = analysis.weight_encoded_categoricals_correlation(compare_df, "encoded", data.all_features)
 
         scores = scoring_target_df["features"].apply(
             # For once, np.sum is the wanted metric,
@@ -141,9 +137,7 @@ class ClusterSimilarityScorer(AbstractScorer):
         st_encoded = np.vstack(scoring_target_df["encoded"])
         co_encoded = np.vstack(compare_df["encoded"])
 
-        scores = pd.DataFrame(
-            index=scoring_target_df.index, columns=range(0, len(compare_df["cluster"].unique()))
-        )
+        scores = pd.DataFrame(index=scoring_target_df.index, columns=range(0, len(compare_df["cluster"].unique())))
 
         cluster_groups = compare_df.groupby("cluster")
 
@@ -294,3 +288,42 @@ class SourceScorer(AbstractScorer):
         scores = scoring_target_df["source"].apply(lambda x: averages.get(x, 0))
 
         return analysis.normalize_column(scores)
+
+
+class FormatScorer(AbstractScorer):
+    name = "formatscore"
+
+    FORMAT_MAPPING = {
+        "TV": 1,
+        "TV_SHORT": 0.8,
+        "MOVIE": 1,
+        "SPECIAL": 0.8,
+        "OVA": 1,
+        "ONA": 1,
+        "MUSIC": 0.2,
+        "MANGA": 1,
+        "NOVEL": 1,
+        "ONE_SHOT": 0.2,
+    }
+
+    def score(self, data):
+        scoring_target_df = data.seasonal
+
+        scores = scoring_target_df.apply(
+            self.get_format_score,
+            args=(
+                scoring_target_df["episodes"].median(),
+                scoring_target_df["duration"].median(),
+            ),
+            axis=1,
+        )
+
+        return analysis.normalize_column(scores)
+
+    def get_format_score(self, row, median_episodes, median_duration):
+        score = self.FORMAT_MAPPING.get(row["format"], 1)
+
+        if row["episodes"] < (0.75 * median_episodes) and row["duration"] < (0.75 * median_duration):
+            score = score * 0.5
+
+        return score
