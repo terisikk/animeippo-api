@@ -9,9 +9,7 @@ from animeippo.recommendation import categories, dataset
 def test_most_popular_category():
     cat = categories.MostPopularCategory()
 
-    recommendations = pd.DataFrame(
-        {"popularityscore": [2, 3, 1], "title": ["Test 1", "Test 2", "Test 3"]}
-    )
+    recommendations = pd.DataFrame({"popularityscore": [2, 3, 1], "title": ["Test 1", "Test 2", "Test 3"]})
 
     data = dataset.UserDataSet(None, None, None)
     data.recommendations = recommendations
@@ -27,6 +25,7 @@ def test_continue_watching_category():
     recommendations = pd.DataFrame(
         {
             "continuationscore": [0, 0, 1],
+            "recommend_score": [0, 0, 1],
             "user_status": ["in_progress", "completed", "in_progress"],
             "title": ["Test 1", "Test 2", "Test 3"],
         }
@@ -48,6 +47,7 @@ def test_source_category():
     recommendations = pd.DataFrame(
         {
             "directscore": [1, 2, 3],
+            "recommend_score": [1, 2, 3],
             "title": ["Test 1", "Test 2", "Test 3"],
             "source": ["manga", "manga", "ligh_novel"],
         }
@@ -64,13 +64,12 @@ def test_source_category():
 def test_source_category_defaults_to_manga_without_scores():
     cat = categories.SourceCategory()
 
-    watchlist = pd.DataFrame(
-        {"source": ["manga", "light_novel", "other"], "score": [None, None, None]}
-    )
+    watchlist = pd.DataFrame({"source": ["manga", "light_novel", "other"], "score": [None, None, None]})
 
     recommendations = pd.DataFrame(
         {
             "directscore": [1, 2, 3],
+            "recommend_score": [1, 2, 3],
             "title": ["Test 1", "Test 2", "Test 3"],
             "source": ["manga", "manga", "ligh_novel"],
         }
@@ -92,6 +91,7 @@ def test_source_category_descriptions():
     recommendations = pd.DataFrame(
         {
             "directscore": [1, 2, 3],
+            "recommend_score": [1, 2, 3],
             "title": ["Test 1", "Test 2", "Test 3"],
             "source": ["manga", "other", "original"],
         }
@@ -121,6 +121,8 @@ def test_studio_category():
     recommendations = pd.DataFrame(
         {
             "studiocorrelationscore": [1, 3, 2],
+            "formatscore": [1, 3, 2],
+            "recommend_score": [1, 3, 2],
             "title": ["Test 1", "Test 2", "Test 3"],
             "user_status": [pd.NA, pd.NA, pd.NA],
         }
@@ -151,6 +153,7 @@ def test_cluster_category():
     recommendations = pd.DataFrame(
         {
             "cluster": [0, 1, 1],
+            "recommend_score": [1, 1, 1],
             "title": ["Test 1", "Test 2", "Test 3"],
             "user_status": [pd.NA, pd.NA, pd.NA],
         }
@@ -171,6 +174,7 @@ def test_cluster_category():
     data.recommendations = pd.DataFrame(
         {
             "cluster": [1, 1, 1],
+            "recommend_score": [1, 1, 1],
             "title": ["Test 1", "Test 2", "Test 3"],
             "user_status": [pd.NA, pd.NA, pd.NA],
         }
@@ -198,6 +202,7 @@ def test_nsfw_tags_are_filtered_from_cluster_category():
     recommendations = pd.DataFrame(
         {
             "cluster": [0, 1, 1],
+            "recommend_score": [0, 1, 1],
             "title": ["Test 1", "Test 2", "Test 3"],
             "user_status": [pd.NA, pd.NA, pd.NA],
         }
@@ -318,9 +323,7 @@ def test_because_you_liked():
 def test_because_you_liked_does_not_fail_with_empty_likes():
     cat = categories.BecauseYouLikedCategory(99)
 
-    user_data = pd.DataFrame(
-        {"score": [1, 1], "user_complete_date": [1, 2], "user_status": [pd.NA, pd.NA]}
-    )
+    user_data = pd.DataFrame({"score": [1, 1], "user_complete_date": [1, 2], "user_status": [pd.NA, pd.NA]})
 
     data = dataset.UserDataSet(user_data, None, None)
     data.recommendations = user_data

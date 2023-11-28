@@ -12,20 +12,20 @@ def test_genre_splitting_does_not_fail_with_invalid_data():
 
 
 def test_user_score_extraction_does_not_fail_with_invalid_data():
-    mal_formatter.formatters["score"](1.0)
-    mal_formatter.formatters["score"](None)
-    mal_formatter.formatters["score"](np.nan)
+    mal_formatter.get_score(1.0)
+    mal_formatter.get_score(None)
+    mal_formatter.get_score(np.nan)
 
 
 def test_anime_season_extraction_does_not_fail_with_invalid_data():
     assert mal_formatter.split_season({"year": None, "sesson": "winter"}) == "None/?"
-    assert mal_formatter.split_season(np.nan) == "?/?"
+    assert pd.isna(mal_formatter.split_season(np.nan))
 
 
 def test_user_score_cannot_be_zero():
     original = 0
 
-    actual = mal_formatter.formatters["score"](original)
+    actual = mal_formatter.get_score(original)
 
     assert np.isnan(actual)
 
@@ -33,7 +33,7 @@ def test_user_score_cannot_be_zero():
 def test_dataframe_can_be_constructed_from_mal():
     animelist = test_data.MAL_USER_LIST
 
-    data = mal_formatter.transform_to_animeippo_format(animelist)
+    data = mal_formatter.transform_watchlist_data(animelist, ["genres"])
 
     assert type(data) == pd.DataFrame
     assert len(data) == 2
@@ -55,10 +55,8 @@ def test_dataframe_can_be_constructed_from_incomplete_data():
 
     del animelist["data"][0]["list_status"]
     del animelist["data"][1]["list_status"]
-    del animelist["data"][0]["node"]["id"]
-    del animelist["data"][1]["node"]["id"]
 
-    data = mal_formatter.transform_to_animeippo_format(animelist)
+    data = mal_formatter.transform_watchlist_data(animelist, ["genres"])
 
     assert type(data) == pd.DataFrame
     assert len(data) == 2
@@ -73,7 +71,7 @@ def test_dataframe_can_be_constructed_from_incomplete_data():
         "Vampire",
     ]
     assert pd.isnull(data.iloc[1].get("score", np.nan))
-    assert "list_status" not in data.columns
+    assert "user_status" in data.columns
 
 
 def test_mal_genres_can_be_split():
@@ -97,7 +95,7 @@ def test_mal_genres_can_be_split():
 def test_columns_are_named_properly():
     animelist = test_data.MAL_SEASONAL_LIST
 
-    data = mal_formatter.transform_to_animeippo_format(animelist)
+    data = mal_formatter.transform_seasonal_data(animelist, [])
 
     assert "popularity" in data.columns
     assert "coverImage" in data.columns

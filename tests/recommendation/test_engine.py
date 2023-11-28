@@ -108,6 +108,7 @@ def test_categorize():
             "source": ["original"],
             "score": [123],
             "user_status": [pd.NA],
+            "recommend_score": [1],
         }
     )
 

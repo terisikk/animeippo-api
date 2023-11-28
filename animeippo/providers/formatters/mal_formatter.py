@@ -27,10 +27,74 @@ def transform_watchlist_data(data, feature_names):
         "start_season",
     ]
 
-    return transform_to_animeippo_format2(original, feature_names, keys)
+    return transform_to_animeippo_format(original, feature_names, keys)
 
 
-def transform_to_animeippo_format2(original, feature_names, keys):
+def transform_seasonal_data(data, feature_names):
+    original = pd.json_normalize(data["data"])
+
+    keys = [
+        "id",
+        "idMal",
+        "title",
+        "format",
+        "genres",
+        "coverImage",
+        "mean_score",
+        "popularity",
+        "status",
+        "continuation_to",
+        "adaptation_of",
+        "score",
+        "duration",
+        "episodes",
+        "source",
+        "tags",
+        "nsfw_tags",
+        "ranks",
+        "studios",
+        "start_season",
+    ]
+
+    return transform_to_animeippo_format(original, feature_names, keys)
+
+
+def transform_user_manga_list_data(data, feature_names):
+    original = pd.json_normalize(data["data"])
+
+    keys = [
+        "id",
+        "title",
+        "format",
+        "genres",
+        "coverImage",
+        "user_status",
+        "mean_score",
+        "rating",
+        "score",
+        "source",
+        "studios",
+        "user_complete_date",
+        "start_season",
+    ]
+
+    return transform_to_animeippo_format(original, feature_names, keys)
+
+
+def transform_related_anime(data, feature_names):
+    original = pd.json_normalize(data["data"])
+
+    keys = [
+        "id",
+        "title",
+        "source",
+        "related_anime",
+    ]
+
+    return transform_to_animeippo_format(original, feature_names, keys)
+
+
+def transform_to_animeippo_format(original, feature_names, keys):
     df = pd.DataFrame(columns=keys)
 
     if len(original) == 0:
@@ -53,40 +117,6 @@ def run_mappers(dataframe, original, mapping):
             dataframe[key] = mapper.map(original)
 
     return dataframe
-
-
-def transform_to_animeippo_format(data, feature_names=None, normalize_level=1):
-    if len(data.get("data", [])) == 0:
-        return pd.DataFrame()
-
-    df = pd.json_normalize(data["data"], max_level=normalize_level)
-
-    column_mapping = util.get_column_name_mappers(df.columns)
-    column_mapping["node.num_list_users"] = "popularity"
-    column_mapping["node.main_picture"] = "coverImage"
-
-    df = df.rename(columns=column_mapping)
-
-    df = util.format_with_formatters(df, formatters)
-
-    df["features"] = df.apply(util.get_features, args=(feature_names,), axis=1)
-
-    if "relation_type" in df.columns:
-        df = filter_related_anime(df)
-
-    dropped = [
-        "num_episodes_watched",
-        "is_rewatching",
-        "updated_at",
-        "start_date",
-        "finish_date",
-    ]
-    df = df.drop(dropped, errors="ignore", axis=1)
-
-    if "id" in df.columns:
-        df = df.set_index("id")
-
-    return df
 
 
 @util.default_if_error([])
@@ -165,6 +195,7 @@ MAL_MAPPING = {
     "status": SingleMapper("node.status", get_status),
     "score": SingleMapper("list_status.score", get_score),
     "start_season": SingleMapper("node.start_season", split_season),
+    "related_anime": SingleMapper("node.related_anime", filter_related_anime),
     # "tags": SingleMapper("media.tags", get_tags),
     # "continuation_to": SingleMapper("media.relations.edges", get_continuation),
     # "adaptation_of": SingleMapper("media.relations.edges", get_adaptation),

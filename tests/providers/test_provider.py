@@ -14,6 +14,9 @@ def test_new_provider_can_be_instantiated():
         def get_seasonal_anime_list(self, year, season):
             super().get_seasonal_anime_list(year, season)
 
+        def get_user_manga_list(self, user_id):
+            return super().get_user_manga_list(user_id)
+
         def get_feature_fields(self):
             super().get_feature_fields()
 

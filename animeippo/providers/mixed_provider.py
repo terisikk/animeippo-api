@@ -65,8 +65,45 @@ class MixedProvider(provider.AbstractAnimeProvider):
         return mixed_formatter.transform_ani_watchlist_data(ani_list, self.get_feature_fields(), mal_df)
 
     async def get_seasonal_anime_list(self, year, season):
-        seasonal_list = await self.ani_provider.get_seasonal_anime_list(year, season)
-        return seasonal_list
+        if year is None or season is None:
+            return None
+
+        query = """
+        query ($seasonYear: Int, $season: MediaSeason, $page: Int) {
+            Page(page: $page, perPage: 50) {
+                pageInfo { hasNextPage currentPage lastPage total perPage }
+                media(seasonYear: $seasonYear, season: $season, type:ANIME) {
+                    id
+                    idMal
+                    title { romaji }
+                    status
+                    format
+                    genres
+                    tags {
+                        name
+                        rank
+                        isAdult
+                    }
+                    meanScore
+                    duration
+                    episodes
+                    source
+                    studios { edges { node { name isAnimationStudio } }}
+                    seasonYear
+                    season
+                    relations { edges { relationType, node { id, idMal }}}
+                    popularity
+                    coverImage { large }
+                }
+            }
+        }
+        """
+
+        variables = {"seasonYear": int(year), "season": str(season).upper()}
+
+        anime_list = await self.ani_provider.connection.request_paginated(query, variables)
+
+        return mixed_formatter.transform_ani_seasonal_data(anime_list, self.get_feature_fields())
 
     async def get_user_manga_list(self, user_id):
         return await self.mal_provider.get_user_manga_list(user_id)

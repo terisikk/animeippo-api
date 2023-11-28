@@ -240,6 +240,18 @@ def create_builder(providername):
                 )
                 .databuilder(construct_anilist_data)
             )
+        case "myanimelist":
+            return (
+                RecommenderBuilder()
+                .provider(providers.myanimelist.MyAnimeListProvider(rcache))
+                .model(
+                    engine.AnimeRecommendationEngine(
+                        get_default_scorers(),
+                        get_default_categorizers(),
+                    )
+                )
+                .databuilder(construct_myanimelist_data)
+            )
         case _:
             metric = "cosine"
             return (

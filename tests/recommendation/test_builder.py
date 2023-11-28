@@ -105,10 +105,7 @@ async def test_databuilder_without_season():
 
 
 def test_builder_creation_returns_correct_builders():
-    assert (
-        recommender_builder.create_builder("anilist")._provider.__class__
-        == providers.anilist.AniListProvider
-    )
+    assert recommender_builder.create_builder("anilist")._provider.__class__ == providers.anilist.AniListProvider
     assert (
         recommender_builder.create_builder("myanimelist")._provider.__class__
         == providers.myanimelist.MyAnimeListProvider
@@ -116,31 +113,39 @@ def test_builder_creation_returns_correct_builders():
 
     assert (
         recommender_builder.create_builder("faulty-provider")._provider.__class__
-        == providers.myanimelist.MyAnimeListProvider
+        == providers.mixed_provider.MixedProvider
     )
 
 
 def test_builder_passes_with_or_without_cache(mocker):
-    assert (
-        recommender_builder.create_builder("anilist")._provider.__class__
-        == providers.anilist.AniListProvider
-    )
+    assert recommender_builder.create_builder("anilist")._provider.__class__ == providers.anilist.AniListProvider
 
     mocker.patch("animeippo.cache.RedisCache", CacheStub)
 
-    assert (
-        recommender_builder.create_builder("anilist")._provider.__class__
-        == providers.anilist.AniListProvider
-    )
+    assert recommender_builder.create_builder("anilist")._provider.__class__ == providers.anilist.AniListProvider
 
 
 def test_status_data_is_filled_to_dataset():
     watchlist = pd.DataFrame(
-        {"id": [110, 120, 130], "user_status": ["completed", "watching", "completed"]}
+        {
+            "id": [110, 120, 130],
+            "user_status": [
+                "completed",
+                "watching",
+                "completed",
+            ],
+        }
     ).set_index("id")
 
     seasonal = pd.DataFrame(
-        {"id": [110, 120, 140], "title": ["Test 1", "Test 2", "Test 3"]}
+        {
+            "id": [110, 120, 140],
+            "title": [
+                "Test 1",
+                "Test 2",
+                "Test 3",
+            ],
+        }
     ).set_index("id")
 
     seasonal = recommender_builder.fill_user_status_data_from_watchlist(seasonal, watchlist)
@@ -154,7 +159,17 @@ def test_status_data_is_filled_to_dataset():
 
 def test_nsfw_tags_are_recorded_if_available():
     watchlist = pd.DataFrame(
-        {"id": [110], "tags": [["tag1", "tag2", "tag3"]], "nsfw_tags": [["tag1"]]}
+        {
+            "id": [110],
+            "tags": [
+                [
+                    "tag1",
+                    "tag2",
+                    "tag3",
+                ]
+            ],
+            "nsfw_tags": [["tag1"]],
+        }
     ).set_index("id")
 
     assert recommender_builder.get_nswf_tags(watchlist) == ["tag1"]

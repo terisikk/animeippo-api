@@ -8,10 +8,12 @@ class AsyncProviderStub:
         self,
         seasonal=test_data.FORMATTED_MAL_SEASONAL_LIST,
         user=test_data.FORMATTED_MAL_USER_LIST,
+        manga=[],
         cache=None,
     ):
         self.seasonal = seasonal
         self.user = user
+        self.manga = manga
         self.cache = cache
 
     async def get_seasonal_anime_list(self, *args, **kwargs):
@@ -19,6 +21,9 @@ class AsyncProviderStub:
 
     async def get_user_anime_list(self, *args, **kwargs):
         return pd.DataFrame(self.user).set_index("id")
+
+    async def get_user_manga_list(self, *args, **kwargs):
+        return pd.DataFrame(self.manga)
 
     async def get_related_anime(self, *args, **kwargs):
         return pd.DataFrame()
@@ -38,6 +43,9 @@ class FaultyProviderStub:
         return None
 
     async def get_user_anime_list(self, *args, **kwargs):
+        return None
+
+    async def get_user_manga_list(self, *args, **kwargs):
         return None
 
     async def get_related_anime(self, *args, **kwargs):

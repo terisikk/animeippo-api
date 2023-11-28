@@ -375,6 +375,7 @@ FORMATTED_MAL_SEASONAL_LIST = [
             "Test Studio 2",
         ],
         "rating": "r+",
+        "continuation_to": [],
         "media_type": "tv",
         "status": None,
         "start_season": "2023/winter",
@@ -406,6 +407,7 @@ FORMATTED_MAL_SEASONAL_LIST = [
             "Suspense",
             "r",
         ],
+        "continuation_to": [],
         "studios": [
             "Test Studio 1",
             "Test Studio 2",
