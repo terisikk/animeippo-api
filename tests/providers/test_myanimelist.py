@@ -72,6 +72,20 @@ async def test_mal_seasonal_anime_list_can_be_fetched(mocker):
 
 
 @pytest.mark.asyncio
+async def test_mal_user_manga_list_can_be_fetched(mocker):
+    provider = myanimelist.MyAnimeListProvider()
+
+    user = "Janiskeisari"
+
+    response = ResponseStub(test_data.MAL_MANGA_LIST)
+    mocker.patch("aiohttp.ClientSession.get", return_value=response)
+
+    animelist = await provider.get_user_manga_list(user)
+
+    assert "Daadaa dandaddaa" in animelist["title"].values
+
+
+@pytest.mark.asyncio
 async def test_mal_related_anime_can_be_fetched(mocker):
     provider = myanimelist.MyAnimeListProvider()
 
@@ -112,8 +126,7 @@ async def test_get_next_page_returns_succesfully(mocker):
 
     session = SessionStub({"page1": response1, "page2": response2, "page3": response3})
     final_pages = [
-        await myanimelist.MyAnimeListConnection().requests_get_next_page(session, await page.json())
-        for page in pages
+        await myanimelist.MyAnimeListConnection().requests_get_next_page(session, await page.json()) for page in pages
     ]
 
     assert len(final_pages) == 3
@@ -134,9 +147,7 @@ async def test_get_all_pages_returns_all_pages(mocker):
     response = ResponseStub({"related_anime": []})
     mocker.patch("aiohttp.ClientSession.get", return_value=response)
 
-    mock_session = SessionStub(
-        {"FAKE" + first_page_url: response1, "page2": response2, "page3": response3}
-    )
+    mock_session = SessionStub({"FAKE" + first_page_url: response1, "page2": response2, "page3": response3})
 
     final_pages = list(
         [
@@ -192,13 +203,15 @@ def test_features_can_be_fetched():
 
 
 @pytest.mark.asyncio
-async def test_anilist_returns_None_with_empty_parameters():
+async def test_mal_returns_None_with_empty_parameters():
     provider = myanimelist.MyAnimeListProvider()
 
     related_anime = await provider.get_related_anime(None)
     seasonal_anime = await provider.get_seasonal_anime_list(None, None)
     user_anime = await provider.get_user_anime_list(None)
+    user_manga = await provider.get_user_manga_list(None)
 
     assert related_anime is None
     assert seasonal_anime is None
     assert user_anime is None
+    assert user_manga is None

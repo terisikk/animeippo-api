@@ -226,6 +226,58 @@ MAL_SEASONAL_LIST = {
     ]
 }
 
+MAL_MANGA_LIST = {
+    "data": [
+        {
+            "node": {
+                "id": 1234,
+                "title": "Daadaa dandaddaa",
+                "main_picture": {
+                    "medium": "https://api-cdn.myanimelist.net/images/anime/1855/128059.jpg",
+                    "large": "https://api-cdn.myanimelist.net/images/anime/1855/128059l.jpg",
+                },
+                "genres": [
+                    {"id": 1, "name": "Action"},
+                    {"id": 2, "name": "Fantasy"},
+                ],
+                "studios": [
+                    {"id": 1, "name": "Test Studio 1"},
+                    {"id": 5, "name": "Test Studio 2"},
+                ],
+                "media_type": "manga",
+                "rating": "r+",
+                "mean": 5,
+                "status": "finished",
+                "source": "original",
+            }
+        },
+        {
+            "node": {
+                "id": 532432,
+                "title": "Rintintin: Beyond Johnson's Bed",
+                "main_picture": {
+                    "medium": "https://api-cdn.myanimelist.net/images/anime/1279/131078.jpg",
+                    "large": "https://api-cdn.myanimelist.net/images/anime/1279/131078l.jpg",
+                },
+                "genres": [
+                    {"id": 1, "name": "Fantasy"},
+                    {"id": 8, "name": "Drama"},
+                    {"id": 41, "name": "Suspense"},
+                ],
+                "studios": [
+                    {"id": 1, "name": "Test Studio 1"},
+                    {"id": 5, "name": "Test Studio 2"},
+                ],
+                "media_type": "manga",
+                "rating": "r",
+                "mean": 8,
+                "status": "finished",
+                "source": "original",
+            }
+        },
+    ]
+}
+
 ANI_SEASONAL_LIST = {
     "data": {
         "Page": {

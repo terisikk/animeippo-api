@@ -28,6 +28,7 @@ def test_new_provider_can_be_instantiated():
     actual.get_seasonal_anime_list(None, None)
     actual.get_feature_fields()
     actual.get_related_anime(None)
+    actual.get_user_manga_list(None)
 
     assert issubclass(actual.__class__, provider.AbstractAnimeProvider)
 

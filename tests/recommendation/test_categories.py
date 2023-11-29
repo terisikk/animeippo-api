@@ -402,3 +402,23 @@ def test_simulcastscategory_current_season_getter(monkeypatch):
     # Probably not possible but for coverage
     monkeypatch.setattr(datetime, "date", FakeDateMalformed)
     assert cat.get_current_season() == "2022/?"
+
+
+def test_adapatation_category():
+    cat = categories.AdaptationCategory()
+
+    recommendations = pd.DataFrame(
+        {
+            "adaptationscore": [0, 1, 1],
+            "recommend_score": [0, 0, 1],
+            "user_status": ["in_progress", "completed", "in_progress"],
+            "title": ["Test 1", "Test 2", "Test 3"],
+        }
+    )
+
+    data = dataset.UserDataSet(None, None, None)
+    data.recommendations = recommendations
+
+    actual = cat.categorize(data)
+
+    assert actual["title"].tolist() == ["Test 3"]

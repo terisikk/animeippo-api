@@ -75,7 +75,6 @@ def transform_user_manga_list_data(data, feature_names):
         "source",
         "studios",
         "user_complete_date",
-        "start_season",
     ]
 
     return transform_to_animeippo_format(original, feature_names, keys)

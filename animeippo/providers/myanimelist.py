@@ -110,7 +110,6 @@ class MyAnimeListProvider(provider.AbstractAnimeProvider):
             "studios",
             "rating{value}",
             "mean",
-            "start_season",
             "source",
             "main_picture{medium}",
         ]
