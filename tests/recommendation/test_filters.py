@@ -14,15 +14,15 @@ def test_abstract_filter_can_be_instantiated():
 
 
 def test_media_type_filter():
-    original = pd.DataFrame({"media_type": ["tv", "tv", "special", "movie"]})
+    original = pd.DataFrame({"format": ["tv", "tv", "special", "movie"]})
 
     filter = filters.MediaTypeFilter("tv")
 
-    assert filter.filter(original)["media_type"].tolist() == ["tv", "tv"]
+    assert filter.filter(original)["format"].tolist() == ["tv", "tv"]
 
     filter.negative = True
 
-    assert filter.filter(original)["media_type"].tolist() == ["special", "movie"]
+    assert filter.filter(original)["format"].tolist() == ["special", "movie"]
 
 
 def test_feature_filter():
@@ -51,9 +51,7 @@ def test_id_filter():
 
 
 def test_status_filter():
-    original = pd.DataFrame(
-        {"user_status": ["dropped", "completed", "on_hold", "completed", "unwatched"]}
-    )
+    original = pd.DataFrame({"user_status": ["dropped", "completed", "on_hold", "completed", "unwatched"]})
 
     filter = filters.UserStatusFilter("completed")
 

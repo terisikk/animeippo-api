@@ -4,7 +4,7 @@ def get_recs():
     season = None
     user = "Janiskeisari"
 
-    recommender = recommender_builder.create_builder("mal").build()
+    recommender = recommender_builder.create_builder("anilist").build()
     # recommender = recommender_builder.create_builder(os.environ.get("DEFAULT_PROVIDER")).build()
     dataset = recommender.recommend_seasonal_anime(year, season, user)
 

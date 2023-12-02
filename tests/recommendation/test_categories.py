@@ -25,7 +25,7 @@ def test_continue_watching_category():
     recommendations = pd.DataFrame(
         {
             "continuationscore": [0, 0, 1],
-            "recommend_score": [0, 0, 1],
+            "final_score": [0, 0, 1],
             "user_status": ["in_progress", "completed", "in_progress"],
             "title": ["Test 1", "Test 2", "Test 3"],
         }
@@ -47,7 +47,7 @@ def test_source_category():
     recommendations = pd.DataFrame(
         {
             "directscore": [1, 2, 3],
-            "recommend_score": [1, 2, 3],
+            "final_score": [1, 2, 3],
             "title": ["Test 1", "Test 2", "Test 3"],
             "source": ["manga", "manga", "ligh_novel"],
         }
@@ -69,7 +69,7 @@ def test_source_category_defaults_to_manga_without_scores():
     recommendations = pd.DataFrame(
         {
             "directscore": [1, 2, 3],
-            "recommend_score": [1, 2, 3],
+            "final_score": [1, 2, 3],
             "title": ["Test 1", "Test 2", "Test 3"],
             "source": ["manga", "manga", "ligh_novel"],
         }
@@ -91,7 +91,7 @@ def test_source_category_descriptions():
     recommendations = pd.DataFrame(
         {
             "directscore": [1, 2, 3],
-            "recommend_score": [1, 2, 3],
+            "final_score": [1, 2, 3],
             "title": ["Test 1", "Test 2", "Test 3"],
             "source": ["manga", "other", "original"],
         }
@@ -122,7 +122,7 @@ def test_studio_category():
         {
             "studiocorrelationscore": [1, 3, 2],
             "formatscore": [1, 3, 2],
-            "recommend_score": [1, 3, 2],
+            "final_score": [1, 3, 2],
             "title": ["Test 1", "Test 2", "Test 3"],
             "user_status": [pd.NA, pd.NA, pd.NA],
         }
@@ -153,7 +153,7 @@ def test_cluster_category():
     recommendations = pd.DataFrame(
         {
             "cluster": [0, 1, 1],
-            "recommend_score": [1, 1, 1],
+            "final_score": [1, 1, 1],
             "title": ["Test 1", "Test 2", "Test 3"],
             "user_status": [pd.NA, pd.NA, pd.NA],
         }
@@ -174,7 +174,7 @@ def test_cluster_category():
     data.recommendations = pd.DataFrame(
         {
             "cluster": [1, 1, 1],
-            "recommend_score": [1, 1, 1],
+            "final_score": [1, 1, 1],
             "title": ["Test 1", "Test 2", "Test 3"],
             "user_status": [pd.NA, pd.NA, pd.NA],
         }
@@ -202,7 +202,7 @@ def test_nsfw_tags_are_filtered_from_cluster_category():
     recommendations = pd.DataFrame(
         {
             "cluster": [0, 1, 1],
-            "recommend_score": [0, 1, 1],
+            "final_score": [0, 1, 1],
             "title": ["Test 1", "Test 2", "Test 3"],
             "user_status": [pd.NA, pd.NA, pd.NA],
         }
@@ -255,7 +255,7 @@ def test_your_top_picks_category():
             "status": ["releasing", "finished", "cancelled"],
             "user_status": [None, None, None],
             "title": ["Test 1", "Test 2", "Test 3"],
-            "recommend_score": [0, 1, 2],
+            "final_score": [0, 1, 2],
             "continuationscore": [0, 0, 0],
         }
     )
@@ -277,7 +277,7 @@ def test_top_upcoming_category():
             "user_status": [None, None, None],
             "start_season": [1, 1, 1],
             "title": ["Test 1", "Test 2", "Test 3"],
-            "recommend_score": [0, 1, 2],
+            "final_score": [0, 1, 2],
             "continuationscore": [0, 0, 0],
         }
     )
@@ -340,7 +340,7 @@ def test_simulcastscategory(mocker):
         {
             "start_season": ["2022/summer", "2022/summer", "2022/winter"],
             "title": ["Test 1", "Test 2", "Test 3"],
-            "recommend_score": [0, 1, 2],
+            "final_score": [0, 1, 2],
             "continuationscore": [0, 0, 0],
         }
     )
@@ -410,7 +410,7 @@ def test_adapatation_category():
     recommendations = pd.DataFrame(
         {
             "adaptationscore": [0, 1, 1],
-            "recommend_score": [0, 0, 1],
+            "final_score": [0, 0, 1],
             "user_status": ["in_progress", "completed", "in_progress"],
             "title": ["Test 1", "Test 2", "Test 3"],
         }
@@ -422,3 +422,59 @@ def test_adapatation_category():
     actual = cat.categorize(data)
 
     assert actual["title"].tolist() == ["Test 3"]
+
+
+def test_genre_category():
+    cat = categories.GenreCategory(0)
+
+    watchlist = pd.DataFrame(
+        {
+            "genres": [
+                ["Action", "Sports", "Romance"],
+                ["Action", "Romance"],
+                ["Sports", "Comedy"],
+            ],
+            "user_status": ["not_watched", pd.NA, "in_progress"],
+            "score": [10, 10, 10],
+        }
+    )
+
+    recommendations = pd.DataFrame(
+        {
+            "genres": [["Action", "Fantasy"], ["Drama"], ["Action"]],
+            "discourage_score": [1, 1, 1],
+            "final_score": [1, 1, 1],
+            "title": ["Test 1", "Test 2", "Test 3"],
+            "user_status": [pd.NA, pd.NA, pd.NA],
+        }
+    )
+
+    data = dataset.UserDataSet(watchlist, None, None)
+    data.recommendations = recommendations
+
+    actual = cat.categorize(data)
+
+    assert actual["title"].tolist() == ["Test 1", "Test 3"]
+    assert cat.description == "Action"
+
+
+def test_genre_category_returns_none_for_too_big_genre_number():
+    cat = categories.GenreCategory(99)
+
+    watchlist = pd.DataFrame(
+        {
+            "genres": [
+                ["Action", "Sports", "Romance"],
+                ["Action", "Romance"],
+                ["Sports", "Comedy"],
+            ],
+            "user_status": ["not_watched", pd.NA, "in_progress"],
+            "score": [10, 10, 10],
+        }
+    )
+
+    data = dataset.UserDataSet(watchlist, None, None)
+
+    actual = cat.categorize(data)
+
+    assert actual is None

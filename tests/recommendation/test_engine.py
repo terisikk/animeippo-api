@@ -109,6 +109,7 @@ def test_categorize():
             "score": [123],
             "user_status": [pd.NA],
             "recommend_score": [1],
+            "final_score": [1],
         }
     )
 

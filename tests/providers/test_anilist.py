@@ -55,6 +55,18 @@ async def test_ani_seasonal_anime_list_can_be_fetched(mocker):
     assert "EDENS KNOCK-OFF 2nd Season" in animelist["title"].values
 
 
+@pytest.mark.asyncio
+async def test_ani_user_manga_list_can_be_fetched(mocker):
+    provider = anilist.AniListProvider()
+
+    response = ResponseStub(test_data.ANI_MANGA_LIST)
+    mocker.patch("aiohttp.ClientSession.post", return_value=response)
+
+    animelist = await provider.get_user_manga_list("Janiskeisari")
+
+    assert "Dr. BONK: BONK BATTLES" in animelist["title"].values
+
+
 def test_ani_related_anime_returns_none():
     provider = anilist.AniListProvider()
 
@@ -107,9 +119,7 @@ async def test_get_all_pages_returns_all_pages(mocker):
         side_effect=[ResponseStub(response1), ResponseStub(response2), ResponseStub(response3)],
     )
 
-    final_pages = list(
-        [page async for page in anilist.AnilistConnection().requests_get_all_pages("", {})]
-    )
+    final_pages = list([page async for page in anilist.AnilistConnection().requests_get_all_pages("", {})])
 
     assert len(final_pages) == 3
     assert final_pages[0] == response1["data"]["Page"]
@@ -123,9 +133,7 @@ async def test_request_does_not_fail_catastrophically_when_response_is_empty(moc
     response = ResponseStub({})
     mocker.patch("aiohttp.ClientSession.post", return_value=response)
 
-    all_pages = list(
-        [page async for page in anilist.AnilistConnection().requests_get_all_pages("", {})]
-    )
+    all_pages = list([page async for page in anilist.AnilistConnection().requests_get_all_pages("", {})])
 
     assert len(all_pages) == 1
     assert all_pages[0] is None
@@ -146,6 +154,8 @@ async def test_anilist_returns_None_with_empty_parameters():
 
     seasonal_anime = await provider.get_seasonal_anime_list(None, None)
     user_anime = await provider.get_user_anime_list(None)
+    user_manga = await provider.get_user_manga_list(None)
 
     assert seasonal_anime is None
     assert user_anime is None
+    assert user_manga is None

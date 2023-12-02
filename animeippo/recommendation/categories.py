@@ -2,7 +2,7 @@ import numpy as np
 import pandas as pd
 import datetime
 
-from animeippo.recommendation import scoring, util, analysis
+from animeippo.recommendation import scoring, util, analysis, discourager
 
 
 class MostPopularCategory:
@@ -24,7 +24,7 @@ class ContinueWatchingCategory:
 
         return target[
             (target[scoring.ContinuationScorer.name] > 0) & (target["user_status"] != "completed")
-        ].sort_values("recommend_score", ascending=False)[0:max_items]
+        ].sort_values("final_score", ascending=False)[0:max_items]
 
 
 class AdaptationCategory:
@@ -67,9 +67,7 @@ class SourceCategory:
             case _:
                 self.description = "Based on a " + str.title(best_source)
 
-        return target[target["source"] == best_source.lower()].sort_values("recommend_score", ascending=False)[
-            0:max_items
-        ]
+        return target[target["source"] == best_source.lower()].sort_values("final_score", ascending=False)[0:max_items]
 
 
 class StudioCategory:
@@ -81,7 +79,7 @@ class StudioCategory:
 
         target = target[(pd.isnull(target["user_status"])) & (target[scoring.FormatScorer.name] > 0.5)]
 
-        return target.sort_values([scoring.StudioCorrelationScorer.name, "recommend_score"], ascending=[False, False])[
+        return target.sort_values([scoring.StudioCorrelationScorer.name, "final_score"], ascending=[False, False])[
             0:max_items
         ]
 
@@ -117,7 +115,7 @@ class ClusterCategory:
 
                 self.description = " ".join(relevant)
 
-            return relevant_shows.sort_values("recommend_score", ascending=False)[0:max_items]
+            return relevant_shows.sort_values("final_score", ascending=False)[0:max_items]
 
         return None
 
@@ -129,7 +127,7 @@ class GenreCategory:
     def __init__(self, nth_genre):
         self.nth_genre = nth_genre
 
-    def categorize(self, dataset, max_items=25):
+    def categorize(self, dataset, max_items=None):
         target = dataset.recommendations
         compare = dataset.watchlist
 
@@ -150,17 +148,7 @@ class GenreCategory:
 
             self.description = genre
 
-            relevant_shows["final_score"] = relevant_shows["recommend_score"] * relevant_shows["discourage_score"]
-            # First select and then discourage or first dicourage and then sort?
             selected_shows = relevant_shows.sort_values("final_score", ascending=False)[0:max_items]
-
-            dm = dataset.recommendations.apply(
-                lambda row: row["discourage_score"] - 0.3
-                if row.name in selected_shows.index
-                else row["discourage_score"],
-                axis=1,
-            )
-            dataset.recommendations["discourage_score"] = dm
 
             return selected_shows
 
@@ -169,7 +157,7 @@ class GenreCategory:
 
 class YourTopPicksCategory:
     description = "Top New Picks for You"
-    requires = ["recommend_score", scoring.ContinuationScorer.name]
+    requires = [scoring.ContinuationScorer.name]
 
     def categorize(self, dataset, max_items=25):
         target = dataset.recommendations
@@ -180,13 +168,13 @@ class YourTopPicksCategory:
 
         new_picks = target[mask]
 
-        return new_picks.sort_values("recommend_score", ascending=False)[0:max_items]
+        return new_picks.sort_values("final_score", ascending=False)[0:max_items]
 
 
 class TopUpcomingCategory:
     description = "Top New Picks from Upcoming Anime"
 
-    requires = ["recommend_score", scoring.ContinuationScorer.name]
+    requires = [scoring.ContinuationScorer.name]
 
     def categorize(self, dataset, max_items=25):
         target = dataset.recommendations
@@ -197,7 +185,7 @@ class TopUpcomingCategory:
 
         new_picks = target[mask]
 
-        return new_picks.sort_values(by=["start_season", "recommend_score"], ascending=[False, False])[0:max_items]
+        return new_picks.sort_values(by=["start_season", "final_score"], ascending=[False, False])[0:max_items]
 
 
 class BecauseYouLikedCategory:
@@ -241,7 +229,7 @@ class SimulcastsCategory:
         mask = target["start_season"] == self.get_current_season()
         simulcasts = target[mask]
 
-        return simulcasts.sort_values(by=["recommend_score"], ascending=[False])[0:max_items]
+        return simulcasts.sort_values(by=["final_score"], ascending=[False])[0:max_items]
 
     def get_current_season(self):
         today = datetime.date.today()
@@ -262,3 +250,25 @@ class SimulcastsCategory:
         yearseason = f"{today.year}/{season}"
 
         return yearseason
+
+
+class DiscouragingWrapper:
+    def __init__(self, category):
+        self.category = category
+
+    def categorize(self, dataset, **kwargs):
+        dataset.recommendations["final_score"] = (
+            dataset.recommendations["recommend_score"] * dataset.recommendations["discourage_score"]
+        )
+
+        result = self.category.categorize(dataset, **kwargs)
+
+        self.description = self.category.description
+
+        dataset.recommendations.loc[result.index, "discourage_score"] = discourager.apply_discourage_on_repeating_items(
+            result
+        )
+
+        dataset.recommendations["final_score"] = dataset.recommendations["recommend_score"]
+
+        return result

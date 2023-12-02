@@ -145,7 +145,6 @@ class AniListProvider(provider.AbstractAnimeProvider):
                                 isAdult
                             }
                             meanScore
-                            source
                         }
                     }
                 }

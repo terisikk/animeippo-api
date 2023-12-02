@@ -97,7 +97,7 @@ async def test_mal_related_anime_can_be_fetched(mocker):
 
     details = await provider.get_related_anime(anime_id)
 
-    assert details.index.tolist() == [31]
+    assert details == [31]
 
 
 @pytest.mark.asyncio
@@ -111,7 +111,7 @@ async def test_mal_related_anime_does_not_fail_with_invalid_data(mocker):
 
     details = await provider.get_related_anime(anime_id)
 
-    assert details.index.tolist() == []
+    assert details == []
 
 
 @pytest.mark.asyncio

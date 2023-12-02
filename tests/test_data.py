@@ -168,6 +168,97 @@ ANI_USER_LIST = {
     }
 }
 
+ANI_MANGA_LIST = {
+    "data": {
+        "MediaListCollection": {
+            "lists": [
+                {
+                    "name": "Reading",
+                    "isCustomList": False,
+                    "isSplitCompletedList": False,
+                    "status": "CURRENT",
+                    "entries": [
+                        {
+                            "status": "CURRENT",
+                            "score": 0,
+                            "completedAt": {"year": None, "month": None, "day": None},
+                            "media": {
+                                "id": 324324,
+                                "idMal": 12321,
+                                "title": {"romaji": "Dr. BONK: BONK BATTLES"},
+                                "genres": ["Action", "Adventure", "Comedy", "Sci-Fi"],
+                                "tags": [
+                                    {"name": "Post-Apocalyptic", "rank": 95},
+                                    {"name": "Survival", "rank": 89},
+                                    {"name": "Educational", "rank": 88},
+                                    {"name": "Male Protagonist", "rank": 85},
+                                    {"name": "Ships", "rank": 84},
+                                    {"name": "Shounen", "rank": 81},
+                                    {"name": "Conspiracy", "rank": 80},
+                                    {"name": "Ensemble Cast", "rank": 71},
+                                    {"name": "Amnesia", "rank": 60},
+                                    {"name": "Espionage", "rank": 60},
+                                    {"name": "Found Family", "rank": 60},
+                                    {"name": "Crossdressing", "rank": 50},
+                                    {"name": "Agriculture", "rank": 40},
+                                    {"name": "Butler", "rank": 33},
+                                    {"name": "Aliens", "rank": 33},
+                                    {"name": "War", "rank": 30},
+                                    {"name": "Female Harem", "rank": 10},
+                                ],
+                                "meanScore": 82,
+                            },
+                        },
+                        {
+                            "status": "COMPLETED",
+                            "score": 7,
+                            "completedAt": {"year": 2023, "month": 3, "day": 23},
+                            "media": {
+                                "id": 790,
+                                "idMal": 234,
+                                "title": {"romaji": "Bergo Moxy"},
+                                "genres": ["Adventure", "Mystery", "Psychological", "Sci-Fi"],
+                                "tags": [
+                                    {"name": "Post-Apocalyptic", "rank": 94},
+                                    {"name": "Philosophy", "rank": 93},
+                                    {"name": "Dissociative Identities", "rank": 90},
+                                    {"name": "Dystopian", "rank": 89},
+                                    {"name": "Cyberpunk", "rank": 85},
+                                    {"name": "Primarily Adult Cast", "rank": 85},
+                                    {"name": "Amnesia", "rank": 85},
+                                    {"name": "Robots", "rank": 85},
+                                    {"name": "Conspiracy", "rank": 84},
+                                    {"name": "Artificial Intelligence", "rank": 80},
+                                    {"name": "Anti-Hero", "rank": 79},
+                                    {"name": "Noir", "rank": 78},
+                                    {"name": "Fugitive", "rank": 74},
+                                    {"name": "Memory Manipulation", "rank": 73},
+                                    {"name": "Angels", "rank": 73},
+                                    {"name": "Female Protagonist", "rank": 72},
+                                    {"name": "Denpa", "rank": 70},
+                                    {"name": "Male Protagonist", "rank": 68},
+                                    {"name": "Tragedy", "rank": 64},
+                                    {"name": "Gods", "rank": 60},
+                                    {"name": "Travel", "rank": 60},
+                                    {"name": "Kuudere", "rank": 52},
+                                    {"name": "Police", "rank": 48},
+                                    {"name": "Meta", "rank": 40},
+                                    {"name": "Coming of Age", "rank": 38},
+                                    {"name": "Terrorism", "rank": 35},
+                                    {"name": "Guns", "rank": 30},
+                                    {"name": "Heterosexual", "rank": 30},
+                                    {"name": "Satire", "rank": 12},
+                                ],
+                            },
+                            "mean_score": 50,
+                        },
+                    ],
+                }
+            ]
+        }
+    }
+}
+
 MAL_SEASONAL_LIST = {
     "data": [
         {
@@ -428,7 +519,7 @@ FORMATTED_MAL_SEASONAL_LIST = [
         ],
         "rating": "r+",
         "continuation_to": [],
-        "media_type": "tv",
+        "format": "tv",
         "status": None,
         "start_season": "2023/winter",
         "popularity": 1,
@@ -465,7 +556,7 @@ FORMATTED_MAL_SEASONAL_LIST = [
             "Test Studio 2",
         ],
         "rating": "r",
-        "media_type": "tv",
+        "format": "tv",
         "status": None,
         "start_season": "2023/winter",
         "popularity": 2,

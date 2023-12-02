@@ -121,7 +121,7 @@ async def test_mal_related_anime_can_use_cache(mocker):
 
     related_anime = await provider.get_related_anime(id)
 
-    assert related_anime.index.tolist() == [31]
+    assert related_anime == [31]
 
 
 @pytest.mark.asyncio
@@ -161,8 +161,8 @@ async def test_mal_related_anime_can_be_stored_to_cache(mocker):
     first_hit = await provider.get_related_anime(id)
 
     second_hit = await provider.get_related_anime(id)
-    assert not first_hit.empty
-    assert first_hit["title"].tolist() == second_hit["title"].tolist()
+    assert len(first_hit) != 0
+    assert first_hit == second_hit
 
 
 def test_dataframes_can_be_added_to_cache(mocker):

@@ -35,7 +35,6 @@ def transform_seasonal_data(data, feature_names):
 
     keys = [
         "id",
-        "idMal",
         "title",
         "format",
         "genres",
@@ -43,15 +42,11 @@ def transform_seasonal_data(data, feature_names):
         "mean_score",
         "popularity",
         "status",
-        "continuation_to",
-        "adaptation_of",
         "score",
         "duration",
         "episodes",
         "source",
-        "tags",
-        "nsfw_tags",
-        "ranks",
+        "rating",
         "studios",
         "start_season",
     ]
@@ -85,12 +80,12 @@ def transform_related_anime(data, feature_names):
 
     keys = [
         "id",
-        "title",
-        "source",
-        "related_anime",
+        "continuation_to",
     ]
 
-    return transform_to_animeippo_format(original, feature_names, keys)
+    filtered = transform_to_animeippo_format(original, feature_names, keys)
+
+    return filtered[~pd.isna(filtered["continuation_to"])]["continuation_to"].to_list()
 
 
 def transform_to_animeippo_format(original, feature_names, keys):
@@ -118,7 +113,6 @@ def run_mappers(dataframe, original, mapping):
     return dataframe
 
 
-@util.default_if_error([])
 def split_id_name_field(field):
     names = []
 
@@ -129,25 +123,33 @@ def split_id_name_field(field):
 
 
 @util.default_if_error(pd.NA)
-def split_season(season_field):
-    season_ret = np.nan
+def get_season(year, season):
+    if year == 0 or pd.isna(year):
+        year = "?"
+    else:
+        year = str(int(year))
 
-    year = season_field.get("year", "?")
-    season = season_field.get("season", "?")
+    if pd.isna(season):
+        season = "?"
 
-    season_ret = f"{year}/{season}"
-
-    return season_ret
+    return f"{year}/{str(season).lower()}"
 
 
-def filter_related_anime(df):
+def filter_relations(relation, id, meaningful_relations):
+    if relation in meaningful_relations and id is not None:
+        return id
+
+    return pd.NA
+
+
+def get_continuation(relation, id):
     meaningful_relations = ["parent_story", "prequel"]
-    return df[df["relation_type"].isin(meaningful_relations)]
+
+    return filter_relations(relation, id, meaningful_relations)
 
 
-@util.default_if_error(None)
 def get_image_url(field):
-    return field.get("medium", None)
+    return field.get("medium", pd.NA)
 
 
 def get_score(score):
@@ -155,7 +157,6 @@ def get_score(score):
     return score if score != 0 else np.nan
 
 
-@util.default_if_error(pd.NA)
 def get_user_complete_date(finish_date):
     if pd.isna(finish_date):
         return pd.NA
@@ -183,23 +184,28 @@ MAL_MAPPING = {
     "format": DefaultMapper("node.media_type"),
     "coverImage": DefaultMapper("node.main_picture.medium"),
     "mean_score": DefaultMapper("node.mean"),
-    "popularity": DefaultMapper("node.popularity"),
+    "popularity": DefaultMapper("node.num_list_users"),
     "duration": DefaultMapper("node.average_episode_duration"),
     "episodes": DefaultMapper("node.num_episodes"),
     "rating": DefaultMapper("node.rating"),
     "source": DefaultMapper("node.source"),
     "user_status": DefaultMapper("list_status.status"),
-    "genres": SingleMapper("node.genres", split_id_name_field),
+    "genres": SingleMapper("node.genres", split_id_name_field, []),
     "studios": SingleMapper("node.studios", split_id_name_field),
     "status": SingleMapper("node.status", get_status),
     "score": SingleMapper("list_status.score", get_score),
-    "start_season": SingleMapper("node.start_season", split_season),
-    "related_anime": SingleMapper("node.related_anime", filter_related_anime),
     # "tags": SingleMapper("media.tags", get_tags),
     # "continuation_to": SingleMapper("media.relations.edges", get_continuation),
     # "adaptation_of": SingleMapper("media.relations.edges", get_adaptation),
     # "ranks": SingleMapper("media.tags", get_ranks),
     # "nsfw_tags": SingleMapper("media.tags", get_nsfw_tags),
     "user_complete_date": SingleMapper("list_status.finish_date", get_user_complete_date),
+    "start_season": MultiMapper(
+        lambda row: get_season(row["node.start_season.year"], row["node.start_season.season"]),
+    ),
+    "continuation_to": MultiMapper(
+        lambda row: get_continuation(row["relation_type"], row["node.id"])
+    ),
 }
+
 # fmt: on

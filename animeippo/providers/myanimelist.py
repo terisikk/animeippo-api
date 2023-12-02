@@ -39,9 +39,11 @@ class MyAnimeListProvider(provider.AbstractAnimeProvider):
             "studios",
             "rating{value}",
             "mean",
+            "num_episodes",
             "start_season",
             "source",
             "main_picture{medium}",
+            "average_episode_duration",
         ]
 
         parameters = {"nsfw": "true", "fields": ",".join(fields)}
@@ -64,11 +66,13 @@ class MyAnimeListProvider(provider.AbstractAnimeProvider):
             "status",
             "studios",
             "num_list_users",
+            "num_episodes",
             "rating{value}",
             "mean",
             "start_season",
             "source",
             "main_picture{medium}",
+            "average_episode_duration",
         ]
         parameters = {"nsfw": "true", "fields": ",".join(fields)}
 
@@ -84,8 +88,6 @@ class MyAnimeListProvider(provider.AbstractAnimeProvider):
 
         fields = [
             "id",
-            "title",
-            "source",
             "related_anime",
         ]
         parameters = {"fields": ",".join(fields)}
@@ -107,7 +109,7 @@ class MyAnimeListProvider(provider.AbstractAnimeProvider):
             "genres",
             "list_status{score,status,finish_date}",
             "status",
-            "studios",
+            "authors",
             "rating{value}",
             "mean",
             "source",

@@ -27,8 +27,7 @@ def get_default_scorers(distance_metric="jaccard"):
         scoring.StudioCorrelationScorer(),
         scoring.PopularityScorer(),
         scoring.ContinuationScorer(),
-        scoring.ContinuationScorer(),
-        scoring.AdaptationScorer(),
+        # scoring.AdaptationScorer(),
         scoring.SourceScorer(),
         scoring.DirectSimilarityScorer(distance_metric=distance_metric),
         scoring.FormatScorer(),
@@ -43,23 +42,23 @@ def get_default_categorizers(distance_metric="jaccard"):
         categories.YourTopPicksCategory(),
         categories.TopUpcomingCategory(),
         # categories.ClusterCategory(0),
-        categories.GenreCategory(0),
+        categories.DiscouragingWrapper(categories.GenreCategory(0)),
         categories.AdaptationCategory(),
         # categories.ClusterCategory(1),
-        categories.GenreCategory(1),
+        categories.DiscouragingWrapper(categories.GenreCategory(1)),
         categories.SourceCategory(),
         # categories.ClusterCategory(2),
-        categories.GenreCategory(2),
+        categories.DiscouragingWrapper(categories.GenreCategory(2)),
         categories.StudioCategory(),
         # categories.ClusterCategory(3),
-        categories.GenreCategory(3),
+        categories.DiscouragingWrapper(categories.GenreCategory(3)),
         categories.BecauseYouLikedCategory(0, distance_metric),
         # categories.ClusterCategory(4),
-        categories.GenreCategory(4),
+        categories.DiscouragingWrapper(categories.GenreCategory(4)),
         categories.BecauseYouLikedCategory(1, distance_metric),
-        categories.GenreCategory(5),
+        categories.DiscouragingWrapper(categories.GenreCategory(5)),
         categories.BecauseYouLikedCategory(2, distance_metric),
-        categories.GenreCategory(6),
+        categories.DiscouragingWrapper(categories.GenreCategory(6)),
     ]
 
 
@@ -89,10 +88,7 @@ async def get_dataset(provider, user, year, season):
             provider.get_seasonal_anime_list(year, season),
         )
 
-    data = dataset.UserDataSet(
-        user_data,
-        season_data,
-    )
+    data = dataset.UserDataSet(remove_duplicates(user_data), remove_duplicates(season_data))
 
     data.mangalist = manga_data
 
@@ -100,6 +96,13 @@ async def get_dataset(provider, user, year, season):
     data.nsfw_tags += get_nswf_tags(season_data)
 
     return data
+
+
+def remove_duplicates(df):
+    if df is not None:
+        df = df[~df.index.duplicated(keep="first")]
+
+    return df
 
 
 def get_nswf_tags(df):
@@ -142,7 +145,7 @@ async def get_related_anime(indices, provider):
 
     for i in indices:
         anime = await provider.get_related_anime(i)
-        related_anime.append(anime.index.to_list())
+        related_anime.append(anime)
 
     return related_anime
 

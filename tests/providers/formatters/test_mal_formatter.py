@@ -5,10 +5,9 @@ from animeippo.providers.formatters import mal_formatter
 from tests import test_data
 
 
-def test_genre_splitting_does_not_fail_with_invalid_data():
-    mal_formatter.split_id_name_field(None)
-    mal_formatter.split_id_name_field(1.0)
-    mal_formatter.split_id_name_field([1.0])
+class StubMapper:
+    def map(self, original):
+        return [f"{original} ran"]
 
 
 def test_user_score_extraction_does_not_fail_with_invalid_data():
@@ -18,8 +17,8 @@ def test_user_score_extraction_does_not_fail_with_invalid_data():
 
 
 def test_anime_season_extraction_does_not_fail_with_invalid_data():
-    assert mal_formatter.split_season({"year": None, "sesson": "winter"}) == "None/?"
-    assert pd.isna(mal_formatter.split_season(np.nan))
+    assert mal_formatter.get_season(None, None) == "?/?"
+    assert pd.isna(mal_formatter.get_season(np.nan))
 
 
 def test_user_score_cannot_be_zero():
@@ -48,6 +47,15 @@ def test_dataframe_can_be_constructed_from_mal():
         "Vampire",
     ]
     assert data.iloc[1]["score"] == 8
+
+
+def test_relations_can_be_constructed_from_mal():
+    animelist = {"data": test_data.MAL_RELATED_ANIME["related_anime"]}
+
+    data = mal_formatter.transform_related_anime(animelist, [])
+
+    assert len(data) == 1
+    assert data == [31]
 
 
 def test_dataframe_can_be_constructed_from_incomplete_data():
@@ -100,3 +108,54 @@ def test_columns_are_named_properly():
     assert "popularity" in data.columns
     assert "coverImage" in data.columns
     assert "genres" in data.columns
+
+
+def test_mapping_skips_keys_not_in_dataframe():
+    dataframe = pd.DataFrame(columns=["test1", "test2"])
+    mapping = {"test1": StubMapper(), "test3": StubMapper()}
+
+    actual = mal_formatter.run_mappers(dataframe, "test1", mapping)
+    assert actual["test1"].tolist() == ["test1 ran"]
+    assert "test3" not in actual.columns
+
+
+def test_transform_does_not_fail_on_missing_id_column():
+    data = ["test1", "test2"]
+    feature_names = []
+    keys = []
+
+    actual = mal_formatter.transform_to_animeippo_format(data, feature_names, keys)
+
+    assert "id" not in actual.columns
+    assert actual.index.name != "id"
+
+
+def test_get_continuation():
+    relation = "prequel"
+    id = 123
+
+    assert mal_formatter.get_continuation(relation, id) == 123
+
+    relation = "irrelevant"
+
+    assert pd.isna(mal_formatter.get_continuation(relation, id))
+
+
+def test_get_image_url():
+    field = {"medium": "test"}
+
+    assert mal_formatter.get_image_url(field) == "test"
+
+    assert pd.isna(mal_formatter.get_image_url({}))
+
+
+def test_get_user_complete_date():
+    assert not pd.isna(mal_formatter.get_user_complete_date("2020-03-12"))
+
+    assert pd.isna(mal_formatter.get_user_complete_date(pd.NA))
+
+
+def test_get_status():
+    assert mal_formatter.get_status("currently_airing") == "releasing"
+
+    assert mal_formatter.get_status("invalid") == "invalid"
