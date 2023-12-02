@@ -252,11 +252,11 @@ def test_your_top_picks_category():
 
     recommendations = pd.DataFrame(
         {
-            "status": ["releasing", "finished", "cancelled"],
-            "user_status": [None, None, None],
             "title": ["Test 1", "Test 2", "Test 3"],
-            "final_score": [0, 1, 2],
-            "continuationscore": [0, 0, 0],
+            "user_status": [pd.NA, pd.NA, pd.NA],
+            "status": ["releasing", "releasing", "releasing"],
+            "continuationscore": [0, 0, 10],
+            "final_score": [2, 3, 1],
         }
     )
 
@@ -478,3 +478,35 @@ def test_genre_category_returns_none_for_too_big_genre_number():
     actual = cat.categorize(data)
 
     assert actual is None
+
+
+def test_discourage_wrapper():
+    cat = categories.YourTopPicksCategory()
+    dcat = categories.DiscouragingWrapper(cat)
+
+    recommendations = pd.DataFrame(
+        {
+            "title": ["Test 1", "Test 2", "Test 3"],
+            "user_status": [pd.NA, pd.NA, pd.NA],
+            "status": ["releasing", "releasing", "releasing"],
+            "continuationscore": [0, 0, 0],
+            "recommend_score": [2, 2.1, 1.99],
+            "final_score": [2, 2.1, 1.99],
+            "discourage_score": [1, 1, 1],
+        }
+    )
+
+    data = dataset.UserDataSet(None, None, None)
+    data.recommendations = recommendations
+
+    actual = dcat.categorize(data, max_items=2)
+
+    assert actual["title"].tolist() == ["Test 2", "Test 1"]
+    assert recommendations["discourage_score"].tolist() == [0.75, 0.75, 1]
+
+    actual = dcat.categorize(data, max_items=2)
+
+    assert actual["title"].tolist() == ["Test 3", "Test 2"]
+
+    assert dcat.description == cat.description
+    assert recommendations["discourage_score"].tolist() == [0.75, 0.5, 0.75]

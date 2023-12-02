@@ -27,7 +27,7 @@ def get_default_scorers(distance_metric="jaccard"):
         scoring.StudioCorrelationScorer(),
         scoring.PopularityScorer(),
         scoring.ContinuationScorer(),
-        # scoring.AdaptationScorer(),
+        scoring.AdaptationScorer(),
         scoring.SourceScorer(),
         scoring.DirectSimilarityScorer(distance_metric=distance_metric),
         scoring.FormatScorer(),

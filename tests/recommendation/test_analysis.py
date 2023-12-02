@@ -48,9 +48,7 @@ def test_similarity_weights():
         }
     )
 
-    weights = original["genres"].apply(
-        analysis.weighted_mean_for_categorical_values, args=(genre_averages,)
-    )
+    weights = original["genres"].apply(analysis.weighted_mean_for_categorical_values, args=(genre_averages,))
 
     assert weights.tolist() == [8.5, 8.0]
 
@@ -98,3 +96,9 @@ def test_categorical_uses_index_if_given():
 
     assert similarity.index is not None
     assert similarity.index.to_list() == original2.index.to_list()
+
+
+def test_get_mean():
+    df = pd.DataFrame({"score": [pd.NA, pd.NA, pd.NA]})
+
+    assert analysis.get_mean_score(df, 5) == 5

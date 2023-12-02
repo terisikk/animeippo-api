@@ -398,7 +398,13 @@ def test_continuation_scorer_takes_max_of_duplicate_relations():
 
 
 def test_source_scorer():
-    compare = pd.DataFrame({"title": ["Anime A", "Anime B"], "source": ["original", "manga"], "score": [5, 10]})
+    compare = pd.DataFrame(
+        {
+            "title": ["Anime A", "Anime B"],
+            "source": ["original", "manga"],
+            "score": [5, 10],
+        }
+    )
 
     actual = pd.DataFrame(
         {
@@ -448,3 +454,59 @@ def test_direct_similarity_scorer():
 
     assert actual == expected
     assert not recommendations["recommend_score"].isnull().values.any()
+
+
+def test_adaptation_scorer():
+    compare = pd.DataFrame(
+        {
+            "id": [1, 2, 3],
+            "title": ["Manga A", "Manga B", "Manga C"],
+            "score": [pd.NA, 8, 4],
+        }
+    )
+    compare = compare.set_index("id")
+
+    target = pd.DataFrame(
+        {
+            "id": [5, 6, 7],
+            "title": ["Anime X", "Anime A", "Anime Y"],
+            "adaptation_of": [[10], [1], []],
+        }
+    )
+    target = target.set_index("id")
+
+    scorer = scoring.AdaptationScorer()
+
+    data = dataset.UserDataSet(None, target)
+
+    actual = scorer.score(data)
+
+    assert pd.isna(actual)
+
+    data.mangalist = compare
+
+    target["recommend_score"] = scorer.score(data)
+
+    actual = target.sort_values("recommend_score", ascending=False)
+
+    assert actual["title"].tolist() == ["Anime A", "Anime X", "Anime Y"]
+    assert actual.loc[7, "recommend_score"] == 0
+
+
+def test_format_scorer():
+    target = pd.DataFrame(
+        {
+            "title": ["Anime A", "Anime B", "Anime C"],
+            "format": ["TV_SHORT", "TV", "TV"],
+            "episodes": [5, 12, 12],
+            "duration": [5, 25, 25],
+        }
+    )
+
+    scorer = scoring.FormatScorer()
+
+    target["recommend_score"] = scorer.score(dataset.UserDataSet(None, target))
+
+    actual = target.sort_values("recommend_score", ascending=False)
+
+    assert actual["title"].tolist() == ["Anime B", "Anime C", "Anime A"]

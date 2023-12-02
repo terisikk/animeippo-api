@@ -116,3 +116,12 @@ def weight_categoricals_correlation(dataframe, column):
 def normalize_column(df_column):
     shaped = df_column.to_numpy().reshape(-1, 1)
     return pd.DataFrame(skpre.MinMaxScaler().fit_transform(shaped), index=df_column.index)
+
+
+def get_mean_score(compare_df, default=0):
+    mean_score = compare_df["score"].mean()
+
+    if mean_score == 0 or pd.isna(mean_score):
+        mean_score = default
+
+    return mean_score
