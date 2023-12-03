@@ -62,7 +62,9 @@ class MixedProvider(provider.AbstractAnimeProvider):
 
         ani_list = await self.ani_provider.connection.request_paginated(ani_query, variables)
 
-        return mixed_formatter.transform_ani_watchlist_data(ani_list, self.get_feature_fields(), mal_df)
+        return mixed_formatter.transform_ani_watchlist_data(
+            ani_list, self.get_feature_fields(), mal_df
+        )
 
     async def get_seasonal_anime_list(self, year, season):
         if year is None or season is None:

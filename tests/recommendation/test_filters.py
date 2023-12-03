@@ -51,7 +51,9 @@ def test_id_filter():
 
 
 def test_status_filter():
-    original = pd.DataFrame({"user_status": ["dropped", "completed", "on_hold", "completed", "unwatched"]})
+    original = pd.DataFrame(
+        {"user_status": ["dropped", "completed", "on_hold", "completed", "unwatched"]}
+    )
 
     filter = filters.UserStatusFilter("completed")
 

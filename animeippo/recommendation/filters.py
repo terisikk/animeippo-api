@@ -33,7 +33,9 @@ class FeatureFilter(AbstractFilter):
         self.negative = negative
 
     def filter(self, dataframe):
-        mask = dataframe["features"].apply(lambda field: all([feature in field for feature in self.features]))
+        mask = dataframe["features"].apply(
+            lambda field: all([feature in field for feature in self.features])
+        )
 
         if self.negative:
             mask = ~mask

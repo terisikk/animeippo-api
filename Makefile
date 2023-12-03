@@ -29,3 +29,7 @@ profile:
 .PHONY: pydeps
 pydeps:
 	poetry run pydeps --only animeippo --max-bacon 0 animeippo/main.py
+
+.PHONY: serve
+serve:
+	poetry run flask run --host=0.0.0.0

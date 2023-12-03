@@ -419,7 +419,6 @@ FORMATTED_MAL_USER_LIST = [
     {
         "id": 30,
         "title": "Pastel Exodus Evangelion",
-        "nsfw": "white",
         "genres": [
             "Action",
             "Avant Garde",
@@ -446,18 +445,17 @@ FORMATTED_MAL_USER_LIST = [
             "Test Studio 1",
             "Test Studio 2",
         ],
-        "media_type": "tv",
+        "format": "tv",
         "score": 10,
         "user_status": "completed",
         "start_season": "2020/winter",
-        "coverImage": "https://localhost/test.png",
+        "cover_image": "https://localhost/test.png",
         "source": "Original",
         "cluster": 1,
     },
     {
         "id": 270,
         "title": "Hellsingfårs",
-        "nsfw": "white",
         "genres": [
             "Action",
             "Adult Cast",
@@ -482,11 +480,11 @@ FORMATTED_MAL_USER_LIST = [
             "Test Studio 1",
             "Test Studio 2",
         ],
-        "media_type": "tv",
+        "format": "tv",
         "score": 8,
         "user_status": "watching",
         "start_season": "2023/spring",
-        "coverImage": "https://localhost/test.png",
+        "cover_image": "https://localhost/test.png",
         "source": "Manga",
         "cluster": 2,
     },
@@ -523,7 +521,7 @@ FORMATTED_MAL_SEASONAL_LIST = [
         "status": None,
         "start_season": "2023/winter",
         "popularity": 1,
-        "coverImage": "https://localhost/test.png",
+        "cover_image": "https://localhost/test.png",
         "relations": [],
         "cluster": 1,
         "source": "Original",
@@ -560,7 +558,7 @@ FORMATTED_MAL_SEASONAL_LIST = [
         "status": None,
         "start_season": "2023/winter",
         "popularity": 2,
-        "coverImage": "https://localhost/test.png",
+        "cover_image": "https://localhost/test.png",
         "relations": [1],
         "cluster": 0,
         "source": "Manga",
@@ -573,7 +571,7 @@ FORMATTED_ANI_SEASONAL_LIST = [
         "title": "EDENS KNOCK-OFF 2nd Season",
         "start_season": "2023/spring",
         "relations": [],
-        "coverImage": "https://localhost/test.png",
+        "cover_image": "https://localhost/test.png",
         "popularity": 14090,
         "genres": ["Action", "Adventure", "Drama", "Fantasy", "Supernatural"],
         "status": "releasing",
@@ -592,7 +590,7 @@ FORMATTED_ANI_SEASONAL_LIST = [
         "title": "Usotsu no Yaiba: Katanakaji no Sato-hen",
         "start_season": "2023/spring",
         "relations": [],
-        "coverImage": "https://localhost/test.png",
+        "cover_image": "https://localhost/test.png",
         "popularity": 131620,
         "genres": ["Action", "Adventure", "Comedy", "Fantasy", "Sci-Fi"],
         "status": "not_yet_released",
@@ -617,4 +615,101 @@ MAL_RELATED_ANIME = {
             "relation_type_formatted": "prequel",
         }
     ],
+}
+
+MIXED_USER_LIST_MAL = {
+    "data": [
+        {
+            "node": {
+                "id": 30,
+            },
+            "list_status": {
+                "status": "completed",
+                "score": 10,
+            },
+        },
+        {
+            "node": {
+                "id": 270,
+            },
+            "list_status": {
+                "status": "completed",
+                "score": 8,
+            },
+        },
+    ]
+}
+
+
+MIXED_USER_LIST_ANI = {
+    "data": {
+        "Page": {
+            "pageInfo": {
+                "hasNextPage": True,
+                "total": 5000,
+                "currentPage": 1,
+                "lastPage": 100,
+                "perPage": 50,
+            }
+        },
+        "media": [
+            {
+                "id": 130,
+                "idMal": 30,
+                "title": {"romaji": "Neon Genesis Evangelion"},
+                "genres": ["Action", "Adventure", "Drama", "Fantasy", "Supernatural"],
+                "format": "tv",
+                "season": "SPRING",
+                "seasonYear": 2023,
+                "rating": "r",
+            },
+            {
+                "id": 1270,
+                "idMal": 270,
+                "title": {"romaji": "Hellsingfårs"},
+                "genres": ["Action", "Adventure", "Drama", "Fantasy", "Supernatural"],
+                "format": "tv",
+                "season": "SPRING",
+                "seasonYear": 2023,
+                "rating": "r+",
+            },
+        ],
+    }
+}
+
+MIXED_ANI_SEASONAL_LIST = {
+    "data": {
+        "media": [
+            {
+                "id": 144932,
+                "title": {"romaji": "EDENS KNOCK-OFF 2nd Season"},
+                "season": "SPRING",
+                "seasonYear": 2023,
+                "relations": {
+                    "edges": [
+                        {"relationType": "PREQUEL", "node": {"id": 119683}},
+                        {"relationType": "ADAPTATION", "node": {"id": 101860}},
+                    ]
+                },
+                "genres": ["Action", "Adventure", "Drama", "Fantasy", "Supernatural"],
+                "coverImage": {"medium": "https://localhost/test.png"},
+                "popularity": 14090,
+            },
+            {
+                "id": 145139,
+                "title": {"romaji": "Kimetsu no Yaiba: Katanakaji no Sato-hen"},
+                "season": "SPRING",
+                "seasonYear": 2023,
+                "relations": {
+                    "edges": [
+                        {"relationType": "ADAPTATION", "node": {"id": 87216}},
+                        {"relationType": "PREQUEL", "node": {"id": 142329}},
+                    ]
+                },
+                "genres": ["Action", "Adventure", "Comedy", "Fantasy", "Sci-Fi"],
+                "coverImage": {"medium": "https://localhost/test.png"},
+                "popularity": 131620,
+            },
+        ],
+    }
 }

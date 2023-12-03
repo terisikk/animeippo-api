@@ -1,32 +1,8 @@
 import pandas as pd
 import numpy as np
 
-from animeippo.providers.formatters import mal_formatter
+from animeippo.providers.formatters import mal_formatter, util
 from tests import test_data
-
-
-class StubMapper:
-    def map(self, original):
-        return [f"{original} ran"]
-
-
-def test_user_score_extraction_does_not_fail_with_invalid_data():
-    mal_formatter.get_score(1.0)
-    mal_formatter.get_score(None)
-    mal_formatter.get_score(np.nan)
-
-
-def test_anime_season_extraction_does_not_fail_with_invalid_data():
-    assert mal_formatter.get_season(None, None) == "?/?"
-    assert pd.isna(mal_formatter.get_season(np.nan))
-
-
-def test_user_score_cannot_be_zero():
-    original = 0
-
-    actual = mal_formatter.get_score(original)
-
-    assert np.isnan(actual)
 
 
 def test_dataframe_can_be_constructed_from_mal():
@@ -47,6 +23,19 @@ def test_dataframe_can_be_constructed_from_mal():
         "Vampire",
     ]
     assert data.iloc[1]["score"] == 8
+
+
+def test_transform_does_not_fail_on_missing_id_column():
+    data = ["test1", "test2"]
+    feature_names = []
+    keys = []
+
+    actual = util.transform_to_animeippo_format(
+        data, feature_names, keys, mal_formatter.MAL_MAPPING
+    )
+
+    assert "id" not in actual.columns
+    assert actual.index.name != "id"
 
 
 def test_relations_can_be_constructed_from_mal():
@@ -106,28 +95,8 @@ def test_columns_are_named_properly():
     data = mal_formatter.transform_seasonal_data(animelist, [])
 
     assert "popularity" in data.columns
-    assert "coverImage" in data.columns
+    assert "cover_image" in data.columns
     assert "genres" in data.columns
-
-
-def test_mapping_skips_keys_not_in_dataframe():
-    dataframe = pd.DataFrame(columns=["test1", "test2"])
-    mapping = {"test1": StubMapper(), "test3": StubMapper()}
-
-    actual = mal_formatter.run_mappers(dataframe, "test1", mapping)
-    assert actual["test1"].tolist() == ["test1 ran"]
-    assert "test3" not in actual.columns
-
-
-def test_transform_does_not_fail_on_missing_id_column():
-    data = ["test1", "test2"]
-    feature_names = []
-    keys = []
-
-    actual = mal_formatter.transform_to_animeippo_format(data, feature_names, keys)
-
-    assert "id" not in actual.columns
-    assert actual.index.name != "id"
 
 
 def test_get_continuation():

@@ -49,7 +49,9 @@ def recommend_anime():
     except ClientError:
         return f"Could nof fetch data for user {user}.", 404
 
-    return Response(views.web_view(dataset.recommendations, categories), mimetype="application/json")
+    return Response(
+        views.web_view(dataset.recommendations, categories), mimetype="application/json"
+    )
 
 
 @app.route("/analyse")

@@ -1,88 +1,82 @@
 import pandas as pd
 import datetime
-import numpy as np
 
 from . import util
-from animeippo.providers.formatters.schema import DefaultMapper, SingleMapper, MultiMapper
+from animeippo.providers.formatters.schema import DefaultMapper, SingleMapper, MultiMapper, Columns
 
 
 def transform_seasonal_data(data, feature_names):
     original = pd.json_normalize(data["data"], "media", record_prefix="media.")
 
     keys = [
-        "id",
-        "idMal",
-        "title",
-        "format",
-        "genres",
-        "coverImage",
-        "mean_score",
-        "popularity",
-        "status",
-        "continuation_to",
-        "adaptation_of",
-        "score",
-        "duration",
-        "episodes",
-        "source",
-        "tags",
-        "nsfw_tags",
-        "ranks",
-        "studios",
-        "start_season",
+        Columns.ID,
+        Columns.ID_MAL,
+        Columns.TITLE,
+        Columns.FORMAT,
+        Columns.GENRES,
+        Columns.COVER_IMAGE,
+        Columns.MEAN_SCORE,
+        Columns.POPULARITY,
+        Columns.STATUS,
+        Columns.CONTINUATION_TO,
+        Columns.ADAPTATION_OF,
+        Columns.SCORE,
+        Columns.DURATION,
+        Columns.EPISODES,
+        Columns.SOURCE,
+        Columns.TAGS,
+        Columns.NSFW_TAGS,
+        Columns.RANKS,
+        Columns.STUDIOS,
+        Columns.START_SEASON,
     ]
 
-    return transform_to_animeippo_format(original, feature_names, keys)
+    return util.transform_to_animeippo_format(original, feature_names, keys, ANILIST_MAPPING)
 
 
 def transform_watchlist_data(data, feature_names):
     original = pd.json_normalize(data["data"])
 
     keys = [
-        "id",
-        "idMal",
-        "title",
-        "format",
-        "genres",
-        "coverImage",
-        "user_status",
-        "mean_score",
-        "score",
-        "source",
-        "tags",
-        "ranks",
-        "nsfw_tags",
-        "studios",
-        "user_complete_date",
-        "start_season",
+        Columns.ID,
+        Columns.ID_MAL,
+        Columns.TITLE,
+        Columns.FORMAT,
+        Columns.GENRES,
+        Columns.COVER_IMAGE,
+        Columns.USER_STATUS,
+        Columns.MEAN_SCORE,
+        Columns.SCORE,
+        Columns.SOURCE,
+        Columns.TAGS,
+        Columns.RANKS,
+        Columns.NSFW_TAGS,
+        Columns.STUDIOS,
+        Columns.USER_COMPLETE_DATE,
+        Columns.START_SEASON,
     ]
 
-    return transform_to_animeippo_format(original, feature_names, keys)
+    return util.transform_to_animeippo_format(original, feature_names, keys, ANILIST_MAPPING)
 
 
-def transform_to_animeippo_format(original, feature_names, keys):
-    df = pd.DataFrame(columns=keys)
+def transform_user_manga_list_data(data, feature_names):
+    original = pd.json_normalize(data["data"])
 
-    if len(original) == 0:
-        return df
+    keys = [
+        Columns.ID,
+        Columns.ID_MAL,
+        Columns.TITLE,
+        Columns.FORMAT,
+        Columns.GENRES,
+        Columns.TAGS,
+        Columns.USER_STATUS,
+        Columns.STATUS,
+        Columns.MEAN_SCORE,
+        Columns.SCORE,
+        Columns.USER_COMPLETE_DATE,
+    ]
 
-    df = run_mappers(df, original, ANILIST_MAPPING)
-
-    df["features"] = df.apply(util.get_features, args=(feature_names,), axis=1)
-
-    if "id" in df.columns:
-        df = df.drop_duplicates(subset="id")
-        df = df.set_index("id")
-
-    return df.infer_objects()
-
-
-def run_mappers(dataframe, original, mapping):
-    for key, mapper in mapping.items():
-        if key in dataframe.columns:
-            dataframe[key] = mapper.map(original)
-
-    return dataframe
+    return util.transform_to_animeippo_format(original, feature_names, keys, ANILIST_MAPPING)
 
 
 def filter_relations(field, meaningful_relations):
@@ -122,24 +116,6 @@ def get_user_complete_date(year, month, day):
     return datetime.date(int(year), int(month), int(day))
 
 
-@util.default_if_error(pd.NA)
-def get_season(year, season):
-    if year == 0 or pd.isna(year):
-        year = "?"
-    else:
-        year = str(int(year))
-
-    if pd.isna(season):
-        season = "?"
-
-    return f"{year}/{str(season).lower()}"
-
-
-def get_score(score):
-    # np.nan is a float, pd.NA is not, causes problems
-    return score if score != 0 else np.nan
-
-
 def get_ranks(items):
     return {item["name"]: item["rank"] / 100 for item in items}
 
@@ -149,45 +125,51 @@ def get_nsfw_tags(items):
 
 
 def get_studios(studios):
-    return set([studio["node"]["name"] for studio in studios if studio["node"].get("isAnimationStudio", False)])
+    return set(
+        [
+            studio["node"]["name"]
+            for studio in studios
+            if studio["node"].get("isAnimationStudio", False)
+        ]
+    )
 
 
 # fmt: off
 
 ANILIST_MAPPING = {
-    "id":           DefaultMapper("media.id"),
-    "idMal":        DefaultMapper("media.idMal"),
-    "title":        DefaultMapper("media.title.romaji"),
-    "format":       DefaultMapper("media.format"),
-    "genres":       DefaultMapper("media.genres"),
-    "coverImage":   DefaultMapper("media.coverImage.large"),
-    "mean_score":   DefaultMapper("media.meanScore"),
-    "popularity":   DefaultMapper("media.popularity"),
-    "duration":     DefaultMapper("media.duration"),
-    "episodes":     DefaultMapper("media.episodes"),
-    "user_status":  SingleMapper("status", str.lower),
-    "status":       SingleMapper("media.status", str.lower),
-    "score":        SingleMapper("score", get_score),
-    "source":       SingleMapper("media.source", str.lower),
-    "tags":         SingleMapper("media.tags", get_tags),
-    "continuation_to":    
-                    SingleMapper("media.relations.edges", get_continuation),
-    "adaptation_of":
-                    SingleMapper("media.relations.edges", get_adaptation),
-    "ranks":        SingleMapper("media.tags", get_ranks),
-    "nsfw_tags":    SingleMapper("media.tags", get_nsfw_tags),
-    "studios":      SingleMapper("media.studios.edges", get_studios),
-    "user_complete_date": 
-                    MultiMapper(
-                        lambda row: get_user_complete_date(
-                            row["completedAt.year"], 
-                            row["completedAt.month"], 
-                            row["completedAt.day"]
-                        ),
-                    pd.NaT,
-    ),
-    "start_season": MultiMapper(
-        lambda row: get_season(row["media.seasonYear"], row["media.season"]),
-    ),
+    Columns.ID:                 DefaultMapper("media.id"),
+    Columns.ID_MAL:             DefaultMapper("media.idMal"),
+    Columns.TITLE:              DefaultMapper("media.title.romaji"),
+    Columns.FORMAT:             DefaultMapper("media.format"),
+    Columns.GENRES:             DefaultMapper("media.genres"),
+    Columns.COVER_IMAGE:        DefaultMapper("media.coverImage.large"),
+    Columns.MEAN_SCORE:         DefaultMapper("media.meanScore"),
+    Columns.POPULARITY:         DefaultMapper("media.popularity"),
+    Columns.DURATION:           DefaultMapper("media.duration"),
+    Columns.EPISODES:           DefaultMapper("media.episodes"),
+    Columns.USER_STATUS:        SingleMapper("status", str.lower),
+    Columns.STATUS:             SingleMapper("media.status", str.lower),
+    Columns.SCORE:              SingleMapper("score", util.get_score),
+    Columns.SOURCE:             SingleMapper("media.source", str.lower),
+    Columns.TAGS:               SingleMapper("media.tags", get_tags),
+    Columns.CONTINUATION_TO:    SingleMapper("media.relations.edges", get_continuation),
+    Columns.ADAPTATION_OF:      SingleMapper("media.relations.edges", get_adaptation),
+    Columns.RANKS:              SingleMapper("media.tags", get_ranks),
+    Columns.NSFW_TAGS:          SingleMapper("media.tags", get_nsfw_tags),
+    Columns.STUDIOS:            SingleMapper("media.studios.edges", get_studios),
+    Columns.USER_COMPLETE_DATE: MultiMapper(
+                                    lambda row: get_user_complete_date(
+                                        row["completedAt.year"], 
+                                        row["completedAt.month"], 
+                                        row["completedAt.day"]
+                                    ),
+                                    pd.NaT,
+                                ),
+    Columns.START_SEASON:       MultiMapper(
+                                    lambda row: util.get_season(
+                                        row["media.seasonYear"], 
+                                        row["media.season"]
+                                    ),
+                                ),
 }
 # fmt: on

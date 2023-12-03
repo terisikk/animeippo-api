@@ -160,7 +160,7 @@ class AniListProvider(provider.AbstractAnimeProvider):
             for entry in coll["entries"]:
                 manga_list["data"].append(entry)
 
-        return ani_formatter.transform_watchlist_data(manga_list, self.get_feature_fields())
+        return ani_formatter.transform_user_manga_list_data(manga_list, self.get_feature_fields())
 
     def get_feature_fields(self):
         return ["genres", "tags"]

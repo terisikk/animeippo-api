@@ -13,7 +13,6 @@ def get_recs():
 
 if __name__ == "__main__":
     import dotenv
-    import os
 
     from animeippo.view import views
     from animeippo.recommendation import recommender_builder

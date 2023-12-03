@@ -3,16 +3,29 @@ import pandas as pd
 import numpy as np
 
 
-def format_with_formatters(df, formatters):
-    for key, formatter in formatters.items():
-        if key in df.columns:
-            df[key] = df[key].apply(formatter)
+def transform_to_animeippo_format(original, feature_names, keys, mapping):
+    df = pd.DataFrame(columns=keys)
 
-    return df
+    if len(original) == 0:
+        return df
+
+    df = run_mappers(df, original, mapping)
+
+    df["features"] = df.apply(get_features, args=(feature_names,), axis=1)
+
+    if "id" in df.columns:
+        df = df.drop_duplicates(subset="id")
+        df = df.set_index("id")
+
+    return df.infer_objects()
 
 
-def get_column_name_mappers(columns):
-    return {key: key.split(".")[-1] for key in columns if "." in key}
+def run_mappers(dataframe, original, mapping):
+    for key, mapper in mapping.items():
+        if key in dataframe.columns:
+            dataframe[key] = mapper.map(original)
+
+    return dataframe
 
 
 def default_if_error(default):
@@ -45,3 +58,20 @@ def get_features(row, feature_names):
                 all_features.append(value)
 
     return all_features
+
+
+def get_score(score):
+    # np.nan is a float, pd.NA is not, causes problems
+    return score if score != 0 else np.nan
+
+
+def get_season(year, season):
+    if year == 0 or pd.isna(year):
+        year = "?"
+    else:
+        year = str(int(year))
+
+    if pd.isna(season):
+        season = "?"
+
+    return f"{year}/{str(season).lower()}"

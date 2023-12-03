@@ -1,4 +1,32 @@
 import pandas as pd
+from enum import StrEnum
+
+
+class Columns(StrEnum):
+    ID = "id"
+    ID_MAL = "id_mal"
+    TITLE = "title"
+    FORMAT = "format"
+    GENRES = "genres"
+    TAGS = "tags"
+    COVER_IMAGE = "cover_image"
+    SCORE = "score"
+    MEAN_SCORE = "mean_score"
+    POPULARITY = "popularity"
+    DURATION = "duration"
+    EPISODES = "episodes"
+    STATUS = "status"
+    USER_STATUS = "user_status"
+    SOURCE = "source"
+    CONTINUATION_TO = "continuation_to"
+    ADAPTATION_OF = "adaptation_of"
+    RANKS = "ranks"
+    NSFW_TAGS = "nsfw_tags"
+    STUDIOS = "studios"
+    USER_COMPLETE_DATE = "user_complete_date"
+    START_SEASON = "start_season"
+    RATING = "rating"
+    FEATURES = "features"
 
 
 class DefaultMapper:

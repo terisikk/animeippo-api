@@ -1,45 +1,85 @@
 import pandas as pd
 
-from .mal_formatter import MAL_MAPPING, transform_to_animeippo_format as mal_transform
-from .ani_formatter import ANILIST_MAPPING, transform_to_animeippo_format as ani_transform, run_mappers
-from animeippo.providers.formatters.schema import SingleMapper
+from .mal_formatter import MAL_MAPPING
+from .ani_formatter import ANILIST_MAPPING
+from .util import transform_to_animeippo_format
+from animeippo.providers.formatters.schema import SingleMapper, Columns
 
 
 def transform_mal_watchlist_data(data, feature_names):
     original = pd.json_normalize(data["data"])
 
     keys = [
-        "id",
-        "user_status",
-        "score",
-        "user_complete_date",
+        Columns.ID,
+        Columns.USER_STATUS,
+        Columns.SCORE,
+        Columns.USER_COMPLETE_DATE,
     ]
 
-    return mal_transform(original, feature_names, keys)
+    return transform_to_animeippo_format(original, feature_names, keys, MAL_MAPPING)
 
 
 def transform_ani_watchlist_data(data, feature_names, mal_df):
     original = pd.json_normalize(data["data"], "media", record_prefix="media.")
 
     keys = [
-        "id",
-        "idMal",
-        "title",
-        "format",
-        "genres",
-        "coverImage",
-        "mean_score",
-        "source",
-        "tags",
-        "ranks",
-        "nsfw_tags",
-        "studios",
-        "start_season",
+        Columns.ID,
+        Columns.ID_MAL,
+        Columns.TITLE,
+        Columns.FORMAT,
+        Columns.GENRES,
+        Columns.COVER_IMAGE,
+        Columns.MEAN_SCORE,
+        Columns.SOURCE,
+        Columns.TAGS,
+        Columns.RANKS,
+        Columns.NSFW_TAGS,
+        Columns.STUDIOS,
+        Columns.START_SEASON,
     ]
 
-    df = ani_transform(original, feature_names, keys)
+    df = transform_to_animeippo_format(original, feature_names, keys, ANILIST_MAPPING)
 
-    return df.join(mal_df.drop("features", axis=1), on="idMal")
+    return df.join(mal_df.drop(Columns.FEATURES, axis=1), on=Columns.ID_MAL)
+
+
+def transform_ani_seasonal_data(data, feature_names):
+    original = pd.json_normalize(data["data"], "media", record_prefix="media.")
+
+    keys = [
+        Columns.ID,
+        Columns.ID_MAL,
+        Columns.TITLE,
+        Columns.FORMAT,
+        Columns.GENRES,
+        Columns.COVER_IMAGE,
+        Columns.MEAN_SCORE,
+        Columns.POPULARITY,
+        Columns.STATUS,
+        Columns.CONTINUATION_TO,
+        Columns.SCORE,
+        Columns.DURATION,
+        Columns.EPISODES,
+        Columns.SOURCE,
+        Columns.TAGS,
+        Columns.NSFW_TAGS,
+        Columns.RANKS,
+        Columns.STUDIOS,
+        Columns.START_SEASON,
+    ]
+
+    ani_df = transform_to_animeippo_format(original, feature_names, keys, ANILIST_MAPPING)
+
+    temp_df = pd.DataFrame()
+    temp_df[Columns.ADAPTATION_OF] = SingleMapper("media.relations.edges", get_adaptation).map(
+        original
+    )
+    temp_df["idx"] = ani_df.index.to_list()
+    temp_df = temp_df.set_index("idx")
+
+    ani_df[Columns.ADAPTATION_OF] = temp_df[Columns.ADAPTATION_OF]
+
+    return ani_df
 
 
 def get_adaptation(field):
@@ -54,40 +94,3 @@ def get_adaptation(field):
             relations.append(id)
 
     return relations
-
-
-def transform_ani_seasonal_data(data, feature_names):
-    original = pd.json_normalize(data["data"], "media", record_prefix="media.")
-
-    keys = [
-        "id",
-        "idMal",
-        "title",
-        "format",
-        "genres",
-        "coverImage",
-        "mean_score",
-        "popularity",
-        "status",
-        "continuation_to",
-        "score",
-        "duration",
-        "episodes",
-        "source",
-        "tags",
-        "nsfw_tags",
-        "ranks",
-        "studios",
-        "start_season",
-    ]
-
-    ani_df = ani_transform(original, feature_names, keys)
-
-    temp_df = pd.DataFrame()
-    temp_df["adaptation_of"] = SingleMapper("media.relations.edges", get_adaptation).map(original)
-    temp_df["idx"] = ani_df.index.to_list()
-    temp_df = temp_df.set_index("idx")
-
-    ani_df["adaptation_of"] = temp_df["adaptation_of"]
-
-    return ani_df

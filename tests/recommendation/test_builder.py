@@ -105,7 +105,10 @@ async def test_databuilder_without_season():
 
 
 def test_builder_creation_returns_correct_builders():
-    assert recommender_builder.create_builder("anilist")._provider.__class__ == providers.anilist.AniListProvider
+    assert (
+        recommender_builder.create_builder("anilist")._provider.__class__
+        == providers.anilist.AniListProvider
+    )
     assert (
         recommender_builder.create_builder("myanimelist")._provider.__class__
         == providers.myanimelist.MyAnimeListProvider
@@ -118,11 +121,17 @@ def test_builder_creation_returns_correct_builders():
 
 
 def test_builder_passes_with_or_without_cache(mocker):
-    assert recommender_builder.create_builder("anilist")._provider.__class__ == providers.anilist.AniListProvider
+    assert (
+        recommender_builder.create_builder("anilist")._provider.__class__
+        == providers.anilist.AniListProvider
+    )
 
     mocker.patch("animeippo.cache.RedisCache", CacheStub)
 
-    assert recommender_builder.create_builder("anilist")._provider.__class__ == providers.anilist.AniListProvider
+    assert (
+        recommender_builder.create_builder("anilist")._provider.__class__
+        == providers.anilist.AniListProvider
+    )
 
 
 def test_status_data_is_filled_to_dataset():

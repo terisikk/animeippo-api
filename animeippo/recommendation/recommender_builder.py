@@ -129,7 +129,9 @@ async def construct_anilist_data(provider, year, season, user):
         seasonal_filters = [
             filters.FeatureFilter("Kids", negative=True),
             filters.FeatureFilter("Hentai", negative=True),
-            filters.StartSeasonFilter((year, "winter"), (year, "spring"), (year, "summer"), (year, "fall"))
+            filters.StartSeasonFilter(
+                (year, "winter"), (year, "spring"), (year, "summer"), (year, "fall")
+            )
             if season is None
             else filters.StartSeasonFilter((year, season)),
         ]
@@ -157,7 +159,9 @@ async def construct_myanimelist_data(provider, year, season, user):
         seasonal_filters = [
             filters.MediaTypeFilter("tv"),
             filters.RatingFilter("g", "rx", negative=True),
-            filters.StartSeasonFilter((year, "winter"), (year, "spring"), (year, "summer"), (year, "fall"))
+            filters.StartSeasonFilter(
+                (year, "winter"), (year, "spring"), (year, "summer"), (year, "fall")
+            )
             if season is None
             else filters.StartSeasonFilter((year, season)),
         ]
@@ -237,7 +241,9 @@ def create_builder(providername):
                     engine.AnimeRecommendationEngine(
                         get_default_scorers(metric),
                         get_default_categorizers(metric),
-                        clustering.AnimeClustering(distance_metric=metric, distance_threshold=0.65, linkage="average"),
+                        clustering.AnimeClustering(
+                            distance_metric=metric, distance_threshold=0.65, linkage="average"
+                        ),
                         encoding.WeightedCategoricalEncoder(),
                     )
                 )
@@ -264,7 +270,9 @@ def create_builder(providername):
                     engine.AnimeRecommendationEngine(
                         get_default_scorers(metric),
                         get_default_categorizers(metric),
-                        clustering.AnimeClustering(distance_metric=metric, distance_threshold=0.65, linkage="average"),
+                        clustering.AnimeClustering(
+                            distance_metric=metric, distance_threshold=0.65, linkage="average"
+                        ),
                     )
                 )
                 .databuilder(construct_anilist_data)

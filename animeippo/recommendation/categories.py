@@ -34,9 +34,9 @@ class AdaptationCategory:
     def categorize(self, dataset, max_items=None):
         target = dataset.recommendations
 
-        return target[(target[scoring.AdaptationScorer.name] > 0) & (target["user_status"] != "completed")].sort_values(
-            scoring.AdaptationScorer.name, ascending=False
-        )[0:max_items]
+        return target[
+            (target[scoring.AdaptationScorer.name] > 0) & (target["user_status"] != "completed")
+        ].sort_values(scoring.AdaptationScorer.name, ascending=False)[0:max_items]
 
 
 class SourceCategory:
@@ -67,7 +67,9 @@ class SourceCategory:
             case _:
                 self.description = "Based on a " + str.title(best_source)
 
-        return target[target["source"] == best_source.lower()].sort_values("final_score", ascending=False)[0:max_items]
+        return target[target["source"] == best_source.lower()].sort_values(
+            "final_score", ascending=False
+        )[0:max_items]
 
 
 class StudioCategory:
@@ -77,11 +79,13 @@ class StudioCategory:
     def categorize(self, dataset, max_items=25):
         target = dataset.recommendations
 
-        target = target[(pd.isnull(target["user_status"])) & (target[scoring.FormatScorer.name] > 0.5)]
-
-        return target.sort_values([scoring.StudioCorrelationScorer.name, "final_score"], ascending=[False, False])[
-            0:max_items
+        target = target[
+            (pd.isnull(target["user_status"])) & (target[scoring.FormatScorer.name] > 0.5)
         ]
+
+        return target.sort_values(
+            [scoring.StudioCorrelationScorer.name, "final_score"], ascending=[False, False]
+        )[0:max_items]
 
 
 class ClusterCategory:
@@ -135,7 +139,9 @@ class GenreCategory:
 
         gdf = gdf[~gdf["genres"].isin(dataset.nsfw_tags)]
 
-        favourite_genres = analysis.weight_categoricals_correlation(compare, "genres").sort_values(ascending=False)
+        favourite_genres = analysis.weight_categoricals_correlation(compare, "genres").sort_values(
+            ascending=False
+        )
 
         if self.nth_genre < len(favourite_genres):
             genre = favourite_genres.index[self.nth_genre]
@@ -162,9 +168,9 @@ class YourTopPicksCategory:
     def categorize(self, dataset, max_items=25):
         target = dataset.recommendations
 
-        mask = (target[scoring.ContinuationScorer.name] == scoring.ContinuationScorer.DEFAULT_SCORE) & (
-            pd.isnull(target["user_status"]) & (target["status"].isin(["releasing", "finished"]))
-        )
+        mask = (
+            target[scoring.ContinuationScorer.name] == scoring.ContinuationScorer.DEFAULT_SCORE
+        ) & (pd.isnull(target["user_status"]) & (target["status"].isin(["releasing", "finished"])))
 
         new_picks = target[mask]
 
@@ -179,13 +185,15 @@ class TopUpcomingCategory:
     def categorize(self, dataset, max_items=25):
         target = dataset.recommendations
 
-        mask = (target[scoring.ContinuationScorer.name] == scoring.ContinuationScorer.DEFAULT_SCORE) & (
-            target["status"] == "not_yet_released"
-        )
+        mask = (
+            target[scoring.ContinuationScorer.name] == scoring.ContinuationScorer.DEFAULT_SCORE
+        ) & (target["status"] == "not_yet_released")
 
         new_picks = target[mask]
 
-        return new_picks.sort_values(by=["start_season", "final_score"], ascending=[False, False])[0:max_items]
+        return new_picks.sort_values(by=["start_season", "final_score"], ascending=[False, False])[
+            0:max_items
+        ]
 
 
 class BecauseYouLikedCategory:
@@ -203,7 +211,9 @@ class BecauseYouLikedCategory:
 
         mean = wl["score"].mean()
 
-        last_complete = wl[pd.notna(wl["user_complete_date"])].sort_values("user_complete_date", ascending=False)
+        last_complete = wl[pd.notna(wl["user_complete_date"])].sort_values(
+            "user_complete_date", ascending=False
+        )
 
         last_liked = last_complete[last_complete["score"].ge(mean)]
 
@@ -265,9 +275,9 @@ class DiscouragingWrapper:
 
         self.description = self.category.description
 
-        dataset.recommendations.loc[result.index, "discourage_score"] = discourager.apply_discourage_on_repeating_items(
-            result
-        )
+        dataset.recommendations.loc[
+            result.index, "discourage_score"
+        ] = discourager.apply_discourage_on_repeating_items(result)
 
         dataset.recommendations["final_score"] = dataset.recommendations["recommend_score"]
 

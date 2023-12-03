@@ -9,7 +9,9 @@ from animeippo.recommendation import categories, dataset
 def test_most_popular_category():
     cat = categories.MostPopularCategory()
 
-    recommendations = pd.DataFrame({"popularityscore": [2, 3, 1], "title": ["Test 1", "Test 2", "Test 3"]})
+    recommendations = pd.DataFrame(
+        {"popularityscore": [2, 3, 1], "title": ["Test 1", "Test 2", "Test 3"]}
+    )
 
     data = dataset.UserDataSet(None, None, None)
     data.recommendations = recommendations
@@ -64,7 +66,9 @@ def test_source_category():
 def test_source_category_defaults_to_manga_without_scores():
     cat = categories.SourceCategory()
 
-    watchlist = pd.DataFrame({"source": ["manga", "light_novel", "other"], "score": [None, None, None]})
+    watchlist = pd.DataFrame(
+        {"source": ["manga", "light_novel", "other"], "score": [None, None, None]}
+    )
 
     recommendations = pd.DataFrame(
         {
@@ -323,7 +327,9 @@ def test_because_you_liked():
 def test_because_you_liked_does_not_fail_with_empty_likes():
     cat = categories.BecauseYouLikedCategory(99)
 
-    user_data = pd.DataFrame({"score": [1, 1], "user_complete_date": [1, 2], "user_status": [pd.NA, pd.NA]})
+    user_data = pd.DataFrame(
+        {"score": [1, 1], "user_complete_date": [1, 2], "user_status": [pd.NA, pd.NA]}
+    )
 
     data = dataset.UserDataSet(user_data, None, None)
     data.recommendations = user_data

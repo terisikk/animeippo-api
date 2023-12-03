@@ -126,7 +126,8 @@ async def test_get_next_page_returns_succesfully(mocker):
 
     session = SessionStub({"page1": response1, "page2": response2, "page3": response3})
     final_pages = [
-        await myanimelist.MyAnimeListConnection().requests_get_next_page(session, await page.json()) for page in pages
+        await myanimelist.MyAnimeListConnection().requests_get_next_page(session, await page.json())
+        for page in pages
     ]
 
     assert len(final_pages) == 3
@@ -147,7 +148,9 @@ async def test_get_all_pages_returns_all_pages(mocker):
     response = ResponseStub({"related_anime": []})
     mocker.patch("aiohttp.ClientSession.get", return_value=response)
 
-    mock_session = SessionStub({"FAKE" + first_page_url: response1, "page2": response2, "page3": response3})
+    mock_session = SessionStub(
+        {"FAKE" + first_page_url: response1, "page2": response2, "page3": response3}
+    )
 
     final_pages = list(
         [

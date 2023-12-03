@@ -48,7 +48,9 @@ def test_similarity_weights():
         }
     )
 
-    weights = original["genres"].apply(analysis.weighted_mean_for_categorical_values, args=(genre_averages,))
+    weights = original["genres"].apply(
+        analysis.weighted_mean_for_categorical_values, args=(genre_averages,)
+    )
 
     assert weights.tolist() == [8.5, 8.0]
 
