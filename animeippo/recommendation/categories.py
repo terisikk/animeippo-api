@@ -56,8 +56,7 @@ class SourceCategory:
         if pd.isna(best_source) or len(best_source) <= 0:
             best_source = "Manga"
 
-        if "user_status" in target.columns:
-            target = target[(pd.isnull(target["user_status"]))]
+        target = target[(pd.isnull(target["user_status"]))]
 
         match best_source.lower():
             case "original":
@@ -221,7 +220,7 @@ class BecauseYouLikedCategory:
             # We need a row, not an object
             liked_item = last_liked.iloc[self.nth_liked : self.nth_liked + 1]
 
-            self.description = "Because You Liked " + last_liked.iloc[self.nth_liked]["title"]
+            self.description = "Because You Liked " + liked_item["title"].iloc[0]
             similarity = analysis.similarity_of_anime_lists(
                 target["encoded"], liked_item["encoded"], self.distance_metric
             )

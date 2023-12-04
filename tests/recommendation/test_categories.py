@@ -52,6 +52,7 @@ def test_source_category():
             "final_score": [1, 2, 3],
             "title": ["Test 1", "Test 2", "Test 3"],
             "source": ["manga", "manga", "ligh_novel"],
+            "user_status": [pd.NA, pd.NA, pd.NA],
         }
     )
 
@@ -76,6 +77,7 @@ def test_source_category_defaults_to_manga_without_scores():
             "final_score": [1, 2, 3],
             "title": ["Test 1", "Test 2", "Test 3"],
             "source": ["manga", "manga", "ligh_novel"],
+            "user_status": [pd.NA, pd.NA, pd.NA],
         }
     )
 
@@ -98,6 +100,7 @@ def test_source_category_descriptions():
             "final_score": [1, 2, 3],
             "title": ["Test 1", "Test 2", "Test 3"],
             "source": ["manga", "other", "original"],
+            "user_status": [pd.NA, pd.NA, pd.NA],
         }
     )
 
@@ -322,6 +325,7 @@ def test_because_you_liked():
 
     assert actual[0:2] == [1, 0]
     assert pd.isna(actual[2])
+    assert cat.description == "Because You Liked W2"
 
 
 def test_because_you_liked_does_not_fail_with_empty_likes():

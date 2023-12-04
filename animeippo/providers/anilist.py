@@ -54,6 +54,7 @@ class AniListProvider(provider.AbstractAnimeProvider):
                             seasonYear
                             season
                             coverImage { large }
+                            staff { edges {role} nodes {id}}
                         }
                     }
                 }
@@ -102,6 +103,7 @@ class AniListProvider(provider.AbstractAnimeProvider):
                     relations { edges { relationType, node { id, idMal }}}
                     popularity
                     coverImage { large }
+                    staff { edges {role} nodes {id}}
                 }
             }
         }

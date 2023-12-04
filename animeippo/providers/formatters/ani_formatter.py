@@ -29,6 +29,7 @@ def transform_seasonal_data(data, feature_names):
         Columns.RANKS,
         Columns.STUDIOS,
         Columns.START_SEASON,
+        Columns.DIRECTOR,
     ]
 
     return util.transform_to_animeippo_format(original, feature_names, keys, ANILIST_MAPPING)
@@ -54,6 +55,7 @@ def transform_watchlist_data(data, feature_names):
         Columns.STUDIOS,
         Columns.USER_COMPLETE_DATE,
         Columns.START_SEASON,
+        Columns.DIRECTOR,
     ]
 
     return util.transform_to_animeippo_format(original, feature_names, keys, ANILIST_MAPPING)
@@ -134,6 +136,13 @@ def get_studios(studios):
     )
 
 
+def get_staff(staffs, nodes, role):
+    roles = [edge["role"] for edge in staffs]
+    staff_ids = [node["id"] for node in nodes]
+
+    return [staff_ids[i] for i, r in enumerate(roles) if r == role]
+
+
 # fmt: off
 
 ANILIST_MAPPING = {
@@ -157,6 +166,13 @@ ANILIST_MAPPING = {
     Columns.RANKS:              SingleMapper("media.tags", get_ranks),
     Columns.NSFW_TAGS:          SingleMapper("media.tags", get_nsfw_tags),
     Columns.STUDIOS:            SingleMapper("media.studios.edges", get_studios),
+    Columns.DIRECTOR:           MultiMapper(
+                                    lambda row: get_staff(
+                                        row["media.staff.edges"],
+                                        row["media.staff.nodes"],
+                                        "Director"
+                                    )
+                                ),
     Columns.USER_COMPLETE_DATE: MultiMapper(
                                     lambda row: get_user_complete_date(
                                         row["completedAt.year"], 

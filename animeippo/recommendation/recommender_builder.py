@@ -31,6 +31,7 @@ def get_default_scorers(distance_metric="jaccard"):
         scoring.SourceScorer(),
         scoring.DirectSimilarityScorer(distance_metric=distance_metric),
         scoring.FormatScorer(),
+        scoring.DirectorCorrelationScorer(),
     ]
 
 

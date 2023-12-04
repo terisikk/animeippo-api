@@ -331,3 +331,27 @@ class FormatScorer(AbstractScorer):
             score = score * 0.5
 
         return score
+
+
+class DirectorCorrelationScorer:
+    name = "directorcorrelationscore"
+
+    def score(self, data):
+        scoring_target_df = data.seasonal
+        compare_df = data.watchlist
+
+        weights = analysis.weight_categoricals_correlation(
+            compare_df,
+            "directors",
+        )
+
+        mode = weights.mode()
+
+        mode = mode[0] if len(mode) > 0 else mode
+
+        scores = scoring_target_df["directors"].apply(
+            analysis.weighted_mean_for_categorical_values,
+            args=(weights.fillna(mode),),
+        )
+
+        return analysis.normalize_column(scores)

@@ -27,6 +27,7 @@ class Columns(StrEnum):
     START_SEASON = "start_season"
     RATING = "rating"
     FEATURES = "features"
+    DIRECTOR = "directors"
 
 
 class DefaultMapper:
