@@ -510,3 +510,31 @@ def test_format_scorer():
     actual = target.sort_values("recommend_score", ascending=False)
 
     assert actual["title"].tolist() == ["Anime B", "Anime C", "Anime A"]
+
+
+def test_director_correlation_scorer():
+    source_df = pd.DataFrame(
+        {
+            "directors": [["1"], ["2"]],
+            "title": ["Vinland Saga", "Fullmetal Alchemist: Brotherhood"],
+            "score": [10, 1],
+        }
+    )
+    target_df = pd.DataFrame(
+        {
+            "directors": [["3"], ["1"]],
+            "title": ["Bungou Stray Dogs", "Jujutsu Kaisen"],
+        }
+    )
+
+    scorer = scoring.DirectorCorrelationScorer()
+
+    target_df["recommend_score"] = scorer.score(dataset.UserDataSet(source_df, target_df))
+
+    recommendations = target_df.sort_values("recommend_score", ascending=False)
+
+    expected = "Jujutsu Kaisen"
+    actual = recommendations.iloc[0]["title"]
+
+    assert actual == expected
+    assert not recommendations["recommend_score"].isnull().values.any()

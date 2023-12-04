@@ -14,6 +14,14 @@ def test_user_complete_date_can_be_extracted():
     assert actual == datetime.date(2023, 2, 2)
 
 
+def test_director_can_be_extracted():
+    actual = ani_formatter.get_staff(
+        [{"role": "Director"}, {"role": "Grunt"}], [{"id": 123}, {"id": 234}], "Director"
+    )
+
+    assert actual == [123]
+
+
 def test_dataframe_can_be_constructed_from_ani():
     animelist = {
         "data": test_data.ANI_USER_LIST["data"]["MediaListCollection"]["lists"][0]["entries"]
