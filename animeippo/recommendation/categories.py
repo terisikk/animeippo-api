@@ -281,3 +281,12 @@ class DiscouragingWrapper:
         dataset.recommendations["final_score"] = dataset.recommendations["recommend_score"]
 
         return result
+
+
+class DebugCategory:
+    description = "Debug"
+
+    def categorize(self, dataset, max_items=50):
+        target = dataset.recommendations
+
+        return target.sort_values("final_score", ascending=False)[0:max_items]

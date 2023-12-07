@@ -78,6 +78,13 @@ class AnimeRecommendationEngine:
         else:
             raise RuntimeError("No scorers added for engine. Please add at least one.")
 
+        print(
+            "Mean feature length top 25",
+            scoring_target_df.sort_values("recommend_score", ascending=False)["features"][0:25]
+            .apply(len)
+            .mean(),
+        )
+
         return scoring_target_df
 
     def categorize_anime(self, data):

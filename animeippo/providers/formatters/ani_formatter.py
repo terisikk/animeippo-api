@@ -119,7 +119,7 @@ def get_user_complete_date(year, month, day):
 
 
 def get_ranks(items):
-    return {item["name"]: item["rank"] / 100 for item in items}
+    return {item["name"]: item["rank"] / 100 for item in items if item["rank"] is not None}
 
 
 def get_nsfw_tags(items):

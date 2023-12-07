@@ -54,6 +54,14 @@ class FeatureCorrelationScorer(AbstractScorer):
             compare_df, "encoded", data.all_features
         )
 
+        dropped_or_paused = compare_df.apply(
+            lambda row: row["user_status"] in ["dropped", "paused"], axis=1
+        )
+
+        drop_correlations = analysis.weight_encoded_categoricals_correlation(
+            compare_df, "encoded", data.all_features, dropped_or_paused
+        )
+
         scores = scoring_target_df["features"].apply(
             # For once, np.sum is the wanted metric,
             # so that titles with only a few features get lower scores
@@ -62,6 +70,12 @@ class FeatureCorrelationScorer(AbstractScorer):
             analysis.weighted_sum_for_categorical_values,
             args=(score_correlations,),
         ) / np.sqrt(scoring_target_df["features"].str.len())
+
+        scores = scores - (
+            scoring_target_df["features"].apply(
+                analysis.weighted_mean_for_categorical_values, args=(drop_correlations,)
+            )
+        )
 
         return analysis.normalize_column(scores)
 
