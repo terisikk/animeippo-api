@@ -38,9 +38,12 @@ class AnimeClustering:
         self.distance_metric = distance_metric
 
     def cluster_by_features(self, series, index):
-        # Cosine is undefined for zero-vectors, need to hack (or change metric)
-        clusters = self.model.fit_predict(self.remove_rows_with_no_features(series))
-        clusters = self.reinsert_rows_with_no_features_as_a_new_cluster(clusters, series)
+        if self.distance_metric == "cosine":
+            # Cosine is undefined for zero-vectors, need to hack (or change metric)
+            clusters = self.model.fit_predict(self.remove_rows_with_no_features(series))
+            clusters = self.reinsert_rows_with_no_features_as_a_new_cluster(clusters, series)
+        else:
+            clusters = self.model.fit_predict(series)
 
         if clusters is not None:
             self.fit = True
@@ -70,8 +73,4 @@ class AnimeClustering:
 
         max_columns = similarities.idxmax(axis=1).fillna(-1).astype(int)
 
-        nearest_clusters = max_columns.apply(
-            lambda x: self.clustered_series.loc[x]["cluster"] if x >= 0 else -1
-        )
-
-        return nearest_clusters
+        return self.clustered_series.loc[max_columns]["cluster"].values

@@ -23,16 +23,18 @@ def test_feature_similarity_scorer():
         {
             "features": [["Action", "Adventure"], ["Action", "Fantasy"]],
             "title": ["Bleach", "Fate/Zero"],
-            "encoded": [[True, True, False, False, False], [True, False, True, False, False]],
+            "encoded": [[1, 1, 0, 0, 0], [1, 0, 1, 0, 0]],
         },
+        index=[1, 2],
     )
 
     target_df = pd.DataFrame(
         {
             "features": [["Romance", "Comedy"], ["Action", "Adventure"]],
             "title": ["Kaguya", "Naruto"],
-            "encoded": [[False, False, False, True, True], [True, True, False, False, False]],
-        }
+            "encoded": [[0, 0, 0, 1, 1], [1, 1, 0, 0, 0]],
+        },
+        index=[3, 4],
     )
 
     scorer = scoring.FeaturesSimilarityScorer()
@@ -42,6 +44,41 @@ def test_feature_similarity_scorer():
     recommendations = target_df.sort_values("recommend_score", ascending=False)
 
     expected = "Naruto"
+    actual = recommendations.iloc[0]["title"]
+
+    assert actual == expected
+    assert not recommendations["recommend_score"].isnull().values.any()
+
+
+def test_feature_similarity_scorer_weighted():
+    source_df = pd.DataFrame(
+        {
+            "features": [["Action", "Adventure"], ["Fantasy", "Adventure"]],
+            "title": ["Bleach", "Fate/Zero"],
+            "encoded": [[1, 1, 0], [0, 1, 1]],
+            "score": [1, 10],
+        },
+        index=[1, 2],
+    )
+
+    target_df = pd.DataFrame(
+        {
+            "features": [["Action", "Adventure"], ["Fantasy", "Adventure"]],
+            "title": ["Naruto", "Inuyasha"],
+            "encoded": [[1, 1, 0], [0, 1, 1]],
+        },
+        index=[3, 4],
+    )
+
+    scorer = scoring.FeaturesSimilarityScorer(
+        weighted=True,
+    )
+
+    target_df["recommend_score"] = scorer.score(dataset.UserDataSet(source_df, target_df))
+
+    recommendations = target_df.sort_values("recommend_score", ascending=False)
+
+    expected = "Inuyasha"
     actual = recommendations.iloc[0]["title"]
 
     assert actual == expected
@@ -80,38 +117,6 @@ def test_feature_correlation_scorer():
     recommendations = target_df.sort_values("recommend_score", ascending=False)
 
     expected = "Fate/Grand Order"
-    actual = recommendations.iloc[0]["title"]
-
-    assert actual == expected
-    assert not recommendations["recommend_score"].isnull().values.any()
-
-
-def test_feature_similarity_scorer_weighted():
-    source_df = pd.DataFrame(
-        {
-            "features": [["Action", "Adventure"], ["Fantasy", "Adventure"]],
-            "title": ["Bleach", "Fate/Zero"],
-            "encoded": [[True, True, False], [False, True, True]],
-            "score": [1, 10],
-        }
-    )
-    target_df = pd.DataFrame(
-        {
-            "features": [["Action", "Adventure"], ["Fantasy", "Adventure"]],
-            "title": ["Naruto", "Inuyasha"],
-            "encoded": [[True, True, False], [False, True, True]],
-        }
-    )
-
-    scorer = scoring.FeaturesSimilarityScorer(
-        weighted=True,
-    )
-
-    target_df["recommend_score"] = scorer.score(dataset.UserDataSet(source_df, target_df))
-
-    recommendations = target_df.sort_values("recommend_score", ascending=False)
-
-    expected = "Inuyasha"
     actual = recommendations.iloc[0]["title"]
 
     assert actual == expected
@@ -341,7 +346,7 @@ def test_continuation_scorer():
 
     actual = scorer.score(dataset.UserDataSet(compare, original))
 
-    assert actual.to_list() == [0.8, 0, 0.7, 0]
+    assert actual.to_list() == [0.8, 0.0, 0.7, 0.0]
 
 
 def test_continuation_scorer_scores_nan_with_zero():
@@ -368,7 +373,7 @@ def test_continuation_scorer_scores_nan_with_zero():
 
     actual = scorer.score(dataset.UserDataSet(compare, original))
 
-    assert actual.to_list() == [0.7, 0, 0.7, 0]
+    assert actual.to_list() == [0.7, 0.0, 0.7, 0.0]
 
 
 def test_continuation_scorer_takes_max_of_duplicate_relations():
@@ -432,16 +437,18 @@ def test_direct_similarity_scorer():
         {
             "features": [["Action", "Adventure"], ["Action", "Fantasy"]],
             "title": ["Bleach", "Fate/Zero"],
-            "score": [10, 10],
-            "encoded": [[True, True, False, False, False], [True, False, True, False, False]],
-        }
+            "score": [10, 9],
+            "encoded": [[1, 1, 0, 0, 0], [1, 0, 1, 0, 0]],
+        },
+        index=[1, 2],
     )
     target_df = pd.DataFrame(
         {
-            "features": [["Romance", "Comedy"], ["Action", "Adventure"]],
+            "features": [["Fantasy", "Romance", "Comedy"], ["Action", "Adventure"]],
             "title": ["Kaguya", "Naruto"],
-            "encoded": [[False, False, False, True, True], [True, True, False, False, False]],
-        }
+            "encoded": [[0, 0, 1, 1, 1], [1, 1, 0, 0, 0]],
+        },
+        index=[3, 4],
     )
 
     scorer = scoring.DirectSimilarityScorer()

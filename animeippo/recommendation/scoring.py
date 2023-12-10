@@ -28,7 +28,9 @@ class FeaturesSimilarityScorer(AbstractScorer):
         compare_df = data.watchlist
 
         scores = analysis.similarity_of_anime_lists(
-            scoring_target_df["encoded"], compare_df["encoded"], self.distance_metric
+            scoring_target_df["encoded"],
+            compare_df["encoded"].drop(scoring_target_df.index, errors="ignore"),
+            self.distance_metric,
         )
 
         if self.weighted:
@@ -54,9 +56,7 @@ class FeatureCorrelationScorer(AbstractScorer):
             compare_df, "encoded", data.all_features
         )
 
-        dropped_or_paused = compare_df.apply(
-            lambda row: row["user_status"] in ["dropped", "paused"], axis=1
-        )
+        dropped_or_paused = compare_df["user_status"].isin(["dropped", "paused"])
 
         drop_correlations = analysis.weight_encoded_categoricals_correlation(
             compare_df, "encoded", data.all_features, dropped_or_paused
@@ -162,17 +162,17 @@ class ClusterSimilarityScorer(AbstractScorer):
         cluster_groups = compare_df.groupby("cluster")
 
         for cluster_id, cluster in cluster_groups:
-            similarities = pd.DataFrame(
+            similarities = np.nanmean(
                 analysis.similarity(
                     st_encoded,
                     co_encoded[cluster_groups.indices[cluster_id]],
                     metric=self.distance_metric,
                 ),
-                index=scoring_target_df.index,
-            ).mean(axis=1, skipna=True)
+                axis=1,
+            )
 
             if self.weighted:
-                averages = cluster["score"].mean()
+                averages = np.nanmean(cluster["score"].values)
                 similarities = similarities * averages
 
             scores[cluster_id] = similarities
@@ -181,7 +181,7 @@ class ClusterSimilarityScorer(AbstractScorer):
             weights = np.sqrt(compare_df["cluster"].value_counts())
             scores = scores * weights
 
-        return analysis.normalize_column(scores.apply(np.max, axis=1))
+        return analysis.normalize_column(np.max(scores, axis=1))
 
 
 class DirectSimilarityScorer(AbstractScorer):
@@ -195,15 +195,15 @@ class DirectSimilarityScorer(AbstractScorer):
         compare_df = data.watchlist
 
         similarities = analysis.categorical_similarity(
-            scoring_target_df["encoded"], compare_df["encoded"], metric=self.distance_metric
+            scoring_target_df["encoded"],
+            compare_df["encoded"].drop(scoring_target_df.index, errors="ignore"),
+            metric=self.distance_metric,
         )
 
-        max_values = similarities.max(axis=1)
-        max_columns = similarities[similarities.ge(max_values, axis=0)]
-
-        scores = max_values * max_columns.notna().apply(
-            lambda row: compare_df.loc[max_columns.columns[row]]["score"].mean(), axis=1
-        ).fillna(6.0)
+        max_columns = similarities.idxmax(axis=1).astype(int)
+        scores = pd.Series(
+            compare_df.loc[max_columns]["score"].values, index=scoring_target_df.index
+        )
 
         return analysis.normalize_column(scores)
 
@@ -235,23 +235,22 @@ class ContinuationScorer(AbstractScorer):
 
         rdf["score"] = self.DEFAULT_SCORE
 
-        for i, row in rdf.iterrows():
-            related_index = row["continuation_to"]
-            is_continuation = related_index in compare_df.index
+        is_continuation = rdf[rdf["continuation_to"].isin(compare_df.index)]
+        sources = compare_df.loc[is_continuation["continuation_to"]]
 
-            score = compare_df.at[related_index, "score"] if is_continuation else self.DEFAULT_SCORE
+        user_scores = sources["score"].fillna(mean_score)
 
-            if pd.isna(score):
-                score = mean_score
+        merged = pd.merge(rdf, user_scores, left_on="continuation_to", right_index=True)
+        merged = self.get_max_score_of_duplicate_relations(merged, "score_y")
 
-            rdf.at[i, "score"] = score if is_continuation else self.DEFAULT_SCORE
+        rdf["score"].update(merged)
 
-        scores = self.get_max_score_of_duplicate_relations(rdf)
+        scores = self.get_max_score_of_duplicate_relations(rdf, "score")
 
         return scores / 10
 
-    def get_max_score_of_duplicate_relations(self, rdf):
-        return rdf.groupby(rdf.index)["score"].max()
+    def get_max_score_of_duplicate_relations(self, df, column):
+        return df.groupby(df.index, sort=False)[column].max()
 
 
 class AdaptationScorer(AbstractScorer):
@@ -270,26 +269,24 @@ class AdaptationScorer(AbstractScorer):
         mean_score = analysis.get_mean_score(compare_df, self.DEFAULT_MEAN_SCORE)
 
         rdf = scoring_target_df.explode("adaptation_of")
-
         rdf["score"] = self.DEFAULT_SCORE
 
-        for i, row in rdf.iterrows():
-            related_index = row["adaptation_of"]
-            is_adaptation = related_index in compare_df.index
+        is_adaptation = rdf[rdf["adaptation_of"].isin(compare_df.index)]
+        sources = compare_df.loc[is_adaptation["adaptation_of"]]
 
-            score = compare_df.at[related_index, "score"] if is_adaptation else self.DEFAULT_SCORE
+        user_scores = sources["score"].fillna(mean_score)
 
-            if pd.isna(score):
-                score = mean_score
+        merged = pd.merge(rdf, user_scores, left_on="adaptation_of", right_index=True)
+        merged = self.get_max_score_of_duplicate_relations(merged, "score_y")
 
-            rdf.at[i, "score"] = score if is_adaptation else self.DEFAULT_SCORE
+        rdf["score"].update(merged)
 
-        scores = self.get_max_score_of_duplicate_relations(rdf)
+        scores = self.get_max_score_of_duplicate_relations(rdf, "score")
 
         return scores / 10
 
-    def get_max_score_of_duplicate_relations(self, rdf):
-        return rdf.groupby(rdf.index)["score"].max()
+    def get_max_score_of_duplicate_relations(self, df, column):
+        return df.groupby(df.index, sort=False)[column].max()
 
 
 class SourceScorer(AbstractScorer):

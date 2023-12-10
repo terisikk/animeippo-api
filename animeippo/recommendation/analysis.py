@@ -31,16 +31,7 @@ def categorical_similarity(features1, features2, index=None, metric="jaccard"):
         columns=features2.index,
     )
 
-    similarities = discard_similarities_with_self(similarities)
-
     return similarities
-
-
-def discard_similarities_with_self(dataframe):
-    for column in dataframe.columns:
-        dataframe.loc[column, column] = np.nan
-
-    return dataframe
 
 
 def similarity_of_anime_lists(features1, features2, metric="jaccard"):
@@ -91,12 +82,13 @@ def weight_encoded_categoricals_correlation(dataframe, column, features, against
         columns=sorted(features),
         index=dataframe.index,
     )
-    df_expanded["score"] = against if against is not None else dataframe["score"]
+    df_expanded["score"] = against.astype("float64") if against is not None else dataframe["score"]
 
-    correlation_matrix = df_expanded.corr().fillna(0.0)
-    # weights = np.sqrt(dataframe.explode(column)[column].value_counts())
+    df_nonna = df_expanded[~pd.isna(df_expanded["score"])]
 
-    return correlation_matrix["score"].sort_values(ascending=False)
+    correlations = np.corrcoef(df_nonna, rowvar=False)[:-1, -1]
+
+    return pd.Series(correlations, index=sorted(features)).fillna(0.0)
 
 
 def weight_categoricals_correlation(dataframe, column, against=None):
@@ -119,7 +111,7 @@ def normalize_column(df_column):
 
 
 def get_mean_score(compare_df, default=0):
-    mean_score = compare_df["score"].mean()
+    mean_score = compare_df["score"].mean(skipna=True)
 
     if mean_score == 0 or pd.isna(mean_score):
         mean_score = default

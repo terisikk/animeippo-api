@@ -24,19 +24,11 @@ class WeightedCategoricalEncoder:
     def fit(self, classes, class_field="features", weight_field="ranks"):
         self.class_field = class_field
         self.weight_field = weight_field
-        self.classes = dict.fromkeys(sorted(classes))
+        self.classes = sorted(classes)
 
     def encode(self, dataframe):
-        weight_mapped = dataframe.apply(self.get_weights, axis=1)
-
-        return weight_mapped.apply(self._encode_field).to_list()
+        return dataframe.apply(self.get_weights, axis=1)
 
     def get_weights(self, row):
-        # Weight is 1 when a feature exists but does not have a weight, for example anilist genres
-        return {
-            feature: row[self.weight_field].get(feature, 1) for feature in row[self.class_field]
-        }
-
-    def _encode_field(self, field):
-        # Weight is 0 when a feature does not exist
-        return [field.get(cls, 0) for cls in self.classes.keys()]
+        weights = row[self.weight_field]
+        return [weights.get(cls, 0) for cls in self.classes]

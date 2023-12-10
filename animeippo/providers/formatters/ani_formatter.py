@@ -118,8 +118,17 @@ def get_user_complete_date(year, month, day):
     return datetime.date(int(year), int(month), int(day))
 
 
-def get_ranks(items):
-    return {item["name"]: item["rank"] / 100 for item in items if item["rank"] is not None}
+def get_ranks(tags, genres):
+    ranks = {}
+
+    for tag in tags:
+        value = tag["rank"]
+        ranks[tag["name"]] = value / 100 if value is not None else 0
+
+    for genre in genres:
+        ranks[genre] = 1
+
+    return ranks
 
 
 def get_nsfw_tags(items):
@@ -163,9 +172,14 @@ ANILIST_MAPPING = {
     Columns.TAGS:               SingleMapper("media.tags", get_tags),
     Columns.CONTINUATION_TO:    SingleMapper("media.relations.edges", get_continuation),
     Columns.ADAPTATION_OF:      SingleMapper("media.relations.edges", get_adaptation),
-    Columns.RANKS:              SingleMapper("media.tags", get_ranks),
     Columns.NSFW_TAGS:          SingleMapper("media.tags", get_nsfw_tags),
     Columns.STUDIOS:            SingleMapper("media.studios.edges", get_studios),
+    Columns.RANKS:              MultiMapper(
+                                    lambda row: get_ranks(
+                                        row["media.tags"],
+                                        row["media.genres"],
+                                    )
+                                ),
     Columns.DIRECTOR:           MultiMapper(
                                     lambda row: get_staff(
                                         row["media.staff.edges"],

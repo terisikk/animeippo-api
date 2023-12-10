@@ -21,8 +21,20 @@ def test_clustering():
     assert clusters.tolist() == [1, 0]
 
 
+# Cosine is undefined for zero-vectors, so has a slightly different implementation
+def test_clustering_with_cosine():
+    model = clustering.AnimeClustering(distance_metric="cosine")
+
+    series = pd.Series([[0, 0, 0], [1, 2, 3], [1, 2, 3]])
+    clusters = model.cluster_by_features(np.vstack(series), series.index)
+
+    clusters = model.cluster_by_features(np.vstack(series), series.index)
+
+    assert clusters.tolist() == [-1, 0, 0]
+
+
 def test_predict_cannot_be_called_when_clustering_fails():
-    model = clustering.AnimeClustering()
+    model = clustering.AnimeClustering(distance_metric="cosine")
 
     model.model = FaultyClusterStub()
 

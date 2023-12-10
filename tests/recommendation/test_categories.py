@@ -298,7 +298,7 @@ def test_top_upcoming_category():
 
 
 def test_because_you_liked():
-    cat = categories.BecauseYouLikedCategory(0)
+    cat = categories.BecauseYouLikedCategory(0, distance_metric="cosine")
 
     user_data = pd.DataFrame(
         {
@@ -324,7 +324,7 @@ def test_because_you_liked():
     actual = cat.categorize(data).to_list()
 
     assert actual[0:2] == [1, 0]
-    assert pd.isna(actual[2])
+    assert pd.isna(actual[2])  # similarity with all-zeroes cosine is nan
     assert cat.description == "Because You Liked W2"
 
 
@@ -490,6 +490,41 @@ def test_genre_category_returns_none_for_too_big_genre_number():
     assert actual is None
 
 
+def test_genre_category_can_use_cached_values():
+    cat = categories.GenreCategory(0)
+
+    watchlist = pd.DataFrame(
+        {
+            "genres": [
+                ["Action", "Sports", "Romance"],
+                ["Action", "Romance"],
+                ["Sports", "Comedy"],
+            ],
+            "user_status": ["not_watched", pd.NA, "in_progress"],
+            "score": [10, 10, 10],
+        }
+    )
+
+    recommendations = pd.DataFrame(
+        {
+            "genres": [["Action", "Fantasy"], ["Drama"], ["Action"]],
+            "discourage_score": [1, 1, 1],
+            "final_score": [1, 1, 1],
+            "title": ["Test 1", "Test 2", "Test 3"],
+            "user_status": [pd.NA, pd.NA, pd.NA],
+        }
+    )
+
+    data = dataset.UserDataSet(None, None, None)
+    data.recommendations = recommendations
+    data.user_favourite_genres = pd.Series([None, None], index=["Action", "Sports"])
+
+    actual = cat.categorize(data)
+
+    assert actual["title"].tolist() == ["Test 1", "Test 3"]
+    assert cat.description == "Action"
+
+
 def test_discourage_wrapper():
     cat = categories.YourTopPicksCategory()
     dcat = categories.DiscouragingWrapper(cat)
@@ -520,3 +555,19 @@ def test_discourage_wrapper():
 
     assert dcat.description == cat.description
     assert recommendations["discourage_score"].tolist() == [0.75, 0.5, 0.75]
+
+
+def test_debug_category_returns_all_recommendations():
+    cat = categories.DebugCategory()
+
+    recommendations = pd.DataFrame(
+        {
+            "title": ["Test 1", "Test 2", "Test 3"],
+            "final_score": [2, 2.1, 1.99],
+        }
+    )
+
+    data = dataset.UserDataSet(None, None, None)
+    data.recommendations = recommendations
+
+    assert cat.categorize(data)["title"].tolist() == ["Test 2", "Test 1", "Test 3"]

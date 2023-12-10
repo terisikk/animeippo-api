@@ -131,21 +131,19 @@ class GenreCategory:
         self.nth_genre = nth_genre
 
     def categorize(self, dataset, max_items=None):
-        target = dataset.recommendations
-        compare = dataset.watchlist
+        if dataset.user_favourite_genres is None:
+            gdf = dataset.watchlist_exploded_by_genres
 
-        gdf = compare.explode("genres")
+            gdf = gdf[~gdf["genres"].isin(dataset.nsfw_tags)]
 
-        gdf = gdf[~gdf["genres"].isin(dataset.nsfw_tags)]
+            dataset.user_favourite_genres = analysis.weight_categoricals_correlation(
+                gdf, "genres"
+            ).sort_values(ascending=False)
 
-        favourite_genres = analysis.weight_categoricals_correlation(compare, "genres").sort_values(
-            ascending=False
-        )
+        if self.nth_genre < len(dataset.user_favourite_genres):
+            genre = dataset.user_favourite_genres.index[self.nth_genre]
 
-        if self.nth_genre < len(favourite_genres):
-            genre = favourite_genres.index[self.nth_genre]
-
-            tdf = target.explode("genres")
+            tdf = dataset.recommendations_exploded_by_genres
 
             mask = (tdf["genres"] == genre) & ~(tdf["user_status"].isin(["completed", "dropped"]))
 
