@@ -180,6 +180,33 @@ def test_dataframes_can_be_added_to_cache(mocker):
     assert actual.columns.tolist() == data.columns.tolist()
 
 
+def test_dicts_are_parsed_correctly_when_reading_from_cache(mocker):
+    mocker.patch("redis.Redis", RedisStub)
+
+    rcache = cache.RedisCache()
+
+    data = pd.DataFrame(
+        {
+            "ranks": [
+                {
+                    "rank1": 1,
+                    "rank2": 2,
+                },
+                {
+                    "rank3": 3,
+                    "rank4": 4,
+                },
+            ]
+        }
+    )
+
+    rcache.set_dataframe("test", data)
+
+    actual = rcache.get_dataframe("test")
+
+    assert actual["ranks"].tolist() == data["ranks"].tolist()
+
+
 def test_none_frames_are_not_added_to_cache(mocker):
     mocker.patch("redis.Redis", RedisStub)
 
