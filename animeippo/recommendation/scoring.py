@@ -201,9 +201,7 @@ class DirectSimilarityScorer(AbstractScorer):
         )
 
         max_columns = similarities.idxmax(axis=1).dropna().astype(int)
-        scores = pd.Series(
-            compare_df.loc[max_columns]["score"].values, index=max_columns.index
-        )
+        scores = pd.Series(compare_df.loc[max_columns]["score"].values, index=max_columns.index)
 
         return analysis.normalize_column(scores)
 
