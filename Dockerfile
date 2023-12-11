@@ -1,6 +1,6 @@
 # This is a production Dockerfile for hosting the application
 
-FROM python:3.12-slim-buster as base
+FROM python:3.12-slim-bullseye as base
 
 WORKDIR /app
 
