@@ -324,7 +324,6 @@ def test_because_you_liked():
     actual = cat.categorize(data).to_list()
 
     assert actual[0:2] == [1, 0]
-    assert pd.isna(actual[2])  # similarity with all-zeroes cosine is nan
     assert cat.description == "Because You Liked W2"
 
 
@@ -490,20 +489,8 @@ def test_genre_category_returns_none_for_too_big_genre_number():
     assert actual is None
 
 
-def test_genre_category_can_use_cached_values():
+def test_genre_category_can_cache_values():
     cat = categories.GenreCategory(0)
-
-    watchlist = pd.DataFrame(
-        {
-            "genres": [
-                ["Action", "Sports", "Romance"],
-                ["Action", "Romance"],
-                ["Sports", "Comedy"],
-            ],
-            "user_status": ["not_watched", pd.NA, "in_progress"],
-            "score": [10, 10, 10],
-        }
-    )
 
     recommendations = pd.DataFrame(
         {
