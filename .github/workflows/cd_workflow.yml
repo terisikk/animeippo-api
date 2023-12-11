@@ -14,7 +14,7 @@ jobs:
       - run: pipx install poetry==1.4.0
       - uses: actions/setup-python@v4
         with:
-          python-version: '3.10'
+          python-version: '3.12'
           cache: 'poetry'
       - run: poetry install && poetry build
   unit-test:
@@ -27,7 +27,7 @@ jobs:
       - run: pipx install poetry==1.4.0
       - uses: actions/setup-python@v4
         with:
-          python-version: '3.10'
+          python-version: '3.12'
           cache: 'poetry'
       - run: poetry install
       - run: poetry run coverage run
@@ -42,7 +42,7 @@ jobs:
       - run: pipx install poetry==1.4.0
       - uses: actions/setup-python@v4
         with:
-          python-version: '3.10'
+          python-version: '3.12'
           cache: 'poetry'
       - run: poetry install
       - run: poetry run ruff check .
@@ -56,7 +56,7 @@ jobs:
       - run: pipx install poetry==1.4.0
       - uses: actions/setup-python@v4
         with:
-          python-version: '3.10'
+          python-version: '3.12'
           cache: 'poetry'
       - run: poetry install
       - run: poetry run bandit -q -c pyproject.toml -r .
@@ -70,7 +70,7 @@ jobs:
       - run: pipx install poetry==1.4.0
       - uses: actions/setup-python@v4
         with:
-          python-version: '3.10'
+          python-version: '3.12'
           cache: 'poetry'
       - run: poetry install
       - run: poetry run black -q --check .
