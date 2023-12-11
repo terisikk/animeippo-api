@@ -41,7 +41,7 @@ def get_default_categorizers(distance_metric="jaccard"):
         categories.SimulcastsCategory(),
         categories.ContinueWatchingCategory(),
         categories.YourTopPicksCategory(),
-        categories.DebugCategory(),
+        # categories.DebugCategory(),
         categories.TopUpcomingCategory(),
         # categories.ClusterCategory(0),
         categories.DiscouragingWrapper(categories.GenreCategory(0)),
