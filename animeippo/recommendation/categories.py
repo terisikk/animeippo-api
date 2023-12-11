@@ -143,7 +143,7 @@ class GenreCategory:
         if self.nth_genre < len(dataset.user_favourite_genres):
             genre = dataset.user_favourite_genres.index[self.nth_genre]
 
-            tdf = dataset.recommendations_exploded_by_genres
+            tdf = dataset.recommendations.explode("genres")
 
             mask = (tdf["genres"] == genre) & ~(tdf["user_status"].isin(["completed", "dropped"]))
 
@@ -274,7 +274,7 @@ class DiscouragingWrapper:
 
         dataset.recommendations.loc[
             result.index, "discourage_score"
-        ] = discourager.apply_discourage_on_repeating_items(result)
+        ] = discourager.apply_discourage_on_repeating_items(result["discourage_score"])
 
         dataset.recommendations["final_score"] = dataset.recommendations["recommend_score"]
 

@@ -31,7 +31,7 @@ def categorical_similarity(features1, features2, index=None, metric="jaccard"):
         columns=features2.index,
     )
 
-    return similarities
+    return similarities.fillna(0.0)
 
 
 def similarity_of_anime_lists(features1, features2, metric="jaccard"):
@@ -77,32 +77,33 @@ def weight_categoricals_z_score(dataframe, column):
 
 
 def weight_encoded_categoricals_correlation(dataframe, column, features, against=None):
-    df_expanded = pd.DataFrame(
-        dataframe[column].to_list(),
-        columns=sorted(features),
-        index=dataframe.index,
-    )
-    df_expanded["score"] = against.astype("float64") if against is not None else dataframe["score"]
+    against = against.astype("float64") if against is not None else dataframe["score"]
+    against = against[~pd.isna(against)]
 
-    df_nonna = df_expanded[~pd.isna(df_expanded["score"])]
+    df_non_na = dataframe.loc[against.index]
 
-    correlations = np.corrcoef(df_nonna, rowvar=False)[:-1, -1]
+    values = np.array(df_non_na[column].values.tolist())
+    scores = np.array(against.values)
+
+    correlations = np.corrcoef(np.hstack((values, scores.reshape(-1, 1))), rowvar=False)[:-1, -1]
 
     return pd.Series(correlations, index=sorted(features)).fillna(0.0)
 
 
 def weight_categoricals_correlation(dataframe, column, against=None):
-    df_expanded = pd.DataFrame(
-        pd.get_dummies(dataframe.explode(column)[column]),
-        index=dataframe.explode(column).index,
-    )
-    df_expanded["score"] = against if against is not None else dataframe["score"]
+    df_exp = dataframe.explode(column)[column]
+    dummies = pd.get_dummies(df_exp, dtype=int)
+    dummies["score"] = against if against is not None else dataframe["score"]
 
-    correlation_matrix = df_expanded.corr().fillna(0.0)
+    dummies_non_na = dummies[~pd.isna(dummies["score"])]
 
-    weights = np.sqrt(dataframe.explode(column)[column].value_counts())
+    correlation_matrix = np.corrcoef(dummies_non_na, rowvar=False)[:-1, -1]
 
-    return correlation_matrix["score"].sort_values(ascending=False) * weights
+    weights = np.sqrt(df_exp.value_counts())
+
+    correlations = correlation_matrix * weights.sort_index()
+
+    return correlations.fillna(0.0)
 
 
 def normalize_column(df_column):

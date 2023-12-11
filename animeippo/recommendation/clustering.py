@@ -71,6 +71,6 @@ class AnimeClustering:
             series, self.clustered_series["encoded"], metric=self.distance_metric
         )
 
-        max_columns = similarities.idxmax(axis=1).fillna(-1).astype(int)
+        max_columns = similarities.idxmax(axis=1).astype(int)
 
         return self.clustered_series.loc[max_columns]["cluster"].values

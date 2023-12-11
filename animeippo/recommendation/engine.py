@@ -74,7 +74,7 @@ class AnimeRecommendationEngine:
 
             scoring_target_df["recommend_score"] = scoring_target_df[names].mean(axis=1)
             scoring_target_df["final_score"] = scoring_target_df["recommend_score"]
-            scoring_target_df["discourage_score"] = 1
+            scoring_target_df["discourage_score"] = 1.0
         else:
             raise RuntimeError("No scorers added for engine. Please add at least one.")
 

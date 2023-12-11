@@ -18,8 +18,3 @@ class UserDataSet:
     @lru_cache(maxsize=1)
     def watchlist_exploded_by_genres(self):
         return self.watchlist.explode("genres")
-
-    @property
-    @lru_cache(maxsize=1)
-    def recommendations_exploded_by_genres(self):
-        return self.recommendations.explode("genres")
