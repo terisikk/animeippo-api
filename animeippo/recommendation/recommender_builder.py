@@ -14,7 +14,6 @@ from animeippo.recommendation import (
 )
 
 import pandas as pd
-import numpy as np
 
 
 def get_default_scorers(distance_metric="jaccard"):
@@ -65,30 +64,11 @@ def get_default_categorizers(distance_metric="jaccard"):
 
 
 async def get_dataset(provider, user, year, season):
-    if season is None:
-        (
-            user_data,
-            manga_data,
-            season_data1,
-            season_data2,
-            season_data3,
-            season_data4,
-        ) = await asyncio.gather(
-            provider.get_user_anime_list(user),
-            provider.get_user_manga_list(user),
-            provider.get_seasonal_anime_list(year, "winter"),
-            provider.get_seasonal_anime_list(year, "spring"),
-            provider.get_seasonal_anime_list(year, "summer"),
-            provider.get_seasonal_anime_list(year, "fall"),
-        )
-
-        season_data = pd.concat([season_data1, season_data2, season_data3, season_data4])
-    else:
-        user_data, manga_data, season_data = await asyncio.gather(
-            provider.get_user_anime_list(user),
-            provider.get_user_manga_list(user),
-            provider.get_seasonal_anime_list(year, season),
-        )
+    user_data, manga_data, season_data = await asyncio.gather(
+        provider.get_user_anime_list(user),
+        provider.get_user_manga_list(user),
+        provider.get_seasonal_anime_list(year, season),
+    )
 
     data = dataset.UserDataSet(remove_duplicates(user_data), remove_duplicates(season_data))
 
@@ -115,7 +95,7 @@ def get_nswf_tags(df):
 
 
 def fill_user_status_data_from_watchlist(seasonal, watchlist):
-    seasonal["user_status"] = np.nan
+    seasonal["user_status"] = pd.NA
     seasonal["user_status"].update(watchlist["user_status"])
     return seasonal
 

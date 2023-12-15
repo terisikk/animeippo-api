@@ -63,11 +63,29 @@ async def test_mixed_provider_returns_None_with_empty_parameters():
 
 
 @pytest.mark.asyncio
-async def test_ani_seasonal_anime_list_can_be_fetched(mocker):
+async def test_mixed_provider_seasonal_anime_list_can_be_fetched(mocker):
     provider = mixed_provider.MixedProvider()
 
     year = "2023"
     season = "winter"
+
+    mocker.patch.object(
+        provider.ani_provider.connection,
+        "request_paginated",
+        return_value=test_data.MIXED_ANI_SEASONAL_LIST,
+    )
+
+    animelist = await provider.get_seasonal_anime_list(year, season)
+
+    assert "EDENS KNOCK-OFF 2nd Season" in animelist["title"].values
+
+
+@pytest.mark.asyncio
+async def test_mixed_provider_yearly_list_can_be_fetched_when_season_is_none(mocker):
+    provider = mixed_provider.MixedProvider()
+
+    year = "2023"
+    season = None
 
     mocker.patch.object(
         provider.ani_provider.connection,

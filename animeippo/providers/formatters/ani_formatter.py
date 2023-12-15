@@ -1,12 +1,13 @@
 import pandas as pd
 import datetime
+import fast_json_normalize
 
 from . import util
 from animeippo.providers.formatters.schema import DefaultMapper, SingleMapper, MultiMapper, Columns
 
 
 def transform_seasonal_data(data, feature_names):
-    original = pd.json_normalize(data["data"], "media", record_prefix="media.")
+    original = fast_json_normalize.fast_json_normalize(data["data"]["media"])
 
     keys = [
         Columns.ID,
@@ -36,7 +37,9 @@ def transform_seasonal_data(data, feature_names):
 
 
 def transform_watchlist_data(data, feature_names):
-    original = pd.json_normalize(data["data"])
+    original = fast_json_normalize.fast_json_normalize(data["data"])
+
+    original.columns = [x.removeprefix("media.") for x in original.columns]
 
     keys = [
         Columns.ID,
@@ -62,7 +65,9 @@ def transform_watchlist_data(data, feature_names):
 
 
 def transform_user_manga_list_data(data, feature_names):
-    original = pd.json_normalize(data["data"])
+    original = fast_json_normalize.fast_json_normalize(data["data"])
+
+    original.columns = [x.removeprefix("media.") for x in original.columns]
 
     keys = [
         Columns.ID,
@@ -155,35 +160,37 @@ def get_staff(staffs, nodes, role):
 # fmt: off
 
 ANILIST_MAPPING = {
-    Columns.ID:                 DefaultMapper("media.id"),
-    Columns.ID_MAL:             DefaultMapper("media.idMal"),
-    Columns.TITLE:              DefaultMapper("media.title.romaji"),
-    Columns.FORMAT:             DefaultMapper("media.format"),
-    Columns.GENRES:             DefaultMapper("media.genres"),
-    Columns.COVER_IMAGE:        DefaultMapper("media.coverImage.large"),
-    Columns.MEAN_SCORE:         DefaultMapper("media.meanScore"),
-    Columns.POPULARITY:         DefaultMapper("media.popularity"),
-    Columns.DURATION:           DefaultMapper("media.duration"),
-    Columns.EPISODES:           DefaultMapper("media.episodes"),
+    Columns.ID:                 DefaultMapper("id"),
+    Columns.ID_MAL:             DefaultMapper("idMal"),
+    Columns.TITLE:              DefaultMapper("title.romaji"),
+    Columns.FORMAT:             DefaultMapper("format"),
+    Columns.GENRES:             DefaultMapper("genres"),
+    Columns.COVER_IMAGE:        DefaultMapper("coverImage.large"),
+    Columns.MEAN_SCORE:         DefaultMapper("meanScore"),
+    Columns.POPULARITY:         DefaultMapper("popularity"),
+    Columns.DURATION:           DefaultMapper("duration"),
+    Columns.EPISODES:           DefaultMapper("episodes"),
     Columns.USER_STATUS:        SingleMapper("status", str.lower),
-    Columns.STATUS:             SingleMapper("media.status", str.lower),
+    Columns.STATUS:             SingleMapper("status", str.lower),
     Columns.SCORE:              SingleMapper("score", util.get_score),
-    Columns.SOURCE:             SingleMapper("media.source", str.lower),
-    Columns.TAGS:               SingleMapper("media.tags", get_tags),
-    Columns.CONTINUATION_TO:    SingleMapper("media.relations.edges", get_continuation),
-    Columns.ADAPTATION_OF:      SingleMapper("media.relations.edges", get_adaptation),
-    Columns.NSFW_TAGS:          SingleMapper("media.tags", get_nsfw_tags),
-    Columns.STUDIOS:            SingleMapper("media.studios.edges", get_studios),
+    Columns.SOURCE:             SingleMapper("source", 
+                                             lambda source: source.lower() 
+                                             if source else pd.NA),
+    Columns.TAGS:               SingleMapper("tags", get_tags),
+    Columns.CONTINUATION_TO:    SingleMapper("relations.edges", get_continuation),
+    Columns.ADAPTATION_OF:      SingleMapper("relations.edges", get_adaptation),
+    Columns.NSFW_TAGS:          SingleMapper("tags", get_nsfw_tags),
+    Columns.STUDIOS:            SingleMapper("studios.edges", get_studios),
     Columns.RANKS:              MultiMapper(
                                     lambda row: get_ranks(
-                                        row["media.tags"],
-                                        row["media.genres"],
+                                        row["tags"],
+                                        row["genres"],
                                     )
                                 ),
     Columns.DIRECTOR:           MultiMapper(
                                     lambda row: get_staff(
-                                        row["media.staff.edges"],
-                                        row["media.staff.nodes"],
+                                        row["staff.edges"],
+                                        row["staff.nodes"],
                                         "Director"
                                     )
                                 ),
@@ -197,8 +204,8 @@ ANILIST_MAPPING = {
                                 ),
     Columns.START_SEASON:       MultiMapper(
                                     lambda row: util.get_season(
-                                        row["media.seasonYear"], 
-                                        row["media.season"]
+                                        row["seasonYear"], 
+                                        row["season"]
                                     ),
                                 ),
 }

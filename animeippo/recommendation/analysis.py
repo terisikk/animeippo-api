@@ -15,18 +15,17 @@ def distance(x_orig, y_orig, metric="jaccard"):
 def similarity(x_orig, y_orig, metric="jaccard"):
     """Calculate similarity between two series."""
     distances = distance(x_orig, y_orig, metric=metric)
-    return 1 - distances
+    return 1 - distances  # This is incorrect for distances that are not 0-1
 
 
 def categorical_similarity(features1, features2, index=None, metric="jaccard"):
     """Calculate similarity between two series of categorical features. Assumes a series
-    that contains vector-encoded representation of features. Discards similarities
-    with identical id:s by setting them to nan."""
+    that contains vector-encoded representation of features."""
     if index is None:
         index = features1.index
 
     similarities = pd.DataFrame(
-        similarity(np.vstack(features1), np.vstack(features2), metric=metric),
+        similarity(np.stack(features1.values), np.stack(features2.values), metric=metric),
         index=index,
         columns=features2.index,
     )
@@ -45,35 +44,30 @@ def mean_score_per_categorical(dataframe, column):
 
 
 def weighted_mean_for_categorical_values(categoricals, weights, fillna=0.0):
-    return np.nanmean([weights.get(categorical, fillna) for categorical in categoricals])
+    sum = 0.0
+    lc = len(categoricals)
+
+    for categorical in categoricals:
+        sum += weights.get(categorical, fillna)
+
+    return sum / lc if lc > 0 else 0.0
 
 
 def weighted_sum_for_categorical_values(categoricals, weights, fillna=0.0):
-    return np.nansum([weights.get(categorical, fillna) for categorical in categoricals])
+    sum = 0.0
+    for categorical in categoricals:
+        sum += weights.get(categorical, fillna)
+
+    return sum
 
 
 def weight_categoricals(dataframe, column):
-    exploded = dataframe.explode(column)
-    averages = mean_score_per_categorical(exploded, column)
+    averages = mean_score_per_categorical(dataframe, column)
 
-    weights = np.sqrt(exploded[column].value_counts())
+    weights = np.sqrt(dataframe[column].value_counts())
     weights = weights * averages
 
     return weights
-
-
-def weight_categoricals_z_score(dataframe, column):
-    df = dataframe.explode(column)
-
-    scores = df.groupby(column)["score"].mean()
-    counts = pd.DataFrame(df[column].value_counts())
-
-    mean = np.mean(scores)
-    std = np.std(scores)
-
-    weighted_scores = counts.apply(lambda row: ((scores[row.name] - mean) / std) * row, axis=1)
-
-    return normalize_column(weighted_scores)
 
 
 def weight_encoded_categoricals_correlation(dataframe, column, features, against=None):
@@ -82,7 +76,7 @@ def weight_encoded_categoricals_correlation(dataframe, column, features, against
 
     df_non_na = dataframe.loc[against.index]
 
-    values = np.array(df_non_na[column].values.tolist())
+    values = np.stack(df_non_na[column].values)
     scores = np.array(against.values)
 
     correlations = np.corrcoef(np.hstack((values, scores.reshape(-1, 1))), rowvar=False)[:-1, -1]
@@ -91,15 +85,14 @@ def weight_encoded_categoricals_correlation(dataframe, column, features, against
 
 
 def weight_categoricals_correlation(dataframe, column, against=None):
-    df_exp = dataframe.explode(column)[column]
-    dummies = pd.get_dummies(df_exp, dtype=int)
+    dummies = pd.get_dummies(dataframe[column], dtype=int)
     dummies["score"] = against if against is not None else dataframe["score"]
 
     dummies_non_na = dummies[~pd.isna(dummies["score"])]
 
     correlation_matrix = np.corrcoef(dummies_non_na, rowvar=False)[:-1, -1]
 
-    weights = np.sqrt(df_exp.value_counts())
+    weights = np.sqrt(dataframe[column].value_counts())
 
     correlations = correlation_matrix * weights.sort_index()
 

@@ -35,7 +35,7 @@ class FeaturesSimilarityScorer(AbstractScorer):
 
         if self.weighted:
             averages = analysis.mean_score_per_categorical(
-                compare_df.explode("features"), "features"
+                data.watchlist_explode_cached("features"), "features"
             )
             weights = scoring_target_df["features"].apply(
                 analysis.weighted_mean_for_categorical_values, args=(averages.fillna(0.0),)
@@ -68,7 +68,7 @@ class FeatureCorrelationScorer(AbstractScorer):
             # and titles with multiple good features get on top.
             # Slightly diminished effect with sqrt.
             analysis.weighted_sum_for_categorical_values,
-            args=(score_correlations,),
+            args=(score_correlations,),  # how about first map and then nanmean for whole series?
         ) / np.sqrt(scoring_target_df["features"].str.len())
 
         scores = scores - (
@@ -85,9 +85,8 @@ class GenreAverageScorer(AbstractScorer):
 
     def score(self, data):
         scoring_target_df = data.seasonal
-        compare_df = data.watchlist
 
-        weights = analysis.weight_categoricals(compare_df, "genres")
+        weights = analysis.weight_categoricals(data.watchlist_explode_cached("genres"), "genres")
 
         scores = scoring_target_df["genres"].apply(
             analysis.weighted_sum_for_categorical_values, args=(weights.fillna(0.0),)
@@ -125,7 +124,7 @@ class StudioCorrelationScorer:
         compare_df = data.watchlist
 
         weights = analysis.weight_categoricals_correlation(
-            compare_df,
+            compare_df.explode("studios"),
             "studios",
         )
 
@@ -152,8 +151,8 @@ class ClusterSimilarityScorer(AbstractScorer):
         scoring_target_df = data.seasonal
         compare_df = data.watchlist
 
-        st_encoded = np.vstack(scoring_target_df["encoded"])
-        co_encoded = np.vstack(compare_df["encoded"])
+        st_encoded = np.stack(scoring_target_df["encoded"].values)
+        co_encoded = np.stack(compare_df["encoded"].values)
 
         scores = pd.DataFrame(
             index=scoring_target_df.index, columns=range(0, len(compare_df["cluster"].unique()))
@@ -350,7 +349,7 @@ class DirectorCorrelationScorer:
         compare_df = data.watchlist
 
         weights = analysis.weight_categoricals_correlation(
-            compare_df,
+            compare_df.explode("directors"),
             "directors",
         )
 

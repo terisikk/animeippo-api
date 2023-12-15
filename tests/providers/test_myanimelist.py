@@ -72,6 +72,21 @@ async def test_mal_seasonal_anime_list_can_be_fetched(mocker):
 
 
 @pytest.mark.asyncio
+async def test_mal_fetches_several_anime_list_when_season_is_none(mocker):
+    provider = myanimelist.MyAnimeListProvider()
+
+    year = "2023"
+    season = None
+
+    response = ResponseStub(test_data.MAL_SEASONAL_LIST)
+    mocker.patch("aiohttp.ClientSession.get", return_value=response)
+
+    animelist = await provider.get_seasonal_anime_list(year, season)
+
+    assert "Shingeki no Kyojin: The Fake Season" in animelist["title"].values
+
+
+@pytest.mark.asyncio
 async def test_mal_user_manga_list_can_be_fetched(mocker):
     provider = myanimelist.MyAnimeListProvider()
 

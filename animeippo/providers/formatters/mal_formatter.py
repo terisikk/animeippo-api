@@ -8,6 +8,10 @@ from . import util
 from animeippo.providers.formatters.schema import DefaultMapper, SingleMapper, MultiMapper, Columns
 
 
+def combine_dataframes(dataframes):
+    return util.combine_dataframes(dataframes)
+
+
 def transform_watchlist_data(data, feature_names):
     original = pd.json_normalize(data["data"])
 

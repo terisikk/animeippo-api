@@ -1,11 +1,11 @@
 import aiohttp
 from datetime import timedelta
+from async_lru import alru_cache
 
 from . import provider
 from .formatters import ani_formatter
 
 import animeippo.cache as animecache
-
 
 REQUEST_TIMEOUT = 30
 ANI_API_URL = "https://graphql.anilist.co"
@@ -16,7 +16,8 @@ class AniListProvider(provider.AbstractAnimeProvider):
         self.cache = cache
         self.connection = AnilistConnection(cache)
 
-    @animecache.cached_dataframe(ttl=timedelta(days=1))
+    @alru_cache(maxsize=1)
+    # @animecache.cached_dataframe(ttl=timedelta(days=1))
     async def get_user_anime_list(self, user_id):
         if user_id is None:
             return None
@@ -72,50 +73,89 @@ class AniListProvider(provider.AbstractAnimeProvider):
 
         return ani_formatter.transform_watchlist_data(anime_list, self.get_feature_fields())
 
-    @animecache.cached_dataframe(ttl=timedelta(days=1))
+    # @animecache.cached_dataframe(ttl=timedelta(days=1))
     async def get_seasonal_anime_list(self, year, season):
-        if year is None or season is None:
+        if year is None:
             return None
 
-        query = """
-        query ($seasonYear: Int, $season: MediaSeason, $page: Int) {
-            Page(page: $page, perPage: 50) {
-                pageInfo { hasNextPage currentPage lastPage total perPage }
-                media(seasonYear: $seasonYear, season: $season, type:ANIME) {
-                    id
-                    idMal
-                    title { romaji }
-                    status
-                    format
-                    genres
-                    tags {
-                        name
-                        rank
-                        isAdult
+        query = ""
+        variables = {}
+
+        if season is not None:
+            query = """
+            query ($seasonYear: Int, $season: MediaSeason, $page: Int) {
+                Page(page: $page, perPage: 50) {
+                    pageInfo { hasNextPage currentPage lastPage total perPage }
+                    media(seasonYear: $seasonYear, season: $season, type:ANIME) {
+                        id
+                        idMal
+                        title { romaji }
+                        status
+                        format
+                        genres
+                        tags {
+                            name
+                            rank
+                            isAdult
+                        }
+                        meanScore
+                        duration
+                        episodes
+                        source
+                        studios { edges { node { name isAnimationStudio } }}
+                        seasonYear
+                        season
+                        relations { edges { relationType, node { id, idMal }}}
+                        popularity
+                        coverImage { large }
+                        staff { edges {role} nodes {id}}
                     }
-                    meanScore
-                    duration
-                    episodes
-                    source
-                    studios { edges { node { name isAnimationStudio } }}
-                    seasonYear
-                    season
-                    relations { edges { relationType, node { id, idMal }}}
-                    popularity
-                    coverImage { large }
-                    staff { edges {role} nodes {id}}
                 }
             }
-        }
-        """
+            """
 
-        variables = {"seasonYear": int(year), "season": str(season).upper()}
+            variables = {"seasonYear": int(year), "season": str(season).upper()}
+        else:
+            query = """
+            query ($seasonYear: Int, $page: Int) {
+                Page(page: $page, perPage: 50) {
+                    pageInfo { hasNextPage currentPage lastPage total perPage }
+                    media(seasonYear: $seasonYear, type:ANIME) {
+                        id
+                        idMal
+                        title { romaji }
+                        status
+                        format
+                        genres
+                        tags {
+                            name
+                            rank
+                            isAdult
+                        }
+                        meanScore
+                        duration
+                        episodes
+                        source
+                        studios { edges { node { name isAnimationStudio } }}
+                        seasonYear
+                        season
+                        relations { edges { relationType, node { id, idMal }}}
+                        popularity
+                        coverImage { large }
+                        staff { edges {role} nodes {id}}
+                    }
+                }
+            }
+            """
+
+            variables = {"seasonYear": int(year)}
 
         anime_list = await self.connection.request_paginated(query, variables)
 
         return ani_formatter.transform_seasonal_data(anime_list, self.get_feature_fields())
 
-    @animecache.cached_dataframe(ttl=timedelta(days=1))
+    @alru_cache(maxsize=1)
+    # @animecache.cached_dataframe(ttl=timedelta(days=1))
     async def get_user_manga_list(self, user_id):
         if user_id is None:
             return None

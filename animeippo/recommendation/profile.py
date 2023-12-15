@@ -33,13 +33,13 @@ class ProfileAnalyser:
 
         data = dataset.UserDataSet(user_watchlist, None, None)
 
-        data.all_features = data.watchlist["features"].explode().dropna().unique()
+        data.all_features = data.watchlist_explode_cached("features")["features"].dropna().unique()
 
         self.encoder.fit(data.all_features)
 
         data.watchlist["encoded"] = self.encoder.encode(data.watchlist)
 
-        encoded = np.vstack(data.watchlist["encoded"])
+        encoded = np.stack(data.watchlist["encoded"].values)
         data.watchlist["cluster"] = self.clusterer.cluster_by_features(
             encoded, data.watchlist.index
         )
@@ -62,7 +62,7 @@ class ProfileAnalyser:
     def get_categories(self, dataset):
         target = dataset.watchlist
 
-        gdf = target.explode("features")
+        gdf = dataset.watchlist_explode_cached("features")
 
         gdf = gdf[~gdf["features"].isin(dataset.nsfw_tags)]
 

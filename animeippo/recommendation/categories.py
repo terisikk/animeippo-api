@@ -98,7 +98,7 @@ class ClusterCategory:
         target = dataset.recommendations
         compare = dataset.watchlist
 
-        gdf = compare.explode("features")
+        gdf = dataset.watchlist_explode_cached("features")
 
         gdf = gdf[~gdf["features"].isin(dataset.nsfw_tags)]
 
@@ -132,7 +132,7 @@ class GenreCategory:
 
     def categorize(self, dataset, max_items=None):
         if dataset.user_favourite_genres is None:
-            gdf = dataset.watchlist_exploded_by_genres
+            gdf = dataset.watchlist_explode_cached("genres")
 
             gdf = gdf[~gdf["genres"].isin(dataset.nsfw_tags)]
 
@@ -143,11 +143,11 @@ class GenreCategory:
         if self.nth_genre < len(dataset.user_favourite_genres):
             genre = dataset.user_favourite_genres.index[self.nth_genre]
 
-            tdf = dataset.recommendations.explode("genres")
+            tdf = dataset.recommendations_explode_cached("genres")
 
             mask = (tdf["genres"] == genre) & ~(tdf["user_status"].isin(["completed", "dropped"]))
 
-            relevant_shows = tdf[mask]
+            relevant_shows = dataset.recommendations.loc[tdf[mask].index]
 
             self.description = genre
 
@@ -206,13 +206,11 @@ class BecauseYouLikedCategory:
 
         target = target[(pd.isnull(target["user_status"]))]
 
-        mean = wl["score"].mean()
+        mean = np.nanmean(wl["score"].values)
 
-        last_complete = wl[pd.notna(wl["user_complete_date"])].sort_values(
-            "user_complete_date", ascending=False
-        )
+        mask = wl["score"].ge(mean) & pd.notna(wl["user_complete_date"])
 
-        last_liked = last_complete[last_complete["score"].ge(mean)]
+        last_liked = wl[mask].sort_values("user_complete_date", ascending=False)
 
         if len(last_liked) > self.nth_liked:
             # We need a row, not an object

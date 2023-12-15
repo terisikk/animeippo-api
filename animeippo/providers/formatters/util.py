@@ -3,6 +3,10 @@ import pandas as pd
 import numpy as np
 
 
+def combine_dataframes(dataframes):
+    return pd.concat(dataframes)
+
+
 def transform_to_animeippo_format(original, feature_names, keys, mapping):
     df = pd.DataFrame(columns=keys)
 
@@ -48,12 +52,10 @@ def get_features(row, feature_names):
 
     if feature_names is not None:
         for feature in feature_names:
-            value = row.get(feature, None)
+            value = row.get(feature, pd.NA)
 
             if isinstance(value, list) or isinstance(value, np.ndarray):
-                all_features.extend([v for v in value if not pd.isnull(v)])
-            elif value is None or pd.isnull(value):
-                continue
+                all_features.extend([v for v in value])
             else:
                 all_features.append(value)
 

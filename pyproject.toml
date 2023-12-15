@@ -17,6 +17,8 @@ gunicorn = "^20.1.0"
 redis = "^4.5.4"
 pyarrow = "^14.0.1"
 aiohttp = "^3.8.4"
+async-lru = "^2.0.4"
+fast-json-normalize = "^0.0.9"
 
 
 [tool.poetry.group.dev.dependencies]

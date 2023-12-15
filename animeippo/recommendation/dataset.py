@@ -14,7 +14,10 @@ class UserDataSet:
         self.nsfw_tags = []
         self.user_favourite_genres = None
 
-    @property
-    @lru_cache(maxsize=1)
-    def watchlist_exploded_by_genres(self):
-        return self.watchlist.explode("genres")
+    @lru_cache(maxsize=5)
+    def watchlist_explode_cached(self, column):
+        return self.watchlist.explode(column)
+
+    @lru_cache(maxsize=5)
+    def recommendations_explode_cached(self, column):
+        return self.recommendations.explode(column)

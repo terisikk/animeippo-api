@@ -56,6 +56,21 @@ async def test_ani_seasonal_anime_list_can_be_fetched(mocker):
 
 
 @pytest.mark.asyncio
+async def test_all_yearly_season_can_be_fetched_when_season_is_none(mocker):
+    provider = anilist.AniListProvider()
+
+    year = "2023"
+    season = None
+
+    response = ResponseStub(test_data.ANI_SEASONAL_LIST)
+    mocker.patch("aiohttp.ClientSession.post", return_value=response)
+
+    animelist = await provider.get_seasonal_anime_list(year, season)
+
+    assert "EDENS KNOCK-OFF 2nd Season" in animelist["title"].values
+
+
+@pytest.mark.asyncio
 async def test_ani_user_manga_list_can_be_fetched(mocker):
     provider = anilist.AniListProvider()
 

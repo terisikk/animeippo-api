@@ -661,7 +661,6 @@ MIXED_USER_LIST_ANI = {
                 "format": "tv",
                 "season": "SPRING",
                 "seasonYear": 2023,
-                "rating": "r",
             },
             {
                 "id": 1270,
@@ -671,7 +670,6 @@ MIXED_USER_LIST_ANI = {
                 "format": "tv",
                 "season": "SPRING",
                 "seasonYear": 2023,
-                "rating": "r+",
             },
         ],
     }

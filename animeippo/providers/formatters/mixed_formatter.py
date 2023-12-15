@@ -20,7 +20,9 @@ def transform_mal_watchlist_data(data, feature_names):
 
 
 def transform_ani_watchlist_data(data, feature_names, mal_df):
-    original = pd.json_normalize(data["data"], "media", record_prefix="media.")
+    original = pd.json_normalize(data["data"]["media"])
+
+    original.columns = [x.removeprefix("media.") for x in original.columns]
 
     keys = [
         Columns.ID,
@@ -44,7 +46,7 @@ def transform_ani_watchlist_data(data, feature_names, mal_df):
 
 
 def transform_ani_seasonal_data(data, feature_names):
-    original = pd.json_normalize(data["data"], "media", record_prefix="media.")
+    original = pd.json_normalize(data["data"]["media"])
 
     keys = [
         Columns.ID,
@@ -71,9 +73,7 @@ def transform_ani_seasonal_data(data, feature_names):
     ani_df = transform_to_animeippo_format(original, feature_names, keys, ANILIST_MAPPING)
 
     temp_df = pd.DataFrame()
-    temp_df[Columns.ADAPTATION_OF] = SingleMapper("media.relations.edges", get_adaptation).map(
-        original
-    )
+    temp_df[Columns.ADAPTATION_OF] = SingleMapper("relations.edges", get_adaptation).map(original)
     temp_df["idx"] = ani_df.index.to_list()
     temp_df = temp_df.set_index("idx")
 

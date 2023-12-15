@@ -54,10 +54,9 @@ class MyAnimeListProvider(provider.AbstractAnimeProvider):
 
     @animecache.cached_dataframe(ttl=timedelta(days=1))
     async def get_seasonal_anime_list(self, year, season):
-        if not year or not season:
+        if not year:
             return None
 
-        query = f"/anime/season/{year}/{season}"
         fields = [
             "id",
             "title",
@@ -76,9 +75,23 @@ class MyAnimeListProvider(provider.AbstractAnimeProvider):
         ]
         parameters = {"nsfw": "true", "fields": ",".join(fields)}
 
-        anime_list = await self.connection.request_anime_list(query, parameters)
+        if season is not None:
+            query = f"/anime/season/{year}/{season}"
 
-        return mal_formatter.transform_seasonal_data(anime_list, self.get_feature_fields())
+            anime_list = await self.connection.request_anime_list(query, parameters)
+
+            return mal_formatter.transform_seasonal_data(anime_list, self.get_feature_fields())
+        else:
+            responses = []
+
+            for season in ["winter", "spring", "summer", "fall"]:
+                query = f"/anime/season/{year}/{season}"
+                anime_list = await self.connection.request_anime_list(query, parameters)
+
+                responses.append(
+                    mal_formatter.transform_seasonal_data(anime_list, self.get_feature_fields())
+                )
+            return mal_formatter.combine_dataframes(responses)
 
     async def get_related_anime(self, anime_id):
         if not anime_id:

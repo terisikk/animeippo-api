@@ -26,4 +26,4 @@ def test_weighted_encoder():
     )
     expected = [0, 0.5, 0.85]
 
-    assert encoder.encode(original).tolist() == [expected]
+    assert list(encoder.encode(original).values[0]) == expected
