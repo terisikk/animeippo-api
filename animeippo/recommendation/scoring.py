@@ -121,12 +121,8 @@ class StudioCorrelationScorer:
 
     def score(self, data):
         scoring_target_df = data.seasonal
-        compare_df = data.watchlist
 
-        weights = analysis.weight_categoricals_correlation(
-            compare_df.explode("studios"),
-            "studios",
-        )
+        weights = data.user_profile.studio_correlations
 
         mode = weights.mode()
 
@@ -346,12 +342,8 @@ class DirectorCorrelationScorer:
 
     def score(self, data):
         scoring_target_df = data.seasonal
-        compare_df = data.watchlist
 
-        weights = analysis.weight_categoricals_correlation(
-            compare_df.explode("directors"),
-            "directors",
-        )
+        weights = data.user_profile.director_correlations
 
         mode = weights.mode()
 

@@ -1,9 +1,9 @@
 import pandas as pd
 import pytest
 
-from animeippo.recommendation import profile, dataset, encoding
+from animeippo.recommendation import profile, encoding, dataset
 
-from tests import test_provider
+from tests import test_provider, test_data
 
 
 def test_profile_analyser_can_run():
@@ -33,24 +33,83 @@ async def test_profile_analyser_can_run_when_async_loop_is_already_running():
     assert len(categories) > 0
 
 
-# TODO: This does not test anything ATM?
-def test_profile_analyser_splits_watchlist_to_categories():
+def test_user_profile_can_be_constructred():
+    watchlist = pd.DataFrame(test_data.FORMATTED_MAL_USER_LIST)
+
+    encoder = encoding.CategoricalEncoder()
+    encoder.fit(["Action", "Adventure"], "features")
+
+    watchlist["encoded"] = encoder.encode(watchlist)
+
+    user_profile = profile.UserProfile("Test", watchlist)
+
+    assert user_profile.watchlist is not None
+    assert user_profile.genre_correlations is not None
+    assert user_profile.studio_correlations is not None
+    assert user_profile.director_correlations is not None
+
+    assert user_profile.get_cluster_correlations() is not None
+    assert user_profile.get_feature_correlations(["Action", "Adventure"]) is not None
+
+
+def test_user_profile_can_be_constructred_with_no_watchlist():
+    user_profile = profile.UserProfile("Test", None)
+
+    assert user_profile.watchlist is None
+    assert user_profile.genre_correlations is None
+    assert user_profile.studio_correlations is None
+    assert user_profile.director_correlations is None
+
+
+def test_user_profile_can_be_constructed_with_missing_data():
+    watchlist = pd.DataFrame(test_data.FORMATTED_MAL_USER_LIST)
+    watchlist = watchlist.drop("cluster", axis=1)
+
+    user_profile = profile.UserProfile("Test", watchlist)
+
+    assert user_profile.watchlist is not None
+    assert user_profile.get_cluster_correlations() is None
+    assert user_profile.get_feature_correlations(["Action", "Adventure"]) is None
+
+
+def test_user_top_genres_and_tags_can_be_categorized():
+    data = pd.DataFrame(test_data.FORMATTED_ANI_SEASONAL_LIST)
+    data["score"] = [10, 8]
+
+    uprofile = profile.UserProfile("Test", data)
+    dset = dataset.RecommendationModel(uprofile, None)
+
     profiler = profile.ProfileAnalyser(None)
 
-    watchlist = pd.DataFrame(
-        {
-            "title": ["Test 1", "Test 2", "Test 3"],
-            "features": [
-                ["Action", "Sports", "Romance"],
-                ["Action", "Romance"],
-                ["Sports", "Comedy"],
-            ],
-            "cluster": [0, 0, 1],
-        }
-    )
+    categories = profiler.get_categories(dset)
 
-    data = dataset.UserDataSet(watchlist, None, None)
+    assert len(categories) > 0
 
-    categories = profiler.get_categories(data)
+    uprofile = profile.UserProfile("Test", data)
+    uprofile.genre_correlations = pd.Series([1, 1], index=["Absurd", "Nonexisting"])
+    dset = dataset.RecommendationModel(uprofile, None)
 
-    print(categories)
+    categories = profiler.get_categories(dset)
+    assert len(categories) > 0
+
+    data = data.drop("genres", axis=1)
+    uprofile = profile.UserProfile("Test", data)
+
+    dset = dataset.RecommendationModel(uprofile, None)
+
+    categories = profiler.get_categories(dset)
+    assert len(categories) > 0
+
+
+def test_clusters_can_be_categorized():
+    data = pd.DataFrame(test_data.FORMATTED_ANI_SEASONAL_LIST)
+    data["cluster"] = [0, 1]
+
+    uprofile = profile.UserProfile("Test", data)
+    dset = dataset.RecommendationModel(uprofile, None)
+
+    profiler = profile.ProfileAnalyser(None)
+
+    categories = profiler.get_cluster_categories(dset)
+
+    assert len(categories) > 0

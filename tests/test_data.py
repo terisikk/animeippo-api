@@ -452,6 +452,7 @@ FORMATTED_MAL_USER_LIST = [
         "cover_image": "https://localhost/test.png",
         "source": "Original",
         "cluster": 1,
+        "directors": ["Haha Miyazaki"],
     },
     {
         "id": 270,
@@ -487,6 +488,7 @@ FORMATTED_MAL_USER_LIST = [
         "cover_image": "https://localhost/test.png",
         "source": "Manga",
         "cluster": 2,
+        "directors": ["Mago Senkai"],
     },
 ]
 
@@ -574,6 +576,7 @@ FORMATTED_ANI_SEASONAL_LIST = [
         "cover_image": "https://localhost/test.png",
         "popularity": 14090,
         "genres": ["Action", "Adventure", "Drama", "Fantasy", "Supernatural"],
+        "tags": ["Shounen", "Super Power"],
         "status": "releasing",
         "features": [
             "Action",
@@ -593,6 +596,7 @@ FORMATTED_ANI_SEASONAL_LIST = [
         "cover_image": "https://localhost/test.png",
         "popularity": 131620,
         "genres": ["Action", "Adventure", "Comedy", "Fantasy", "Sci-Fi"],
+        "tags": ["Mythology", "Gore"],
         "status": "not_yet_released",
         "features": ["Action", "Adventure", "Comedy", "Fantasy", "Sci-Fi", "Mythology", "Gore"],
     },

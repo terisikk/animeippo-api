@@ -3,7 +3,7 @@ import datetime
 
 from collections import namedtuple
 
-from animeippo.recommendation import categories, dataset
+from animeippo.recommendation import categories, dataset, profile
 
 
 def test_most_popular_category():
@@ -13,7 +13,7 @@ def test_most_popular_category():
         {"popularityscore": [2, 3, 1], "title": ["Test 1", "Test 2", "Test 3"]}
     )
 
-    data = dataset.UserDataSet(None, None, None)
+    data = dataset.RecommendationModel(None, None, None)
     data.recommendations = recommendations
 
     actual = cat.categorize(data)
@@ -33,7 +33,7 @@ def test_continue_watching_category():
         }
     )
 
-    data = dataset.UserDataSet(None, None, None)
+    data = dataset.RecommendationModel(None, None, None)
     data.recommendations = recommendations
 
     actual = cat.categorize(data)
@@ -56,7 +56,8 @@ def test_source_category():
         }
     )
 
-    data = dataset.UserDataSet(watchlist, None, None)
+    uprofile = profile.UserProfile("Test", watchlist)
+    data = dataset.RecommendationModel(uprofile, None, None)
     data.recommendations = recommendations
 
     actual = cat.categorize(data)
@@ -81,7 +82,8 @@ def test_source_category_defaults_to_manga_without_scores():
         }
     )
 
-    data = dataset.UserDataSet(watchlist, None, None)
+    uprofile = profile.UserProfile("Test", watchlist)
+    data = dataset.RecommendationModel(uprofile, None, None)
     data.recommendations = recommendations
 
     actual = cat.categorize(data)
@@ -104,7 +106,8 @@ def test_source_category_descriptions():
         }
     )
 
-    data = dataset.UserDataSet(watchlist, None, None)
+    uprofile = profile.UserProfile("Test", watchlist)
+    data = dataset.RecommendationModel(uprofile, None, None)
     data.recommendations = recommendations
 
     cat.categorize(data)
@@ -135,7 +138,7 @@ def test_studio_category():
         }
     )
 
-    data = dataset.UserDataSet(None, None, None)
+    data = dataset.RecommendationModel(None, None, None)
     data.recommendations = recommendations
 
     actual = cat.categorize(data)
@@ -166,7 +169,8 @@ def test_cluster_category():
         }
     )
 
-    data = dataset.UserDataSet(watchlist, None, None)
+    uprofile = profile.UserProfile("Test", watchlist)
+    data = dataset.RecommendationModel(uprofile, None, None)
     data.recommendations = recommendations
 
     actual = cat.categorize(data)
@@ -215,7 +219,8 @@ def test_nsfw_tags_are_filtered_from_cluster_category():
         }
     )
 
-    data = dataset.UserDataSet(watchlist, None, None)
+    uprofile = profile.UserProfile("Test", watchlist)
+    data = dataset.RecommendationModel(uprofile, None, None)
     data.recommendations = recommendations
     data.nsfw_tags = ["NSFW-1"]
 
@@ -246,7 +251,8 @@ def test_cluster_category_returns_none_if_not_enough_clusters():
         }
     )
 
-    data = dataset.UserDataSet(watchlist, None, None)
+    uprofile = profile.UserProfile("Test", watchlist)
+    data = dataset.RecommendationModel(uprofile, None, None)
     data.recommendations = recommendations
 
     actual = cat.categorize(data)
@@ -267,7 +273,7 @@ def test_your_top_picks_category():
         }
     )
 
-    data = dataset.UserDataSet(None, None, None)
+    data = dataset.RecommendationModel(None, None, None)
     data.recommendations = recommendations
 
     actual = cat.categorize(data)
@@ -289,7 +295,7 @@ def test_top_upcoming_category():
         }
     )
 
-    data = dataset.UserDataSet(None, None, None)
+    data = dataset.RecommendationModel(None, None, None)
     data.recommendations = recommendations
 
     actual = cat.categorize(data)
@@ -300,7 +306,7 @@ def test_top_upcoming_category():
 def test_because_you_liked():
     cat = categories.BecauseYouLikedCategory(0, distance_metric="cosine")
 
-    user_data = pd.DataFrame(
+    watchlist = pd.DataFrame(
         {
             "score": [1, 2],
             "encoded": [[1, 1], [0, 1]],
@@ -318,7 +324,8 @@ def test_because_you_liked():
         }
     )
 
-    data = dataset.UserDataSet(user_data, None, None)
+    uprofile = profile.UserProfile("Test", watchlist)
+    data = dataset.RecommendationModel(uprofile, None, None)
     data.recommendations = recommendations
 
     actual = cat.categorize(data).to_list()
@@ -330,12 +337,13 @@ def test_because_you_liked():
 def test_because_you_liked_does_not_fail_with_empty_likes():
     cat = categories.BecauseYouLikedCategory(99)
 
-    user_data = pd.DataFrame(
+    watchlist = pd.DataFrame(
         {"score": [1, 1], "user_complete_date": [1, 2], "user_status": [pd.NA, pd.NA]}
     )
 
-    data = dataset.UserDataSet(user_data, None, None)
-    data.recommendations = user_data
+    uprofile = profile.UserProfile("Test", watchlist)
+    data = dataset.RecommendationModel(uprofile, None, None)
+    data.recommendations = watchlist
 
     actual = cat.categorize(data)
 
@@ -359,7 +367,7 @@ def test_simulcastscategory(mocker):
         return_value="2022/summer",
     )
 
-    data = dataset.UserDataSet(None, None, None)
+    data = dataset.RecommendationModel(None, None, None)
     data.recommendations = recommendations
 
     actual = cat.categorize(data)
@@ -425,7 +433,7 @@ def test_adapatation_category():
         }
     )
 
-    data = dataset.UserDataSet(None, None, None)
+    data = dataset.RecommendationModel(None, None, None)
     data.recommendations = recommendations
 
     actual = cat.categorize(data)
@@ -458,7 +466,8 @@ def test_genre_category():
         }
     )
 
-    data = dataset.UserDataSet(watchlist, None, None)
+    uprofile = profile.UserProfile("Test", watchlist)
+    data = dataset.RecommendationModel(uprofile, None, None)
     data.recommendations = recommendations
 
     actual = cat.categorize(data)
@@ -482,7 +491,8 @@ def test_genre_category_returns_none_for_too_big_genre_number():
         }
     )
 
-    data = dataset.UserDataSet(watchlist, None, None)
+    uprofile = profile.UserProfile("Test", watchlist)
+    data = dataset.RecommendationModel(uprofile, None, None)
 
     actual = cat.categorize(data)
 
@@ -502,9 +512,11 @@ def test_genre_category_can_cache_values():
         }
     )
 
-    data = dataset.UserDataSet(None, None, None)
+    uprofile = profile.UserProfile("Test", None)
+    uprofile.genre_correlations = pd.Series([0.5, 0.5], index=["Action", "Sports"])
+
+    data = dataset.RecommendationModel(uprofile, None, None)
     data.recommendations = recommendations
-    data.user_favourite_genres = pd.Series([None, None], index=["Action", "Sports"])
 
     actual = cat.categorize(data)
 
@@ -528,7 +540,7 @@ def test_discourage_wrapper():
         }
     )
 
-    data = dataset.UserDataSet(None, None, None)
+    data = dataset.RecommendationModel(None, None, None)
     data.recommendations = recommendations
 
     actual = dcat.categorize(data, max_items=2)
@@ -554,7 +566,26 @@ def test_debug_category_returns_all_recommendations():
         }
     )
 
-    data = dataset.UserDataSet(None, None, None)
+    data = dataset.RecommendationModel(None, None, None)
     data.recommendations = recommendations
 
     assert cat.categorize(data)["title"].tolist() == ["Test 2", "Test 1", "Test 3"]
+
+
+def test_planning_category():
+    cat = categories.PlanningCategory()
+
+    recommendations = pd.DataFrame(
+        {
+            "title": ["Test 1", "Test 2", "Test 3"],
+            "user_status": [pd.NA, "planning", "in_progress"],
+            "final_score": [1, 1, 1],
+        }
+    )
+
+    data = dataset.RecommendationModel(None, None, None)
+    data.recommendations = recommendations
+
+    actual = cat.categorize(data)
+
+    assert actual["title"].tolist() == ["Test 2"]

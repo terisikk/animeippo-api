@@ -155,7 +155,7 @@ class AniListProvider(provider.AbstractAnimeProvider):
         return ani_formatter.transform_seasonal_data(anime_list, self.get_feature_fields())
 
     @alru_cache(maxsize=1)
-    # @animecache.cached_dataframe(ttl=timedelta(days=1))
+    @animecache.cached_dataframe(ttl=timedelta(days=1))
     async def get_user_manga_list(self, user_id):
         if user_id is None:
             return None

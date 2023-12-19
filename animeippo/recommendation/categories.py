@@ -16,15 +16,17 @@ class MostPopularCategory:
 
 
 class ContinueWatchingCategory:
-    description = "Related to Your Completed Shows"
+    description = "Continue or Finish Watching"
     requires = [scoring.ContinuationScorer.name]
 
     def categorize(self, dataset, max_items=None):
         target = dataset.recommendations
 
-        return target[
+        mask = (
             (target[scoring.ContinuationScorer.name] > 0) & (target["user_status"] != "completed")
-        ].sort_values("final_score", ascending=False)[0:max_items]
+        ) | (target["user_status"] == "paused")
+
+        return target[mask].sort_values("final_score", ascending=False)[0:max_items]
 
 
 class AdaptationCategory:
@@ -131,23 +133,16 @@ class GenreCategory:
         self.nth_genre = nth_genre
 
     def categorize(self, dataset, max_items=None):
-        if dataset.user_favourite_genres is None:
-            gdf = dataset.watchlist_explode_cached("genres")
+        user_profile = dataset.user_profile
 
-            gdf = gdf[~gdf["genres"].isin(dataset.nsfw_tags)]
+        if self.nth_genre < len(user_profile.genre_correlations):
+            genre = user_profile.genre_correlations.index[self.nth_genre]
 
-            dataset.user_favourite_genres = analysis.weight_categoricals_correlation(
-                gdf, "genres"
-            ).sort_values(ascending=False)
+            rdf = dataset.recommendations_explode_cached("genres")
 
-        if self.nth_genre < len(dataset.user_favourite_genres):
-            genre = dataset.user_favourite_genres.index[self.nth_genre]
+            mask = (rdf["genres"] == genre) & ~(rdf["user_status"].isin(["completed", "dropped"]))
 
-            tdf = dataset.recommendations_explode_cached("genres")
-
-            mask = (tdf["genres"] == genre) & ~(tdf["user_status"].isin(["completed", "dropped"]))
-
-            relevant_shows = dataset.recommendations.loc[tdf[mask].index]
+            relevant_shows = dataset.recommendations.loc[rdf[mask].index]
 
             self.description = genre
 
@@ -255,6 +250,18 @@ class SimulcastsCategory:
         yearseason = f"{today.year}/{season}"
 
         return yearseason
+
+
+class PlanningCategory:
+    description = "From Your Plan to Watch List"
+
+    def categorize(self, dataset, max_items=30):
+        target = dataset.recommendations
+
+        mask = target["user_status"] == "planning"
+        planning = target[mask]
+
+        return planning.sort_values(by=["final_score"], ascending=[False])[0:max_items]
 
 
 class DiscouragingWrapper:

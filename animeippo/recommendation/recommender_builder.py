@@ -1,6 +1,9 @@
 import asyncio
 
 import animeippo.providers as providers
+
+from async_lru import alru_cache
+
 from animeippo import cache
 from animeippo.recommendation.recommender import AnimeRecommender
 from animeippo.recommendation import (
@@ -11,6 +14,7 @@ from animeippo.recommendation import (
     categories,
     clustering,
     encoding,
+    profile,
 )
 
 import pandas as pd
@@ -47,34 +51,43 @@ def get_default_categorizers(distance_metric="jaccard"):
         categories.AdaptationCategory(),
         # categories.ClusterCategory(1),
         categories.DiscouragingWrapper(categories.GenreCategory(1)),
-        categories.SourceCategory(),
+        categories.PlanningCategory(),
         # categories.ClusterCategory(2),
         categories.DiscouragingWrapper(categories.GenreCategory(2)),
-        categories.StudioCategory(),
+        categories.SourceCategory(),
         # categories.ClusterCategory(3),
         categories.DiscouragingWrapper(categories.GenreCategory(3)),
-        categories.BecauseYouLikedCategory(0, distance_metric),
+        categories.StudioCategory(),
         # categories.ClusterCategory(4),
         categories.DiscouragingWrapper(categories.GenreCategory(4)),
-        categories.BecauseYouLikedCategory(1, distance_metric),
+        categories.BecauseYouLikedCategory(0, distance_metric),
         categories.DiscouragingWrapper(categories.GenreCategory(5)),
         categories.BecauseYouLikedCategory(2, distance_metric),
         categories.DiscouragingWrapper(categories.GenreCategory(6)),
+        categories.BecauseYouLikedCategory(1, distance_metric),
     ]
 
 
+@alru_cache(maxsize=1)
+async def get_user_profile(provider, user):
+    user_data = await provider.get_user_anime_list(user)
+    user_profile = profile.UserProfile(user, remove_duplicates(user_data))
+
+    return user_profile
+
+
 async def get_dataset(provider, user, year, season):
-    user_data, manga_data, season_data = await asyncio.gather(
-        provider.get_user_anime_list(user),
+    user_profile, manga_data, season_data = await asyncio.gather(
+        get_user_profile(provider, user),
         provider.get_user_manga_list(user),
         provider.get_seasonal_anime_list(year, season),
     )
 
-    data = dataset.UserDataSet(remove_duplicates(user_data), remove_duplicates(season_data))
+    user_profile.mangalist = remove_duplicates(manga_data)
 
-    data.mangalist = manga_data
+    data = dataset.RecommendationModel(user_profile, remove_duplicates(season_data))
 
-    data.nsfw_tags += get_nswf_tags(user_data)
+    data.nsfw_tags += get_nswf_tags(user_profile.watchlist)
     data.nsfw_tags += get_nswf_tags(season_data)
 
     return data

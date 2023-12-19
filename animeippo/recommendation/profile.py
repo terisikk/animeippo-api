@@ -3,7 +3,71 @@ from concurrent.futures import ThreadPoolExecutor
 
 import numpy as np
 
-from animeippo.recommendation import clustering, encoding, dataset, util as pdutil
+from animeippo.recommendation import clustering, encoding, dataset, analysis, util as pdutil
+
+
+class UserProfile:
+    def __init__(self, user, watchlist):
+        self.user = user
+        self.watchlist = watchlist
+        self.mangalist = None
+
+        self.last_liked = None
+
+        self.genre_correlations = None
+        self.director_correlations = None
+        self.studio_correlations = None
+
+        if self.watchlist is not None and "score" in self.watchlist.columns:
+            self.fit()
+
+    def fit(self):
+        self.genre_correlations = self.get_genre_correlations()
+
+        self.director_correlations = self.get_director_correlations()
+        self.studio_correlations = self.get_studio_correlations()
+        # self.feature_correlations = self.get_feature_correlations()
+        # self.last_liked = self.get_last_liked()
+
+    def get_genre_correlations(self):
+        if "genres" not in self.watchlist.columns:
+            return None
+
+        gdf = self.watchlist.explode("genres")
+
+        return analysis.weight_categoricals_correlation(gdf, "genres").sort_values(ascending=False)
+
+    def get_studio_correlations(self):
+        if "studios" not in self.watchlist.columns:
+            return None
+
+        gdf = self.watchlist.explode("studios")
+
+        return analysis.weight_categoricals_correlation(gdf, "studios").sort_values(ascending=False)
+
+    def get_director_correlations(self):
+        if "directors" not in self.watchlist.columns:
+            return None
+
+        gdf = self.watchlist.explode("directors")
+
+        return analysis.weight_categoricals_correlation(gdf, "directors").sort_values(
+            ascending=False
+        )
+
+    def get_feature_correlations(self, all_features):
+        if "encoded" not in self.watchlist.columns:
+            return None
+
+        return analysis.weight_encoded_categoricals_correlation(
+            self.watchlist, "encoded", all_features
+        )
+
+    def get_cluster_correlations(self):
+        if "cluster" not in self.watchlist.columns:
+            return None
+
+        return analysis.weight_categoricals_correlation(self.watchlist, "cluster")
 
 
 class ProfileAnalyser:
@@ -31,19 +95,20 @@ class ProfileAnalyser:
     async def databuilder(self, user):
         user_watchlist = await self.provider.get_user_anime_list(user)
 
-        data = dataset.UserDataSet(user_watchlist, None, None)
+        user_profile = UserProfile(user, user_watchlist)
 
-        data.all_features = data.watchlist_explode_cached("features")["features"].dropna().unique()
+        all_features = user_profile.watchlist.explode("features")["features"].dropna().unique()
 
-        self.encoder.fit(data.all_features)
+        self.encoder.fit(all_features)
 
-        data.watchlist["encoded"] = self.encoder.encode(data.watchlist)
+        user_profile.watchlist["encoded"] = self.encoder.encode(user_profile.watchlist)
 
-        encoded = np.stack(data.watchlist["encoded"].values)
-        data.watchlist["cluster"] = self.clusterer.cluster_by_features(
-            encoded, data.watchlist.index
+        encoded = np.stack(user_profile.watchlist["encoded"].values)
+        user_profile.watchlist["cluster"] = self.clusterer.cluster_by_features(
+            encoded, user_profile.watchlist.index
         )
 
+        data = dataset.RecommendationModel(user_profile, None, all_features)
         data.nsfw_tags = self.get_nsfw_tags(data.watchlist)
 
         return data
@@ -60,6 +125,41 @@ class ProfileAnalyser:
         return self.get_categories(self.dataset)
 
     def get_categories(self, dataset):
+        categories = []
+        top_genre_items = []
+        top_tag_items = []
+
+        if "genres" in dataset.watchlist.columns:
+            top_5_genres = dataset.user_profile.genre_correlations.iloc[0:5].index.tolist()
+
+            for genre in top_5_genres:
+                gdf = dataset.watchlist_explode_cached("genres")
+                filtered = gdf[gdf["genres"] == genre].sort_values("score", ascending=False)
+
+                if len(filtered) > 0:
+                    top_genre_items.append(int(filtered.iloc[0].name))
+
+            categories.append({"name": ", ".join(top_5_genres), "items": top_genre_items})
+
+        if "tags" in dataset.watchlist.columns:
+            tag_correlations = analysis.weight_categoricals_correlation(
+                dataset.watchlist.explode("tags"), "tags"
+            ).sort_values(ascending=False)
+
+            top_5_tags = tag_correlations.iloc[0:5].index.tolist()
+
+            for tag in top_5_tags:
+                gdf = dataset.watchlist.drop(top_genre_items).drop(top_tag_items).explode("tags")
+                filtered = gdf[gdf["tags"] == tag].sort_values("score", ascending=False)
+
+                if len(filtered) > 0:
+                    top_tag_items.append(int(filtered.iloc[0].name))
+
+            categories.append({"name": ", ".join(top_5_tags), "items": top_tag_items})
+
+        return categories
+
+    def get_cluster_categories(self, dataset):
         target = dataset.watchlist
 
         gdf = dataset.watchlist_explode_cached("features")
