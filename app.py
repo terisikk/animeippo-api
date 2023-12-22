@@ -26,7 +26,7 @@ def seasonal_anime():
     dataset = recommender.recommend_seasonal_anime(year, season)
 
     return Response(
-        views.web_view(dataset.seasonal.sort_values("popularity", ascending=False)),
+        views.recommendations_web_view(dataset.seasonal.sort_values("popularity", ascending=False)),
         mimetype="application/json",
     )
 
@@ -50,7 +50,8 @@ def recommend_anime():
         return f"Could nof fetch data for user {user}.", 404
 
     return Response(
-        views.web_view(dataset.recommendations, categories), mimetype="application/json"
+        views.recommendations_web_view(dataset.recommendations, categories),
+        mimetype="application/json",
     )
 
 
@@ -66,7 +67,7 @@ def analyze_profile():
     categories = profiler.analyse(user)
 
     return Response(
-        views.web_view(
+        views.recommendations_web_view(
             profiler.dataset.watchlist.sort_values(["title"]),
             sorted(categories, key=lambda item: len(item["items"]), reverse=True),
         ),

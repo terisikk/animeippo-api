@@ -51,6 +51,8 @@ def transform_watchlist_data(data, feature_names):
         Columns.USER_STATUS,
         Columns.MEAN_SCORE,
         Columns.SCORE,
+        Columns.DURATION,
+        Columns.EPISODES,
         Columns.SOURCE,
         Columns.TAGS,
         Columns.RANKS,

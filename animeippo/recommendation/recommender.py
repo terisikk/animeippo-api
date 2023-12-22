@@ -24,6 +24,8 @@ class AnimeRecommender:
             asyncio.get_running_loop()
 
             with ThreadPoolExecutor(1) as pool:
+                print("using threading")
+
                 return pool.submit(
                     lambda: asyncio.run(self.databuilder(self.provider, year, season, user))
                 ).result()

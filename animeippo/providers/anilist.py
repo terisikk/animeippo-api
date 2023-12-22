@@ -50,6 +50,8 @@ class AniListProvider(provider.AbstractAnimeProvider):
                                 isAdult
                             }
                             meanScore
+                            duration
+                            episodes
                             source
                             studios { edges { node { name isAnimationStudio } }}
                             seasonYear
