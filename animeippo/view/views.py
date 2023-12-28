@@ -1,4 +1,5 @@
 import json
+import polars as pl
 
 
 def recommendations_web_view(dataframe, categories=None):
@@ -52,4 +53,7 @@ def profile_web_view(user_profile, categories):
 
 
 def console_view(dataframe):
-    print(dataframe.iloc[0:25][["title", "genres"]])
+    with pl.Config(tbl_rows=40):
+        print(dataframe.head(25))
+
+    dataframe.head(25).write_excel()

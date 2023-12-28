@@ -9,7 +9,7 @@ from animeippo.recommendation import categories, dataset, profile
 def test_most_popular_category():
     cat = categories.MostPopularCategory()
 
-    recommendations = pd.DataFrame(
+    recommendations = pl.DataFrame(
         {"popularityscore": [2, 3, 1], "title": ["Test 1", "Test 2", "Test 3"]}
     )
 
@@ -24,7 +24,7 @@ def test_most_popular_category():
 def test_continue_watching_category():
     cat = categories.ContinueWatchingCategory()
 
-    recommendations = pd.DataFrame(
+    recommendations = pl.DataFrame(
         {
             "continuationscore": [0, 0, 1],
             "final_score": [0, 0, 1],
@@ -44,9 +44,9 @@ def test_continue_watching_category():
 def test_source_category():
     cat = categories.SourceCategory()
 
-    watchlist = pd.DataFrame({"source": ["manga", "light_novel", "other"], "score": [10, 9, 8]})
+    watchlist = pl.DataFrame({"source": ["manga", "light_novel", "other"], "score": [10, 9, 8]})
 
-    recommendations = pd.DataFrame(
+    recommendations = pl.DataFrame(
         {
             "directscore": [1, 2, 3],
             "final_score": [1, 2, 3],
@@ -68,11 +68,11 @@ def test_source_category():
 def test_source_category_defaults_to_manga_without_scores():
     cat = categories.SourceCategory()
 
-    watchlist = pd.DataFrame(
+    watchlist = pl.DataFrame(
         {"source": ["manga", "light_novel", "other"], "score": [None, None, None]}
     )
 
-    recommendations = pd.DataFrame(
+    recommendations = pl.DataFrame(
         {
             "directscore": [1, 2, 3],
             "final_score": [1, 2, 3],
@@ -94,9 +94,9 @@ def test_source_category_defaults_to_manga_without_scores():
 def test_source_category_descriptions():
     cat = categories.SourceCategory()
 
-    watchlist = pd.DataFrame({"source": ["manga", "original", "other"], "score": [10, 9, 8]})
+    watchlist = pl.DataFrame({"source": ["manga", "original", "other"], "score": [10, 9, 8]})
 
-    recommendations = pd.DataFrame(
+    recommendations = pl.DataFrame(
         {
             "directscore": [1, 2, 3],
             "final_score": [1, 2, 3],
@@ -114,12 +114,12 @@ def test_source_category_descriptions():
 
     assert cat.description == "Based on a Manga"
 
-    data.watchlist = pd.DataFrame({"source": ["manga", "original", "other"], "score": [9, 10, 8]})
+    data.watchlist = pl.DataFrame({"source": ["manga", "original", "other"], "score": [9, 10, 8]})
     cat.categorize(data)
 
     assert cat.description == "Anime Originals"
 
-    data.watchlist = pd.DataFrame({"source": ["manga", "original", "other"], "score": [9, 8, 10]})
+    data.watchlist = pl.DataFrame({"source": ["manga", "original", "other"], "score": [9, 8, 10]})
     cat.categorize(data)
 
     assert cat.description == "Unusual Sources"
@@ -128,7 +128,7 @@ def test_source_category_descriptions():
 def test_studio_category():
     cat = categories.StudioCategory()
 
-    recommendations = pd.DataFrame(
+    recommendations = pl.DataFrame(
         {
             "studiocorrelationscore": [1, 3, 2],
             "formatscore": [1, 3, 2],
@@ -149,7 +149,7 @@ def test_studio_category():
 def test_cluster_category():
     cat = categories.ClusterCategory(0)
 
-    watchlist = pd.DataFrame(
+    watchlist = pl.DataFrame(
         {
             "features": [
                 ["Action", "Sports", "Romance"],
@@ -160,7 +160,7 @@ def test_cluster_category():
         }
     )
 
-    recommendations = pd.DataFrame(
+    recommendations = pl.DataFrame(
         {
             "cluster": [0, 1, 1],
             "final_score": [1, 1, 1],
@@ -182,7 +182,7 @@ def test_cluster_category():
 
     assert actual["title"].tolist() == []
 
-    data.recommendations = pd.DataFrame(
+    data.recommendations = pl.DataFrame(
         {
             "cluster": [1, 1, 1],
             "final_score": [1, 1, 1],
@@ -199,7 +199,7 @@ def test_cluster_category():
 def test_nsfw_tags_are_filtered_from_cluster_category():
     cat = categories.ClusterCategory(0)
 
-    watchlist = pd.DataFrame(
+    watchlist = pl.DataFrame(
         {
             "features": [
                 ["NSFW-1", "Sports", "Romance"],
@@ -210,7 +210,7 @@ def test_nsfw_tags_are_filtered_from_cluster_category():
         }
     )
 
-    recommendations = pd.DataFrame(
+    recommendations = pl.DataFrame(
         {
             "cluster": [0, 1, 1],
             "final_score": [0, 1, 1],
@@ -233,7 +233,7 @@ def test_nsfw_tags_are_filtered_from_cluster_category():
 def test_cluster_category_returns_none_if_not_enough_clusters():
     cat = categories.ClusterCategory(5)
 
-    watchlist = pd.DataFrame(
+    watchlist = pl.DataFrame(
         {
             "features": [
                 ["Action", "Sports", "Romance"],
@@ -244,7 +244,7 @@ def test_cluster_category_returns_none_if_not_enough_clusters():
         }
     )
 
-    recommendations = pd.DataFrame(
+    recommendations = pl.DataFrame(
         {
             "cluster": [0, 1, 1],
             "title": ["Test 1", "Test 2", "Test 3"],
@@ -263,7 +263,7 @@ def test_cluster_category_returns_none_if_not_enough_clusters():
 def test_your_top_picks_category():
     cat = categories.YourTopPicksCategory()
 
-    recommendations = pd.DataFrame(
+    recommendations = pl.DataFrame(
         {
             "title": ["Test 1", "Test 2", "Test 3"],
             "user_status": [pd.NA, pd.NA, pd.NA],
@@ -284,7 +284,7 @@ def test_your_top_picks_category():
 def test_top_upcoming_category():
     cat = categories.TopUpcomingCategory()
 
-    recommendations = pd.DataFrame(
+    recommendations = pl.DataFrame(
         {
             "status": ["not_yet_released", "finished", "cancelled"],
             "user_status": [None, None, None],
@@ -306,7 +306,7 @@ def test_top_upcoming_category():
 def test_because_you_liked():
     cat = categories.BecauseYouLikedCategory(0, distance_metric="cosine")
 
-    watchlist = pd.DataFrame(
+    watchlist = pl.DataFrame(
         {
             "score": [1, 2],
             "encoded": [[1, 1], [0, 1]],
@@ -315,7 +315,7 @@ def test_because_you_liked():
         }
     )
 
-    recommendations = pd.DataFrame(
+    recommendations = pl.DataFrame(
         {
             "title": ["Test 1", "Test 2", "Test 3"],
             "encoded": [[0, 1], [1, 0], [0, 0]],
@@ -337,7 +337,7 @@ def test_because_you_liked():
 def test_because_you_liked_does_not_fail_with_empty_likes():
     cat = categories.BecauseYouLikedCategory(99)
 
-    watchlist = pd.DataFrame(
+    watchlist = pl.DataFrame(
         {"score": [1, 1], "user_complete_date": [1, 2], "user_status": [pd.NA, pd.NA]}
     )
 
@@ -353,7 +353,7 @@ def test_because_you_liked_does_not_fail_with_empty_likes():
 def test_simulcastscategory(mocker):
     cat = categories.SimulcastsCategory()
 
-    recommendations = pd.DataFrame(
+    recommendations = pl.DataFrame(
         {
             "start_season": ["2022/summer", "2022/summer", "2022/winter"],
             "title": ["Test 1", "Test 2", "Test 3"],
@@ -424,7 +424,7 @@ def test_simulcastscategory_current_season_getter(monkeypatch):
 def test_adapatation_category():
     cat = categories.AdaptationCategory()
 
-    recommendations = pd.DataFrame(
+    recommendations = pl.DataFrame(
         {
             "adaptationscore": [0, 1, 1],
             "final_score": [0, 0, 1],
@@ -444,7 +444,7 @@ def test_adapatation_category():
 def test_genre_category():
     cat = categories.GenreCategory(0)
 
-    watchlist = pd.DataFrame(
+    watchlist = pl.DataFrame(
         {
             "genres": [
                 ["Action", "Sports", "Romance"],
@@ -456,7 +456,7 @@ def test_genre_category():
         }
     )
 
-    recommendations = pd.DataFrame(
+    recommendations = pl.DataFrame(
         {
             "genres": [["Action", "Fantasy"], ["Drama"], ["Action"]],
             "discourage_score": [1, 1, 1],
@@ -479,7 +479,7 @@ def test_genre_category():
 def test_genre_category_returns_none_for_too_big_genre_number():
     cat = categories.GenreCategory(99)
 
-    watchlist = pd.DataFrame(
+    watchlist = pl.DataFrame(
         {
             "genres": [
                 ["Action", "Sports", "Romance"],
@@ -502,7 +502,7 @@ def test_genre_category_returns_none_for_too_big_genre_number():
 def test_genre_category_can_cache_values():
     cat = categories.GenreCategory(0)
 
-    recommendations = pd.DataFrame(
+    recommendations = pl.DataFrame(
         {
             "genres": [["Action", "Fantasy"], ["Drama"], ["Action"]],
             "discourage_score": [1, 1, 1],
@@ -513,7 +513,7 @@ def test_genre_category_can_cache_values():
     )
 
     uprofile = profile.UserProfile("Test", None)
-    uprofile.genre_correlations = pd.Series([0.5, 0.5], index=["Action", "Sports"])
+    uprofile.genre_correlations = pl.Series([0.5, 0.5], index=["Action", "Sports"])
 
     data = dataset.RecommendationModel(uprofile, None, None)
     data.recommendations = recommendations
@@ -528,7 +528,7 @@ def test_discourage_wrapper():
     cat = categories.YourTopPicksCategory()
     dcat = categories.DiscouragingWrapper(cat)
 
-    recommendations = pd.DataFrame(
+    recommendations = pl.DataFrame(
         {
             "title": ["Test 1", "Test 2", "Test 3"],
             "user_status": [pd.NA, pd.NA, pd.NA],
@@ -559,7 +559,7 @@ def test_discourage_wrapper():
 def test_debug_category_returns_all_recommendations():
     cat = categories.DebugCategory()
 
-    recommendations = pd.DataFrame(
+    recommendations = pl.DataFrame(
         {
             "title": ["Test 1", "Test 2", "Test 3"],
             "final_score": [2, 2.1, 1.99],
@@ -575,7 +575,7 @@ def test_debug_category_returns_all_recommendations():
 def test_planning_category():
     cat = categories.PlanningCategory()
 
-    recommendations = pd.DataFrame(
+    recommendations = pl.DataFrame(
         {
             "title": ["Test 1", "Test 2", "Test 3"],
             "user_status": [pd.NA, "planning", "in_progress"],

@@ -1,5 +1,9 @@
-import pandas as pd
 import datetime
+import functools
+
+import pandas as pd
+import polars as pl
+
 import fast_json_normalize
 
 from . import util
@@ -7,7 +11,7 @@ from animeippo.providers.formatters.schema import DefaultMapper, SingleMapper, M
 
 
 def transform_seasonal_data(data, feature_names):
-    original = fast_json_normalize.fast_json_normalize(data["data"]["media"])
+    original = pl.from_pandas(fast_json_normalize.fast_json_normalize(data["data"]["media"]))
 
     keys = [
         Columns.ID,
@@ -38,8 +42,9 @@ def transform_seasonal_data(data, feature_names):
 
 def transform_watchlist_data(data, feature_names):
     original = fast_json_normalize.fast_json_normalize(data["data"])
-
     original.columns = [x.removeprefix("media.") for x in original.columns]
+
+    original = pl.from_pandas(original)
 
     keys = [
         Columns.ID,
@@ -68,8 +73,9 @@ def transform_watchlist_data(data, feature_names):
 
 def transform_user_manga_list_data(data, feature_names):
     original = fast_json_normalize.fast_json_normalize(data["data"])
-
     original.columns = [x.removeprefix("media.") for x in original.columns]
+
+    original = pl.from_pandas(original)
 
     keys = [
         Columns.ID,
@@ -119,10 +125,10 @@ def get_tags(tags):
 
 
 def get_user_complete_date(year, month, day):
-    if pd.isna(year) or pd.isna(month) or pd.isna(day):
-        return pd.NA
+    if year is None or month is None or day is None:
+        return (None,)
 
-    return datetime.date(int(year), int(month), int(day))
+    return (datetime.datetime(int(year), int(month), int(day)),)
 
 
 def get_ranks(tags, genres):
@@ -135,20 +141,22 @@ def get_ranks(tags, genres):
     for genre in genres:
         ranks[genre] = 1
 
-    return ranks
+    return (ranks,)
 
 
 def get_nsfw_tags(items):
-    return [item["name"] for item in items if item["isAdult"] is True]
+    return [item["name"] for item in items if item.get("isAdult", False) is True]
 
 
 def get_studios(studios):
-    return set(
-        [
-            studio["node"]["name"]
-            for studio in studios
-            if studio["node"].get("isAnimationStudio", False)
-        ]
+    return list(
+        set(
+            [
+                studio["node"]["name"]
+                for studio in studios
+                if studio["node"].get("isAnimationStudio", False)
+            ]
+        )
     )
 
 
@@ -156,7 +164,7 @@ def get_staff(staffs, nodes, role):
     roles = [edge["role"] for edge in staffs]
     staff_ids = [node["id"] for node in nodes]
 
-    return [staff_ids[i] for i, r in enumerate(roles) if r == role]
+    return ([staff_ids[i] for i, r in enumerate(roles) if r == role],)
 
 
 # fmt: off
@@ -177,38 +185,15 @@ ANILIST_MAPPING = {
     Columns.SCORE:              SingleMapper("score", util.get_score),
     Columns.SOURCE:             SingleMapper("source", 
                                              lambda source: source.lower() 
-                                             if source else pd.NA),
+                                             if source else None),
     Columns.TAGS:               SingleMapper("tags", get_tags),
     Columns.CONTINUATION_TO:    SingleMapper("relations.edges", get_continuation),
     Columns.ADAPTATION_OF:      SingleMapper("relations.edges", get_adaptation),
     Columns.NSFW_TAGS:          SingleMapper("tags", get_nsfw_tags),
     Columns.STUDIOS:            SingleMapper("studios.edges", get_studios),
-    Columns.RANKS:              MultiMapper(
-                                    lambda row: get_ranks(
-                                        row["tags"],
-                                        row["genres"],
-                                    )
-                                ),
-    Columns.DIRECTOR:           MultiMapper(
-                                    lambda row: get_staff(
-                                        row["staff.edges"],
-                                        row["staff.nodes"],
-                                        "Director"
-                                    )
-                                ),
-    Columns.USER_COMPLETE_DATE: MultiMapper(
-                                    lambda row: get_user_complete_date(
-                                        row["completedAt.year"], 
-                                        row["completedAt.month"], 
-                                        row["completedAt.day"]
-                                    ),
-                                    pd.NaT,
-                                ),
-    Columns.START_SEASON:       MultiMapper(
-                                    lambda row: util.get_season(
-                                        row["seasonYear"], 
-                                        row["season"]
-                                    ),
-                                ),
+    Columns.RANKS:              MultiMapper(["tags", "genres"], get_ranks),
+    Columns.DIRECTOR:           MultiMapper(["staff.edges", "staff.nodes"], functools.partial(get_staff, role="Director")),
+    Columns.USER_COMPLETE_DATE: MultiMapper(["completedAt.year", "completedAt.month", "completedAt.day"], get_user_complete_date),
+    Columns.START_SEASON:       MultiMapper(["seasonYear", "season"], util.get_season),
 }
 # fmt: on

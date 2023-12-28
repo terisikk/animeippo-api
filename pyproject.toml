@@ -19,6 +19,7 @@ pyarrow = "^14.0.1"
 aiohttp = "^3.8.4"
 async-lru = "^2.0.4"
 fast-json-normalize = "^0.0.9"
+polars = {extras = ["numpy", "pandas", "pyarrow"], version = "^0.20.2"}
 
 
 [tool.poetry.group.dev.dependencies]
@@ -37,6 +38,10 @@ profilehooks = "^1.12.0"
 pytest-asyncio = "^0.21.0"
 pydeps = "^1.12.8"
 seaborn = "^0.13.0"
+
+
+[tool.poetry.group.extras.dependencies]
+xlsxwriter = "^3.1.9"
 
 [build-system]
 requires = ["poetry-core"]

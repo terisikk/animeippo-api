@@ -1,4 +1,4 @@
-import pandas as pd
+import polars as pl
 
 from tests import test_data
 
@@ -17,16 +17,16 @@ class AsyncProviderStub:
         self.cache = cache
 
     async def get_seasonal_anime_list(self, *args, **kwargs):
-        return pd.DataFrame(self.seasonal).set_index("id")
+        return pl.DataFrame(self.seasonal)
 
     async def get_user_anime_list(self, *args, **kwargs):
-        return pd.DataFrame(self.user).set_index("id")
+        return pl.DataFrame(self.user)
 
     async def get_user_manga_list(self, *args, **kwargs):
-        return pd.DataFrame(self.manga)
+        return pl.DataFrame(self.manga)
 
     async def get_related_anime(self, *args, **kwargs):
-        return pd.DataFrame()
+        return pl.DataFrame()
 
     def get_features(self, *args, **kwargs):
         return ["genres"]

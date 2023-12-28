@@ -16,7 +16,7 @@ def test_profile_analyser_can_run():
 
 
 def test_nswf_tags_can_be_removed():
-    df = pd.DataFrame({"title": ["Test"], "tags": [["test1", "test2"]], "nsfw_tags": [["test1"]]})
+    df = pl.DataFrame({"title": ["Test"], "tags": [["test1", "test2"]], "nsfw_tags": [["test1"]]})
 
     profiler = profile.ProfileAnalyser(test_provider.AsyncProviderStub())
 
@@ -34,7 +34,7 @@ async def test_profile_analyser_can_run_when_async_loop_is_already_running():
 
 
 def test_user_profile_can_be_constructred():
-    watchlist = pd.DataFrame(test_data.FORMATTED_MAL_USER_LIST)
+    watchlist = pl.DataFrame(test_data.FORMATTED_MAL_USER_LIST)
 
     encoder = encoding.CategoricalEncoder()
     encoder.fit(["Action", "Adventure"], "features")
@@ -62,7 +62,7 @@ def test_user_profile_can_be_constructred_with_no_watchlist():
 
 
 def test_user_profile_can_be_constructed_with_missing_data():
-    watchlist = pd.DataFrame(test_data.FORMATTED_MAL_USER_LIST)
+    watchlist = pl.DataFrame(test_data.FORMATTED_MAL_USER_LIST)
     watchlist = watchlist.drop("cluster", axis=1)
 
     user_profile = profile.UserProfile("Test", watchlist)
@@ -73,7 +73,7 @@ def test_user_profile_can_be_constructed_with_missing_data():
 
 
 def test_user_top_genres_and_tags_can_be_categorized():
-    data = pd.DataFrame(test_data.FORMATTED_ANI_SEASONAL_LIST)
+    data = pl.DataFrame(test_data.FORMATTED_ANI_SEASONAL_LIST)
     data["score"] = [10, 8]
 
     uprofile = profile.UserProfile("Test", data)
@@ -86,7 +86,7 @@ def test_user_top_genres_and_tags_can_be_categorized():
     assert len(categories) > 0
 
     uprofile = profile.UserProfile("Test", data)
-    uprofile.genre_correlations = pd.Series([1, 1], index=["Absurd", "Nonexisting"])
+    uprofile.genre_correlations = pl.Series([1, 1], index=["Absurd", "Nonexisting"])
     dset = dataset.RecommendationModel(uprofile, None)
 
     categories = profiler.get_categories(dset)
@@ -102,7 +102,7 @@ def test_user_top_genres_and_tags_can_be_categorized():
 
 
 def test_clusters_can_be_categorized():
-    data = pd.DataFrame(test_data.FORMATTED_ANI_SEASONAL_LIST)
+    data = pl.DataFrame(test_data.FORMATTED_ANI_SEASONAL_LIST)
     data["cluster"] = [0, 1]
 
     uprofile = profile.UserProfile("Test", data)

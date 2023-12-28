@@ -35,7 +35,9 @@ class UserProfile:
 
         gdf = self.watchlist.explode("genres")
 
-        return analysis.weight_categoricals_correlation(gdf, "genres").sort_values(ascending=False)
+        return analysis.weight_categoricals_correlation(gdf, "genres").sort(
+            "weight", descending=True
+        )
 
     def get_studio_correlations(self):
         if "studios" not in self.watchlist.columns:
@@ -43,7 +45,9 @@ class UserProfile:
 
         gdf = self.watchlist.explode("studios")
 
-        return analysis.weight_categoricals_correlation(gdf, "studios").sort_values(ascending=False)
+        return analysis.weight_categoricals_correlation(gdf, "studios").sort(
+            "weight", descending=True
+        )
 
     def get_director_correlations(self):
         if "directors" not in self.watchlist.columns:
@@ -51,8 +55,8 @@ class UserProfile:
 
         gdf = self.watchlist.explode("directors")
 
-        return analysis.weight_categoricals_correlation(gdf, "directors").sort_values(
-            ascending=False
+        return analysis.weight_categoricals_correlation(gdf, "directors").sort(
+            "weight", descending=True
         )
 
     def get_feature_correlations(self, all_features):
@@ -134,7 +138,7 @@ class ProfileAnalyser:
 
             for genre in top_5_genres:
                 gdf = dataset.watchlist_explode_cached("genres")
-                filtered = gdf[gdf["genres"] == genre].sort_values("score", ascending=False)
+                filtered = gdf[gdf["genres"] == genre].sort_values("score", descending=True)
 
                 if len(filtered) > 0:
                     top_genre_items.append(int(filtered.iloc[0].name))
@@ -144,13 +148,13 @@ class ProfileAnalyser:
         if "tags" in dataset.watchlist.columns:
             tag_correlations = analysis.weight_categoricals_correlation(
                 dataset.watchlist.explode("tags"), "tags"
-            ).sort_values(ascending=False)
+            ).sort_values(descending=True)
 
             top_5_tags = tag_correlations.iloc[0:5].index.tolist()
 
             for tag in top_5_tags:
                 gdf = dataset.watchlist.drop(top_genre_items).drop(top_tag_items).explode("tags")
-                filtered = gdf[gdf["tags"] == tag].sort_values("score", ascending=False)
+                filtered = gdf[gdf["tags"] == tag].sort_values("score", descending=True)
 
                 if len(filtered) > 0:
                     top_tag_items.append(int(filtered.iloc[0].name))

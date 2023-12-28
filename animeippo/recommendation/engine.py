@@ -1,6 +1,6 @@
 import numpy as np
 import pandas as pd
-
+import polars as pl
 
 from animeippo.recommendation import encoding, clustering
 
@@ -30,25 +30,28 @@ class AnimeRecommendationEngine:
     def fit(self, dataset):
         self.validate(dataset)
 
-        dataset.all_features = (
-            pd.concat(
-                [
-                    dataset.all_features if dataset.all_features is not None else pd.Series(),
-                    dataset.seasonal["features"],
-                    dataset.watchlist["features"],
-                ]
-            )
-            .explode()
-            .dropna()
-            .unique()
+        all_features = pl.concat([dataset.seasonal["features"], dataset.watchlist["features"]])
+        all_features = (
+            pl.concat([all_features, dataset.all_features])
+            if dataset.all_features is not None
+            else all_features
         )
+
+        dataset.all_features = all_features.explode().unique().drop_nans()
+        # With polars
 
         self.encoder.fit(dataset.all_features)
 
-        dataset.watchlist["encoded"] = self.encoder.encode(dataset.watchlist)
-        dataset.seasonal["encoded"] = self.encoder.encode(dataset.seasonal)
+        dataset.watchlist = dataset.watchlist.with_columns(
+            encoded=self.encoder.encode(dataset.watchlist)
+        )
+        dataset.seasonal = dataset.seasonal.with_columns(
+            encoded=self.encoder.encode(dataset.seasonal)
+        )
 
-        dataset.watchlist["cluster"] = self.get_clustering(dataset.watchlist["encoded"])
+        dataset.watchlist = dataset.watchlist.with_columns(
+            cluster=self.get_clustering(dataset.watchlist["encoded"])
+        )
 
         return dataset
 
@@ -57,9 +60,11 @@ class AnimeRecommendationEngine:
 
         recommendations = self.score_anime(dataset)
 
-        recommendations["cluster"] = self.clustering_model.predict(dataset.seasonal["encoded"])
+        recommendations = recommendations.with_columns(
+            cluster=self.clustering_model.predict(dataset.seasonal["encoded"])
+        )
 
-        return recommendations.sort_values("recommend_score", ascending=False)
+        return recommendations.sort("recommend_score", descending=True)
 
     def score_anime(self, dataset):
         scoring_target_df = dataset.seasonal
@@ -69,12 +74,17 @@ class AnimeRecommendationEngine:
 
             for scorer in self.scorers:
                 scoring = scorer.score(dataset)
-                scoring_target_df.loc[:, scorer.name] = scoring.fillna(0)
+                scoring_target_df = scoring_target_df.with_columns(
+                    **{scorer.name: np.nan_to_num(scoring, nan=0.0)}
+                )
                 names.append(scorer.name)
 
-            scoring_target_df["recommend_score"] = scoring_target_df[names].mean(axis=1)
-            scoring_target_df["final_score"] = scoring_target_df["recommend_score"]
-            scoring_target_df["discourage_score"] = 1.0
+            scoring_target_df = scoring_target_df.with_columns(
+                recommend_score=scoring_target_df.select(names).mean_horizontal(),
+                final_score=scoring_target_df.select(names).mean_horizontal(),
+                discourage_score=1.0,
+            )
+
         else:
             raise RuntimeError("No scorers added for engine. Please add at least one.")
 
@@ -100,4 +110,4 @@ class AnimeRecommendationEngine:
 
     def get_clustering(self, series):
         encoded = np.vstack(series)
-        return self.clustering_model.cluster_by_features(encoded, series.index)
+        return self.clustering_model.cluster_by_features(encoded)

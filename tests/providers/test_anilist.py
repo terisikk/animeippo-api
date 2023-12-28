@@ -37,7 +37,7 @@ async def test_ani_user_anime_list_can_be_fetched(mocker):
 
     animelist = await provider.get_user_anime_list(user)
 
-    assert "Dr. STRONK: OLD WORLD" in animelist["title"].values
+    assert "Dr. STRONK: OLD WORLD" in animelist["title"]
 
 
 @pytest.mark.asyncio
@@ -52,7 +52,7 @@ async def test_ani_seasonal_anime_list_can_be_fetched(mocker):
 
     animelist = await provider.get_seasonal_anime_list(year, season)
 
-    assert "EDENS KNOCK-OFF 2nd Season" in animelist["title"].values
+    assert "EDENS KNOCK-OFF 2nd Season" in animelist["title"]
 
 
 @pytest.mark.asyncio
@@ -67,7 +67,7 @@ async def test_all_yearly_season_can_be_fetched_when_season_is_none(mocker):
 
     animelist = await provider.get_seasonal_anime_list(year, season)
 
-    assert "EDENS KNOCK-OFF 2nd Season" in animelist["title"].values
+    assert "EDENS KNOCK-OFF 2nd Season" in animelist["title"]
 
 
 @pytest.mark.asyncio
@@ -79,7 +79,7 @@ async def test_ani_user_manga_list_can_be_fetched(mocker):
 
     animelist = await provider.get_user_manga_list("Janiskeisari")
 
-    assert "Dr. BONK: BONK BATTLES" in animelist["title"].values
+    assert "Dr. BONK: BONK BATTLES" in animelist["title"]
 
 
 def test_ani_related_anime_returns_none():

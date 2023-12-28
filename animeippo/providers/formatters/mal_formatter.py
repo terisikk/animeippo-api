@@ -154,14 +154,14 @@ MAL_MAPPING = {
     Columns.STATUS:             SingleMapper("node.status", get_status),
     Columns.SCORE:              SingleMapper("list_status.score", util.get_score),
     Columns.USER_COMPLETE_DATE: SingleMapper("list_status.finish_date", get_user_complete_date),
-    Columns.START_SEASON:       MultiMapper(
-                                    lambda row: util.get_season(row["node.start_season.year"], 
-                                                                row["node.start_season.season"]),
-                                ),
-    Columns.CONTINUATION_TO:    MultiMapper(
-                                    lambda row: get_continuation(row["relation_type"], 
-                                                                 row["node.id"])
-                                ),
+    # Columns.START_SEASON:       MultiMapper(
+    #                                 lambda row: util.get_season(row["node.start_season.year"], 
+    #                                                             row["node.start_season.season"]),
+    #                             ),
+    # Columns.CONTINUATION_TO:    MultiMapper(
+    #                                 lambda row: get_continuation(row["relation_type"], 
+    #                                                              row["node.id"])
+    #                             ),
 }
 
 # fmt: on

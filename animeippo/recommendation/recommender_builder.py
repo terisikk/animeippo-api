@@ -1,8 +1,9 @@
 import asyncio
 
-import animeippo.providers as providers
-
 from async_lru import alru_cache
+
+import animeippo.providers as providers
+import polars as pl
 
 from animeippo import cache
 from animeippo.recommendation.recommender import AnimeRecommender
@@ -16,8 +17,6 @@ from animeippo.recommendation import (
     encoding,
     profile,
 )
-
-import pandas as pd
 
 
 def get_default_scorers(distance_metric="jaccard"):
@@ -95,22 +94,20 @@ async def get_dataset(provider, user, year, season):
 
 def remove_duplicates(df):
     if df is not None:
-        df = df[~df.index.duplicated(keep="first")]
+        df = df.unique(subset=["id"], keep="first")
 
     return df
 
 
 def get_nswf_tags(df):
     if df is not None and "nsfw_tags" in df.columns:
-        return df["nsfw_tags"].explode().dropna().unique().tolist()
+        return df["nsfw_tags"].explode().drop_nans().unique().to_list()
 
     return []
 
 
 def fill_user_status_data_from_watchlist(seasonal, watchlist):
-    seasonal["user_status"] = pd.NA
-    seasonal["user_status"].update(watchlist["user_status"])
-    return seasonal
+    return seasonal.join(watchlist.select(["id", "user_status"]), on="id", how="left")
 
 
 async def construct_anilist_data(provider, year, season, user):
@@ -118,21 +115,21 @@ async def construct_anilist_data(provider, year, season, user):
 
     if data.seasonal is not None and data.watchlist is not None:
         data.seasonal = fill_user_status_data_from_watchlist(data.seasonal, data.watchlist)
-        data.seasonal = filters.ContinuationFilter(data.watchlist).filter(data.seasonal)
+    #     data.seasonal = filters.ContinuationFilter(data.watchlist).filter(data.seasonal)
 
-    if data.seasonal is not None:
-        seasonal_filters = [
-            filters.FeatureFilter("Kids", negative=True),
-            filters.FeatureFilter("Hentai", negative=True),
-            filters.StartSeasonFilter(
-                (year, "winter"), (year, "spring"), (year, "summer"), (year, "fall")
-            )
-            if season is None
-            else filters.StartSeasonFilter((year, season)),
-        ]
+    # if data.seasonal is not None:
+    #     seasonal_filters = [
+    #         filters.FeatureFilter("Kids", negative=True),
+    #         filters.FeatureFilter("Hentai", negative=True),
+    #         filters.StartSeasonFilter(
+    #             (year, "winter"), (year, "spring"), (year, "summer"), (year, "fall")
+    #         )
+    #         if season is None
+    #         else filters.StartSeasonFilter((year, season)),
+    #     ]
 
-        for f in seasonal_filters:
-            data.seasonal = f.filter(data.seasonal)
+    #     for f in seasonal_filters:
+    #         data.seasonal = f.filter(data.seasonal)
 
     return data
 

@@ -26,7 +26,7 @@ def seasonal_anime():
     dataset = recommender.recommend_seasonal_anime(year, season)
 
     return Response(
-        views.recommendations_web_view(dataset.seasonal.sort_values("popularity", ascending=False)),
+        views.recommendations_web_view(dataset.seasonal.sort_values("popularity", descending=True)),
         mimetype="application/json",
     )
 

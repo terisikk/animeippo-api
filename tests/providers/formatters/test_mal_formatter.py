@@ -10,7 +10,7 @@ def test_dataframe_can_be_constructed_from_mal():
 
     data = mal_formatter.transform_watchlist_data(animelist, ["genres"])
 
-    assert type(data) == pd.DataFrame
+    assert type(data) == pl.DataFrame
     assert len(data) == 2
     assert data.iloc[1]["title"] == "Hellsingfårs"
     assert data.iloc[1]["genres"] == [
@@ -55,7 +55,7 @@ def test_dataframe_can_be_constructed_from_incomplete_data():
 
     data = mal_formatter.transform_watchlist_data(animelist, ["genres"])
 
-    assert type(data) == pd.DataFrame
+    assert type(data) == pl.DataFrame
     assert len(data) == 2
     assert data.iloc[1]["title"] == "Hellsingfårs"
     assert data.iloc[1]["genres"] == [

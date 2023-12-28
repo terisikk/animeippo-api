@@ -14,7 +14,7 @@ def test_abstract_filter_can_be_instantiated():
 
 
 def test_media_type_filter():
-    original = pd.DataFrame({"format": ["tv", "tv", "special", "movie"]})
+    original = pl.DataFrame({"format": ["tv", "tv", "special", "movie"]})
 
     filter = filters.MediaTypeFilter("tv")
 
@@ -26,7 +26,7 @@ def test_media_type_filter():
 
 
 def test_feature_filter():
-    original = pd.DataFrame({"features": [["Action", "Adventure"], ["Fantasy", "Comedy"]]})
+    original = pl.DataFrame({"features": [["Action", "Adventure"], ["Fantasy", "Comedy"]]})
 
     filter = filters.FeatureFilter("Action")
 
@@ -38,7 +38,7 @@ def test_feature_filter():
 
 
 def test_id_filter():
-    original = pd.DataFrame({"id": [1, 2, 3, 4], "data": ["a", "b", "c", "d"]})
+    original = pl.DataFrame({"id": [1, 2, 3, 4], "data": ["a", "b", "c", "d"]})
     original = original.set_index("id")
 
     filter = filters.IdFilter(1, 3)
@@ -51,7 +51,7 @@ def test_id_filter():
 
 
 def test_status_filter():
-    original = pd.DataFrame(
+    original = pl.DataFrame(
         {"user_status": ["dropped", "completed", "on_hold", "completed", "unwatched"]}
     )
 
@@ -65,7 +65,7 @@ def test_status_filter():
 
 
 def test_rating_filter():
-    original = pd.DataFrame({"rating": ["g", "r", "g", "pg_13", "r"]})
+    original = pl.DataFrame({"rating": ["g", "r", "g", "pg_13", "r"]})
 
     filter = filters.RatingFilter("g", "pg_13")
 
@@ -77,7 +77,7 @@ def test_rating_filter():
 
 
 def test_season_filter():
-    original = pd.DataFrame({"start_season": ["2023/winter", "2023/winter", "2023/spring"]})
+    original = pl.DataFrame({"start_season": ["2023/winter", "2023/winter", "2023/spring"]})
 
     filter = filters.StartSeasonFilter(("2023", "winter"))
 
@@ -89,7 +89,7 @@ def test_season_filter():
 
 
 def test_continuation_filter():
-    compare = pd.DataFrame(
+    compare = pl.DataFrame(
         {
             "id": [1, 2, 3, 4],
             "title": ["Anime A", "Anime B", "Anime B Spinoff", "Anime C"],
@@ -100,7 +100,7 @@ def test_continuation_filter():
 
     filter = filters.ContinuationFilter(compare)
 
-    original = pd.DataFrame(
+    original = pl.DataFrame(
         {
             "id": [5, 6, 7, 8],
             "title": ["Anime A Season 2", "Anime E Season 2", "Anime B Season 2", "Anime F"],
@@ -117,7 +117,7 @@ def test_continuation_filter():
 
 
 def test_filters_work_with_lists():
-    original = pd.DataFrame({"id": [1, 2, 3, 4], "data": ["a", "b", "c", "d"]}).set_index("id")
+    original = pl.DataFrame({"id": [1, 2, 3, 4], "data": ["a", "b", "c", "d"]}).set_index("id")
 
     filter = filters.IdFilter(*[1, 3])
 

@@ -170,7 +170,7 @@ def test_dataframes_can_be_added_to_cache(mocker):
 
     rcache = cache.RedisCache()
 
-    data = pd.DataFrame(test_data.FORMATTED_MAL_USER_LIST)
+    data = pl.DataFrame(test_data.FORMATTED_MAL_USER_LIST)
 
     rcache.set_dataframe("test", data)
 
@@ -185,7 +185,7 @@ def test_dicts_are_parsed_correctly_when_reading_from_cache(mocker):
 
     rcache = cache.RedisCache()
 
-    data = pd.DataFrame(
+    data = pl.DataFrame(
         {
             "ranks": [
                 {

@@ -72,7 +72,7 @@ def transform_ani_seasonal_data(data, feature_names):
 
     ani_df = transform_to_animeippo_format(original, feature_names, keys, ANILIST_MAPPING)
 
-    temp_df = pd.DataFrame()
+    temp_df = pl.DataFrame()
     temp_df[Columns.ADAPTATION_OF] = SingleMapper("relations.edges", get_adaptation).map(original)
     temp_df["idx"] = ani_df.index.to_list()
     temp_df = temp_df.set_index("idx")

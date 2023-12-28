@@ -44,7 +44,7 @@ def test_user_score_extraction_does_not_fail_with_invalid_data():
 
 
 def test_mapping_skips_keys_not_in_dataframe():
-    dataframe = pd.DataFrame(columns=["test1", "test2"])
+    dataframe = pl.DataFrame(columns=["test1", "test2"])
     mapping = {"test1": StubMapper(), "test3": StubMapper()}
 
     actual = util.run_mappers(dataframe, "test1", mapping)
@@ -55,13 +55,13 @@ def test_mapping_skips_keys_not_in_dataframe():
 def test_transformation_does_not_fail_with_empty_data():
     data = util.transform_to_animeippo_format({}, ["genres", "tags"], [], {})
 
-    assert type(data) == pd.DataFrame
+    assert type(data) == pl.DataFrame
     assert len(data) == 0
 
     data = util.transform_to_animeippo_format(
         {"data": {"test": "test"}}, ["genres", "tags"], [], {}
     )
-    assert type(data) == pd.DataFrame
+    assert type(data) == pl.DataFrame
     assert len(data) == 0
 
 

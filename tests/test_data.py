@@ -114,7 +114,28 @@ ANI_USER_LIST = {
                                 ],
                                 "meanScore": 82,
                                 "source": "MANGA",
-                                "studios": {"edges": [{"id": 29467}, {"id": 29998}, {"id": 32538}]},
+                                "studios": {
+                                    "edges": [
+                                        {
+                                            "node": {
+                                                "name": "Test Studio",
+                                                "isAnimationStudio": True,
+                                            }
+                                        },
+                                        {
+                                            "node": {
+                                                "name": "Test Studio 2",
+                                                "isAnimationStudio": False,
+                                            }
+                                        },
+                                        {
+                                            "node": {
+                                                "name": "Test Studio 3",
+                                                "isAnimationStudio": True,
+                                            }
+                                        },
+                                    ]
+                                },
                                 "seasonYear": 2023,
                                 "season": "SPRING",
                             },
@@ -159,6 +180,32 @@ ANI_USER_LIST = {
                                     {"name": "Heterosexual", "rank": 30},
                                     {"name": "Satire", "rank": 12},
                                 ],
+                                "meanScore": 82,
+                                "source": "MANGA",
+                                "studios": {
+                                    "edges": [
+                                        {
+                                            "node": {
+                                                "name": "Test Studio",
+                                                "isAnimationStudio": True,
+                                            }
+                                        },
+                                        {
+                                            "node": {
+                                                "name": "Test Studio 2",
+                                                "isAnimationStudio": False,
+                                            }
+                                        },
+                                        {
+                                            "node": {
+                                                "name": "Test Studio 3",
+                                                "isAnimationStudio": True,
+                                            }
+                                        },
+                                    ]
+                                },
+                                "seasonYear": 2023,
+                                "season": "SPRING",
                             },
                         },
                     ],

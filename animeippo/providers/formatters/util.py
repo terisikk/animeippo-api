@@ -1,5 +1,6 @@
 import functools
 import pandas as pd
+import polars as pl
 import numpy as np
 
 
@@ -8,28 +9,25 @@ def combine_dataframes(dataframes):
 
 
 def transform_to_animeippo_format(original, feature_names, keys, mapping):
-    df = pd.DataFrame(columns=keys)
+    df = pl.DataFrame(schema=keys)
 
     if len(original) == 0:
         return df
 
     df = run_mappers(df, original, mapping)
 
-    df["features"] = df.apply(get_features, args=(feature_names,), axis=1)
+    df = df.with_columns(features=df.select(feature_names).map_rows(get_features).to_series())
 
     if "id" in df.columns:
-        df = df.drop_duplicates(subset="id")
-        df = df.set_index("id")
+        df = df.unique(subset=["id"])
 
-    return df.infer_objects()
+    return df
 
 
 def run_mappers(dataframe, original, mapping):
-    for key, mapper in mapping.items():
-        if key in dataframe.columns:
-            dataframe[key] = mapper.map(original)
-
-    return dataframe
+    return pl.DataFrame(
+        {key: mapper.map(original) for key, mapper in mapping.items() if key in dataframe.columns}
+    )
 
 
 def default_if_error(default):
@@ -47,19 +45,19 @@ def default_if_error(default):
     return decorator_function
 
 
-def get_features(row, feature_names):
+def get_features(row):
     all_features = []
 
-    if feature_names is not None:
-        for feature in feature_names:
-            value = row.get(feature, pd.NA)
+    for value in row:
+        if value is None:
+            continue
 
-            if isinstance(value, list) or isinstance(value, np.ndarray):
-                all_features.extend([v for v in value])
-            else:
-                all_features.append(value)
+        if isinstance(value, list) or isinstance(value, np.ndarray):
+            all_features.extend([v for v in value])
+        else:
+            all_features.append(value)
 
-    return all_features
+    return (all_features,)
 
 
 def get_score(score):
@@ -76,4 +74,4 @@ def get_season(year, season):
     if pd.isna(season):
         season = "?"
 
-    return f"{year}/{str(season).lower()}"
+    return (f"{year}/{str(season).lower()}",)

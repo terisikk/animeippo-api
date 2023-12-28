@@ -12,7 +12,7 @@ class MostPopularCategory:
     def categorize(self, dataset, max_items=20):
         target = dataset.recommendations
 
-        return target.sort_values(scoring.PopularityScorer.name, ascending=False)[0:max_items]
+        return target.sort_values(scoring.PopularityScorer.name, descending=True)[0:max_items]
 
 
 class ContinueWatchingCategory:
@@ -26,7 +26,7 @@ class ContinueWatchingCategory:
             (target[scoring.ContinuationScorer.name] > 0) & (target["user_status"] != "completed")
         ) | (target["user_status"] == "paused")
 
-        return target[mask].sort_values("final_score", ascending=False)[0:max_items]
+        return target[mask].sort_values("final_score", descending=True)[0:max_items]
 
 
 class AdaptationCategory:
@@ -38,7 +38,7 @@ class AdaptationCategory:
 
         return target[
             (target[scoring.AdaptationScorer.name] > 0) & (target["user_status"] != "completed")
-        ].sort_values(scoring.AdaptationScorer.name, ascending=False)[0:max_items]
+        ].sort_values(scoring.AdaptationScorer.name, descending=True)[0:max_items]
 
 
 class SourceCategory:
@@ -69,7 +69,7 @@ class SourceCategory:
                 self.description = "Based on a " + str.title(best_source)
 
         return target[target["source"] == best_source.lower()].sort_values(
-            "final_score", ascending=False
+            "final_score", descending=True
         )[0:max_items]
 
 
@@ -120,7 +120,7 @@ class ClusterCategory:
 
                 self.description = " ".join(relevant)
 
-            return relevant_shows.sort_values("final_score", ascending=False)[0:max_items]
+            return relevant_shows.sort_values("final_score", descending=True)[0:max_items]
 
         return None
 
@@ -146,7 +146,7 @@ class GenreCategory:
 
             self.description = genre
 
-            selected_shows = relevant_shows.sort_values("final_score", ascending=False)[0:max_items]
+            selected_shows = relevant_shows.sort_values("final_score", descending=True)[0:max_items]
 
             return selected_shows
 
@@ -166,7 +166,7 @@ class YourTopPicksCategory:
 
         new_picks = target[mask]
 
-        return new_picks.sort_values("final_score", ascending=False)[0:max_items]
+        return new_picks.sort_values("final_score", descending=True)[0:max_items]
 
 
 class TopUpcomingCategory:
@@ -205,7 +205,7 @@ class BecauseYouLikedCategory:
 
         mask = wl["score"].ge(mean) & pd.notna(wl["user_complete_date"])
 
-        last_liked = wl[mask].sort_values("user_complete_date", ascending=False)
+        last_liked = wl[mask].sort_values("user_complete_date", descending=True)
 
         if len(last_liked) > self.nth_liked:
             # We need a row, not an object
@@ -215,7 +215,7 @@ class BecauseYouLikedCategory:
             similarity = analysis.similarity_of_anime_lists(
                 target["encoded"], liked_item["encoded"], self.distance_metric
             )
-            return similarity.sort_values(ascending=False)[0:max_items]
+            return similarity.sort_values(descending=True)[0:max_items]
 
         return None
 
@@ -292,4 +292,4 @@ class DebugCategory:
     def categorize(self, dataset, max_items=50):
         target = dataset.recommendations
 
-        return target.sort_values("final_score", ascending=False)[0:max_items]
+        return target.sort_values("final_score", descending=True)[0:max_items]

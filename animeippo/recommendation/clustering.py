@@ -1,6 +1,6 @@
 import sklearn.cluster as skcluster
 
-import pandas as pd
+import polars as pl
 import numpy as np
 
 from animeippo.recommendation import analysis
@@ -37,7 +37,7 @@ class AnimeClustering:
         self.clustered_series = None
         self.distance_metric = distance_metric
 
-    def cluster_by_features(self, series, index):
+    def cluster_by_features(self, series):
         if self.distance_metric == "cosine":
             # Cosine is undefined for zero-vectors, need to hack (or change metric)
             clusters = self.model.fit_predict(self.remove_rows_with_no_features(series))
@@ -48,14 +48,12 @@ class AnimeClustering:
         if clusters is not None:
             self.fit = True
             self.n_clusters = self.model.n_clusters_
-            self.clustered_series = pd.DataFrame(
-                {"cluster": clusters, "encoded": series.tolist()}, index=index
-            )
+            self.clustered_series = pl.DataFrame({"cluster": clusters, "encoded": series.tolist()})
 
         return clusters
 
     def remove_rows_with_no_features(self, series):
-        return series[series.sum(axis=1) > 0]
+        return np.array(series[series.sum(axis=1) > 0])
 
     def reinsert_rows_with_no_features_as_a_new_cluster(self, clusters, series):
         if clusters is None:
@@ -71,6 +69,13 @@ class AnimeClustering:
             series, self.clustered_series["encoded"], metric=self.distance_metric
         )
 
-        max_columns = similarities.idxmax(axis=1).astype(int)
+        with_idxmax = similarities.with_columns(
+            idxmax=pl.Series(similarities.rows()).list.arg_max()
+        )
 
-        return self.clustered_series.loc[max_columns]["cluster"].values
+        return with_idxmax.select([pl.col("idxmax").cast(pl.UInt32)]).join(
+            self.clustered_series.with_row_count().select(["row_nr", "cluster"]),
+            left_on="idxmax",
+            right_on="row_nr",
+            how="left",
+        )["cluster"]

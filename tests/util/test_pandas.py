@@ -10,7 +10,7 @@ def test_calculate_residuals():
 
 
 def test_extract_features():
-    df = pd.DataFrame(
+    df = pl.DataFrame(
         {
             "genres": [
                 ["Action", "Drama", "Horror"],
@@ -35,7 +35,7 @@ def test_extract_features():
 
 
 def test_extract_features_without_feature_count():
-    df = pd.DataFrame(
+    df = pl.DataFrame(
         {
             "genres": [
                 ["Action", "Drama", "Horror"],

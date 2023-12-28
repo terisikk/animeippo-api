@@ -31,50 +31,59 @@ class Columns(StrEnum):
 
 
 class DefaultMapper:
-    def __init__(self, name, default=pd.NA):
+    def __init__(self, name, default=None):
         self.name = name
         self.default = default
 
     def map(self, series):
-        return series.get(self.name, self.default)
+        return series.get_column(self.name) if self.name in series.columns else self.default
+
+
+class PandasMapper:
+    def __init__(self, name, func, default=None):
+        self.name = name
+        self.func = func
+        self.default = default
+
+    def map(self, dataframe):
+        return self.func(dataframe[self.name])
 
 
 class SingleMapper:
-    def __init__(self, name, func, default=pd.NA):
+    def __init__(self, name, func, default=None):
         self.name = name
         self.func = func
         self.default = default
 
     def map(self, dataframe):
         if self.name not in dataframe.columns and len(dataframe) > 0:
-            dataframe[self.name] = self.default
-            return dataframe[self.name]
+            return self.default
 
-        return dataframe[self.name].apply(self.row_wrapper, args=(self.func, self.default))
+        return dataframe[self.name].map_elements(self.row_wrapper)
 
-    def row_wrapper(self, row, func, default=None, args=None):
-        args = args or []
-
+    def row_wrapper(self, row):
         try:
-            return func(row, *args)
+            return self.func(row)
         except (TypeError, ValueError, AttributeError, KeyError) as error:
             print(f"Error extracting {self.name}: {error}")
-            return default
+            return self.default
 
 
 class MultiMapper:
-    def __init__(self, func, default=pd.NA):
+    def __init__(self, columns, func, default=None):
+        self.columns = columns
         self.func = func
         self.default = default
 
     def map(self, dataframe):
-        return dataframe.apply(self.row_wrapper, args=(self.func, self.default), axis=1)
+        if any((column not in dataframe.columns for column in self.columns)):
+            return self.default
 
-    def row_wrapper(self, row, func, default=None, args=None):
-        args = args or []
+        return dataframe.select(self.columns).map_rows(self.row_wrapper).to_series()
 
+    def row_wrapper(self, row):
         try:
-            return func(row, *args)
+            return self.func(*row)
         except (TypeError, ValueError, AttributeError, KeyError) as error:
-            print(f"Error extracting with function {func}: {error}")
-            return default
+            print(f"Error extracting with function {self.func}: {error}")
+            return self.default

@@ -17,7 +17,7 @@ class AniListProvider(provider.AbstractAnimeProvider):
         self.connection = AnilistConnection(cache)
 
     @alru_cache(maxsize=1)
-    @animecache.cached_dataframe(ttl=timedelta(days=1))
+    # @animecache.cached_dataframe(ttl=timedelta(days=1))
     async def get_user_anime_list(self, user_id):
         if user_id is None:
             return None
@@ -75,7 +75,7 @@ class AniListProvider(provider.AbstractAnimeProvider):
 
         return ani_formatter.transform_watchlist_data(anime_list, self.get_feature_fields())
 
-    @animecache.cached_dataframe(ttl=timedelta(days=1))
+    # @animecache.cached_dataframe(ttl=timedelta(days=1))
     async def get_seasonal_anime_list(self, year, season):
         if year is None:
             return None
@@ -157,7 +157,7 @@ class AniListProvider(provider.AbstractAnimeProvider):
         return ani_formatter.transform_seasonal_data(anime_list, self.get_feature_fields())
 
     @alru_cache(maxsize=1)
-    @animecache.cached_dataframe(ttl=timedelta(days=1))
+    # @animecache.cached_dataframe(ttl=timedelta(days=1))
     async def get_user_manga_list(self, user_id):
         if user_id is None:
             return None
