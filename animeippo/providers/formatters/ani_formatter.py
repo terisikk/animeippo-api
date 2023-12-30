@@ -25,7 +25,6 @@ def transform_seasonal_data(data, feature_names):
         Columns.STATUS,
         Columns.CONTINUATION_TO,
         Columns.ADAPTATION_OF,
-        Columns.SCORE,
         Columns.DURATION,
         Columns.EPISODES,
         Columns.SOURCE,
@@ -81,7 +80,6 @@ def transform_user_manga_list_data(data, feature_names):
         Columns.ID,
         Columns.ID_MAL,
         Columns.TITLE,
-        Columns.FORMAT,
         Columns.GENRES,
         Columns.TAGS,
         Columns.USER_STATUS,
@@ -141,7 +139,7 @@ def get_ranks(tags, genres):
     for genre in genres:
         ranks[genre] = 1
 
-    return (ranks,)
+    return (str(ranks),)
 
 
 def get_nsfw_tags(items):
@@ -164,7 +162,7 @@ def get_staff(staffs, nodes, role):
     roles = [edge["role"] for edge in staffs]
     staff_ids = [node["id"] for node in nodes]
 
-    return ([staff_ids[i] for i, r in enumerate(roles) if r == role],)
+    return ([int(staff_ids[i]) for i, r in enumerate(roles) if r == role],)
 
 
 # fmt: off

@@ -1,5 +1,6 @@
 import sklearn.preprocessing as skpre
 import numpy as np
+import ast
 
 
 class CategoricalEncoder:
@@ -33,6 +34,6 @@ class WeightedCategoricalEncoder:
 
     def get_weights(self, row):
         encoding = self.initial_encoding.copy()
-        encoding.update({key: value for key, value in row.items() if value is not None})
+        encoding.update(ast.literal_eval(row))
 
         return np.fromiter(encoding.values(), dtype=float)

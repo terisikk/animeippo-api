@@ -40,11 +40,10 @@ class FeaturesSimilarityScorer(AbstractScorer):
             )
             averages.columns = ["features", "weight"]
 
-            weights = scoring_target_df["features"].map_elements(
-                lambda row: analysis.weighted_mean_for_categorical_values(
-                    row, averages.fill_nan(0.0)
-                )
+            weights = analysis.weighted_mean_for_categorical_values(
+                compare_df, "features", averages
             )
+
             scores = scores * weights
 
         return analysis.normalize_column(scores)
@@ -67,19 +66,13 @@ class FeatureCorrelationScorer(AbstractScorer):
             compare_df, "encoded", data.all_features, dropped_or_paused
         )
 
-        scores = scoring_target_df["features"].map_elements(
-            # For once, np.sum is the wanted metric,
-            # so that titles with only a few features get lower scores
-            # and titles with multiple good features get on top.
-            # Slightly diminished effect with sqrt.
-            lambda row: analysis.weighted_sum_for_categorical_values(
-                row, score_correlations
-            )  # how about first map and then nanmean for whole series?
+        scores = analysis.weighted_sum_for_categorical_values(
+            scoring_target_df, "features", score_correlations
         ) / np.sqrt(scoring_target_df["features"].list.len())
 
         scores = scores - (
-            scoring_target_df["features"].map_elements(
-                lambda row: analysis.weighted_mean_for_categorical_values(row, drop_correlations)
+            analysis.weighted_mean_for_categorical_values(
+                scoring_target_df, "features", drop_correlations
             )
         )
 
@@ -94,8 +87,10 @@ class GenreAverageScorer(AbstractScorer):
 
         weights = analysis.weight_categoricals(data.watchlist_explode_cached("genres"), "genres")
 
-        scores = scoring_target_df["genres"].apply(
-            lambda row: analysis.weighted_sum_for_categorical_values(row, weights.fill_nan(0.0))
+        scores = analysis.weighted_sum_for_categorical_values(
+            scoring_target_df,
+            "genres",
+            weights,
         ) / np.sqrt(scoring_target_df["genres"].list.len())
 
         return analysis.normalize_column(scores)
@@ -137,8 +132,8 @@ class StudioCorrelationScorer:
 
         mode = mode[0] if len(mode) > 0 else mode
 
-        scores = scoring_target_df["studios"].apply(
-            lambda row: analysis.weighted_mean_for_categorical_values(row, weights.fill_null(mode))
+        scores = analysis.weighted_mean_for_categorical_values(
+            scoring_target_df, "studios", weights, mode
         )
 
         return analysis.normalize_column(scores)
@@ -186,7 +181,7 @@ class ClusterSimilarityScorer(AbstractScorer):
                     .filter(pl.col("cluster") == key)["count"]
                     .sqrt()
                     .item()
-                    for key in range(-1, 8)
+                    for key in compare_df["cluster"].unique().to_list()
                 }
             )
 
@@ -203,21 +198,25 @@ class DirectSimilarityScorer(AbstractScorer):
         scoring_target_df = data.seasonal
         compare_df = data.watchlist
 
-        similarities = analysis.categorical_similarity(
-            scoring_target_df["encoded"],
-            compare_df.filter(~pl.col("id").is_in(scoring_target_df["id"]))["encoded"],
-            metric=self.distance_metric,
+        compare_df = compare_df.with_columns(
+            clusterscore=pl.col("score").fill_null(pl.col("score").mean())
         )
 
-        with_idxmax = scoring_target_df.with_columns(
-            idxmax=pl.Series(similarities.rows()).list.arg_max()
+        filtered_compare = compare_df.filter(~pl.col("id").is_in(scoring_target_df["id"]))
+
+        similarities = analysis.categorical_similarity(
+            scoring_target_df["encoded"],
+            filtered_compare["encoded"],
+            metric=self.distance_metric,
+            columns=filtered_compare["title"],
         )
-        scores = with_idxmax.select([pl.col("idxmax").cast(pl.UInt32)]).join(
-            compare_df.with_row_count().select(["row_nr", "score"]),
-            left_on="idxmax",
-            right_on="row_nr",
-            how="left",
-        )["score"]
+
+        sim_t = similarities.transpose().with_columns(id=filtered_compare["id"])
+        idymax = analysis.idymax(sim_t)
+
+        scores = idymax.join(
+            compare_df.select("id", "clusterscore"), left_on="idymax", right_on="id"
+        )["clusterscore"]
 
         return analysis.normalize_column(scores)
 
@@ -247,14 +246,23 @@ class ContinuationScorer(AbstractScorer):
 
         rdf = scoring_target_df.explode("continuation_to")
 
-        rdf = rdf.join(
-            compare_df.with_columns(pl.col("score").fill_null(mean_score)).select("id", "score"),
-            left_on="continuation_to",
-            right_on="id",
-            how="left",
-        ).fill_null(self.DEFAULT_SCORE)
+        rdf = (
+            rdf.select(["id", "continuation_to"])
+            .join(
+                compare_df.with_columns(
+                    pl.col("score").alias("continuationscore").fill_null(mean_score)
+                ).select(["id", "continuationscore"]),
+                left_on="continuation_to",
+                right_on="id",
+                how="left",
+            )
+            .fill_null(self.DEFAULT_SCORE)
+        )
 
-        return self.get_max_score_of_duplicate_relations(rdf, "score")["score"] / 10
+        return (
+            self.get_max_score_of_duplicate_relations(rdf, "continuationscore")["continuationscore"]
+            / 10
+        )
 
     def get_max_score_of_duplicate_relations(self, df, column):
         return df.group_by("id", maintain_order=True).agg(pl.col(column).max())
@@ -277,14 +285,23 @@ class AdaptationScorer(AbstractScorer):
 
         rdf = scoring_target_df.explode("adaptation_of")
 
-        rdf = rdf.join(
-            compare_df.with_columns(pl.col("score").fill_null(mean_score)).select("id", "score"),
-            left_on="adaptation_of",
-            right_on="id",
-            how="left",
-        ).fill_null(self.DEFAULT_SCORE)
+        rdf = (
+            rdf.select(["id", "adaptation_of"])
+            .join(
+                compare_df.with_columns(
+                    pl.col("score").alias("adaptationscore").fill_null(mean_score)
+                ).select(["id", "adaptationscore"]),
+                left_on="adaptation_of",
+                right_on="id",
+                how="left",
+            )
+            .fill_null(self.DEFAULT_SCORE)
+        )
 
-        return self.get_max_score_of_duplicate_relations(rdf, "score")["score"] / 10
+        return (
+            self.get_max_score_of_duplicate_relations(rdf, "adaptationscore")["adaptationscore"]
+            / 10
+        )
 
     def get_max_score_of_duplicate_relations(self, df, column):
         return df.group_by("id", maintain_order=True).agg(pl.col(column).max())
@@ -356,14 +373,14 @@ class DirectorCorrelationScorer:
     def score(self, data):
         scoring_target_df = data.seasonal
 
-        weights = data.user_profile.director_correlations.cast(pl.Int64)
+        weights = data.user_profile.director_correlations
 
         mode = weights["weight"].mode()
 
         mode = mode[0] if len(mode) > 0 else mode
 
-        scores = scoring_target_df["directors"].map_elements(
-            lambda row: analysis.weighted_mean_for_categorical_values(row, weights.fill_null(mode)),
+        scores = analysis.weighted_mean_for_categorical_values(
+            scoring_target_df, "directors", weights, mode
         )
 
         return analysis.normalize_column(scores)

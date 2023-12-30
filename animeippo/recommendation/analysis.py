@@ -19,10 +19,22 @@ def similarity(x_orig, y_orig, metric="jaccard"):
     return 1 - distances  # This is incorrect for distances that are not 0-1
 
 
-def categorical_similarity(features1, features2, metric="jaccard"):
+def categorical_similarity(features1, features2, metric="jaccard", columns=None):
     """Calculate similarity between two series of categorical features. Assumes a series
     that contains vector-encoded representation of features."""
-    similarities = pl.DataFrame(similarity(np.stack(features1), np.stack(features2), metric=metric))
+    similarities = pl.DataFrame(
+        similarity(
+            # Poetry seems to have a bug where to_numpy gets a cached value
+            # instead of the actual conversion, thus np.array(x.to_list()),
+            # not to_numpy().
+            np.stack(np.array(features1.to_list())),
+            np.stack(np.array(features2.to_list())),
+            metric=metric,
+        )
+    )
+
+    if columns is not None:
+        similarities.columns = columns
 
     return similarities.fill_nan(0.0)
 
@@ -37,32 +49,43 @@ def mean_score_per_categorical(dataframe, column):
     return dataframe.groupby(column).agg(pl.col("score").mean())
 
 
-def weighted_mean_for_categorical_values(categoricals, weights, fillna=0.0):
-    if len(categoricals) == 0 or categoricals is None:
+def weighted_mean_for_categorical_values(dataframe, column, weights, fillna=0.0):
+    if len(weights) == 0 or weights is None:
         return fillna
 
-    df = pl.DataFrame(categoricals)
-    df.columns = [weights.columns[0]]
+    weights = {key: weight if weight is not None else fillna for key, weight in weights.iter_rows()}
 
     return (
-        df.join(weights, on=weights.columns[0], how="left")
-        .select("weight")
-        .fill_null(fillna)
-        .mean()
-        .item()
+        dataframe.explode(column)
+        .select(
+            pl.col("id"),
+            pl.col(column).replace(
+                weights,
+                default=fillna,
+            ),
+        )
+        .group_by("id", maintain_order=True)
+        .agg(pl.col(column).mean())[column]
     )
 
 
-def weighted_sum_for_categorical_values(categoricals, weights, fillna=0.0):
-    df = pl.DataFrame(categoricals)
-    df.columns = [weights.columns[0]]
+def weighted_sum_for_categorical_values(dataframe, column, weights, fillna=0.0):
+    if len(weights) == 0 or weights is None:
+        return fillna
+
+    weights = {key: weight if weight is not None else fillna for key, weight in weights.iter_rows()}
 
     return (
-        df.join(weights, on=weights.columns[0], how="left")
-        .select("weight")
-        .fill_null(fillna)
-        .sum()
-        .item()
+        dataframe.explode(column)
+        .select(
+            pl.col("id"),
+            pl.col(column).replace(
+                weights,
+                default=fillna,
+            ),
+        )
+        .group_by("id", maintain_order=True)
+        .agg(pl.col(column).sum())[column]
     )
 
 
@@ -77,6 +100,10 @@ def weight_categoricals(dataframe, column):
 
 
 def weight_encoded_categoricals_correlation(dataframe, column, features, against=None):
+    """
+    Weights running-length encoded categorical features by their correlation with the score.
+    Assumes that the encoding is done with features sorted alphabetically.
+    """
     if against is not None:
         dataframe = pl.concat([dataframe, pl.DataFrame(against.alias("against"))], how="horizontal")
         df_non_na = dataframe.filter(dataframe["against"].is_not_null())
@@ -89,10 +116,11 @@ def weight_encoded_categoricals_correlation(dataframe, column, features, against
 
     correlations = np.corrcoef(np.hstack((values, scores.reshape(-1, 1))), rowvar=False)[:-1, -1]
 
-    return pl.DataFrame({"feature": features, "weight": correlations}).fill_nan(0.0)
+    return pl.DataFrame({"feature": sorted(features), "weight": correlations}).fill_nan(0.0)
 
 
 def weight_categoricals_correlation(dataframe, column, against=None):
+    dataframe = dataframe.filter(dataframe[column].is_not_null())
     against = against if against is not None else dataframe["score"]
 
     dummies = dataframe[column].to_dummies()
@@ -102,8 +130,8 @@ def weight_categoricals_correlation(dataframe, column, against=None):
 
     correlation_matrix = np.corrcoef(dummies_non_na, rowvar=False)[:-1, -1]
 
-    counts = dataframe[column].value_counts()
-    weights = np.sqrt(counts["count"])
+    counts = dataframe[column].value_counts().sort(pl.col(column).cast(pl.Utf8))
+    weights = counts["count"].sqrt()
 
     correlations = np.nan_to_num(correlation_matrix * weights, nan=0.0)
 
@@ -117,7 +145,17 @@ def normalize_column(df_column):
 def get_mean_score(compare_df, default=0):
     mean_score = compare_df.select("score").mean().item()
 
-    if mean_score == 0 or mean_score is None:
+    if mean_score == 0 or mean_score is None or np.isnan(mean_score):
         mean_score = default
 
     return mean_score
+
+
+def idymax(dataframe):
+    return pl.DataFrame(
+        {
+            "idymax": dataframe.select(
+                pl.concat_list(pl.col("id").take(pl.exclude("id").arg_max()))
+            ).item()
+        }
+    )

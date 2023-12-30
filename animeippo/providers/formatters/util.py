@@ -1,11 +1,10 @@
 import functools
-import pandas as pd
 import polars as pl
 import numpy as np
 
 
 def combine_dataframes(dataframes):
-    return pd.concat(dataframes)
+    return pl.concat(dataframes)
 
 
 def transform_to_animeippo_format(original, feature_names, keys, mapping):
@@ -61,17 +60,16 @@ def get_features(row):
 
 
 def get_score(score):
-    # np.nan is a float, pd.NA is not, causes problems
-    return score if score != 0 else np.nan
+    return score if score != 0 else None
 
 
 def get_season(year, season):
-    if year == 0 or pd.isna(year):
+    if year == 0 or year is None:
         year = "?"
     else:
         year = str(int(year))
 
-    if pd.isna(season):
+    if season is None:
         season = "?"
 
     return (f"{year}/{str(season).lower()}",)

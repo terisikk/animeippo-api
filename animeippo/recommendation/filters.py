@@ -1,4 +1,5 @@
 import abc
+import polars as pl
 
 
 class AbstractFilter(abc.ABC):
@@ -16,12 +17,12 @@ class MediaTypeFilter(AbstractFilter):
         self.negative = negative
 
     def filter(self, dataframe):
-        mask = dataframe["format"].isin(self.media_types)
+        mask = pl.col("format").is_in(self.media_types)
 
         if self.negative:
             mask = ~mask
 
-        return dataframe[mask]
+        return dataframe.filter(mask)
 
 
 class FeatureFilter(AbstractFilter):
@@ -33,14 +34,12 @@ class FeatureFilter(AbstractFilter):
         self.negative = negative
 
     def filter(self, dataframe):
-        mask = dataframe["features"].apply(
-            lambda field: all([feature in field for feature in self.features])
-        )
+        mask = pl.col("features").list.set_intersection(self.features) != []
 
         if self.negative:
             mask = ~mask
 
-        return dataframe[mask]
+        return dataframe.filter(mask)
 
 
 class UserStatusFilter(AbstractFilter):
@@ -52,28 +51,12 @@ class UserStatusFilter(AbstractFilter):
         self.negative = negative
 
     def filter(self, dataframe):
-        mask = dataframe["user_status"].isin(self.statuses)
+        mask = pl.col("user_status").is_in(self.statuses)
 
         if self.negative:
             mask = ~mask
 
-        return dataframe[mask]
-
-
-class IdFilter(AbstractFilter):
-    """Filters a dataframe based on index labels."""
-
-    def __init__(self, *ids, negative=False):
-        self.ids = ids
-        self.negative = negative
-
-    def filter(self, dataframe):
-        mask = dataframe.index.isin(self.ids)
-
-        if self.negative:
-            mask = ~mask
-
-        return dataframe[mask]
+        return dataframe.filter(mask)
 
 
 class RatingFilter(AbstractFilter):
@@ -84,12 +67,12 @@ class RatingFilter(AbstractFilter):
         self.negative = negative
 
     def filter(self, dataframe):
-        mask = dataframe["rating"].isin(self.ratings)
+        mask = dataframe["rating"].is_in(self.ratings)
 
         if self.negative:
             mask = ~mask
 
-        return dataframe[mask]
+        return dataframe.filter(mask)
 
 
 class StartSeasonFilter(AbstractFilter):
@@ -100,12 +83,12 @@ class StartSeasonFilter(AbstractFilter):
         self.negative = negative
 
     def filter(self, dataframe):
-        mask = dataframe["start_season"].isin(self.seasons)
+        mask = pl.col("start_season").is_in(self.seasons)
 
         if self.negative:
             mask = ~mask
 
-        return dataframe[mask]
+        return dataframe.filter(mask)
 
 
 class ContinuationFilter(AbstractFilter):
@@ -118,14 +101,13 @@ class ContinuationFilter(AbstractFilter):
         self.negative = negative
 
     def filter(self, dataframe):
-        completed = set(self.compare_df[self.compare_df["user_status"] == "completed"].index)
+        completed = self.compare_df.filter(pl.col("user_status") == "completed")["id"].to_list()
 
-        mask = dataframe["continuation_to"].apply(self.filter_relations, args=(completed,))
+        mask = (pl.col("continuation_to").list.set_intersection(completed) != []) | (
+            pl.col("continuation_to").list.len() == 0
+        )
 
         if self.negative:
             mask = ~mask
 
-        return dataframe[mask]
-
-    def filter_relations(self, item, completed):
-        return bool(set(item) & completed) or len(item) == 0
+        return dataframe.filter(mask)

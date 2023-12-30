@@ -53,7 +53,7 @@ def get_default_categorizers(distance_metric="jaccard"):
         categories.PlanningCategory(),
         # categories.ClusterCategory(2),
         categories.DiscouragingWrapper(categories.GenreCategory(2)),
-        categories.SourceCategory(),
+        ## put this back categories.SourceCategory(),
         # categories.ClusterCategory(3),
         categories.DiscouragingWrapper(categories.GenreCategory(3)),
         categories.StudioCategory(),
@@ -61,9 +61,9 @@ def get_default_categorizers(distance_metric="jaccard"):
         categories.DiscouragingWrapper(categories.GenreCategory(4)),
         categories.BecauseYouLikedCategory(0, distance_metric),
         categories.DiscouragingWrapper(categories.GenreCategory(5)),
-        categories.BecauseYouLikedCategory(2, distance_metric),
-        categories.DiscouragingWrapper(categories.GenreCategory(6)),
         categories.BecauseYouLikedCategory(1, distance_metric),
+        categories.DiscouragingWrapper(categories.GenreCategory(6)),
+        categories.BecauseYouLikedCategory(2, distance_metric),
     ]
 
 
@@ -115,21 +115,21 @@ async def construct_anilist_data(provider, year, season, user):
 
     if data.seasonal is not None and data.watchlist is not None:
         data.seasonal = fill_user_status_data_from_watchlist(data.seasonal, data.watchlist)
-    #     data.seasonal = filters.ContinuationFilter(data.watchlist).filter(data.seasonal)
+        data.seasonal = filters.ContinuationFilter(data.watchlist).filter(data.seasonal)
 
-    # if data.seasonal is not None:
-    #     seasonal_filters = [
-    #         filters.FeatureFilter("Kids", negative=True),
-    #         filters.FeatureFilter("Hentai", negative=True),
-    #         filters.StartSeasonFilter(
-    #             (year, "winter"), (year, "spring"), (year, "summer"), (year, "fall")
-    #         )
-    #         if season is None
-    #         else filters.StartSeasonFilter((year, season)),
-    #     ]
+    if data.seasonal is not None:
+        seasonal_filters = [
+            filters.FeatureFilter("Kids", negative=True),
+            filters.FeatureFilter("Hentai", negative=True),
+            filters.StartSeasonFilter(
+                (year, "winter"), (year, "spring"), (year, "summer"), (year, "fall")
+            )
+            if season is None
+            else filters.StartSeasonFilter((year, season)),
+        ]
 
-    #     for f in seasonal_filters:
-    #         data.seasonal = f.filter(data.seasonal)
+        for f in seasonal_filters:
+            data.seasonal = f.filter(data.seasonal)
 
     return data
 

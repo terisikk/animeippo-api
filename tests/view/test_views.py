@@ -1,4 +1,4 @@
-import pandas as pd
+import polars as pl
 import json
 
 from animeippo.view import views
@@ -11,7 +11,7 @@ def test_web_view_can_render_seasonal_data():
 
     assert (
         json.loads(views.recommendations_web_view(df))["data"]["shows"][0]["title"]
-        == df.loc[0]["title"]
+        == df[0]["title"].item()
     )
 
 

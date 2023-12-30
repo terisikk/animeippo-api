@@ -1,4 +1,4 @@
-import pandas as pd
+import polars as pl
 import datetime
 
 from collections import namedtuple
@@ -18,7 +18,7 @@ def test_most_popular_category():
 
     actual = cat.categorize(data)
 
-    assert actual["title"].tolist() == ["Test 2", "Test 1", "Test 3"]
+    assert actual["title"].to_list() == ["Test 2", "Test 1", "Test 3"]
 
 
 def test_continue_watching_category():
@@ -38,7 +38,7 @@ def test_continue_watching_category():
 
     actual = cat.categorize(data)
 
-    assert actual["title"].tolist() == ["Test 3"]
+    assert actual["title"].to_list() == ["Test 3"]
 
 
 def test_source_category():
@@ -62,7 +62,7 @@ def test_source_category():
 
     actual = cat.categorize(data)
 
-    assert actual["title"].tolist() == ["Test 2", "Test 1"]
+    assert actual["title"].to_list() == ["Test 2", "Test 1"]
 
 
 def test_source_category_defaults_to_manga_without_scores():
@@ -88,7 +88,7 @@ def test_source_category_defaults_to_manga_without_scores():
 
     actual = cat.categorize(data)
 
-    assert actual["title"].tolist() == ["Test 2", "Test 1"]
+    assert actual["title"].to_list() == ["Test 2", "Test 1"]
 
 
 def test_source_category_descriptions():
@@ -134,7 +134,7 @@ def test_studio_category():
             "formatscore": [1, 3, 2],
             "final_score": [1, 3, 2],
             "title": ["Test 1", "Test 2", "Test 3"],
-            "user_status": [pd.NA, pd.NA, pd.NA],
+            "user_status": [None, None, None],
         }
     )
 
@@ -143,7 +143,7 @@ def test_studio_category():
 
     actual = cat.categorize(data)
 
-    assert actual["title"].tolist() == ["Test 2", "Test 3", "Test 1"]
+    assert actual["title"].to_list() == ["Test 2", "Test 3", "Test 1"]
 
 
 def test_cluster_category():
@@ -175,19 +175,19 @@ def test_cluster_category():
 
     actual = cat.categorize(data)
 
-    assert actual["title"].tolist() == ["Test 1"]
+    assert actual["title"].to_list() == ["Test 1"]
     assert cat.description == "Action Romance"
 
     actual = cat.categorize(data, 0)
 
-    assert actual["title"].tolist() == []
+    assert actual["title"].to_list() == []
 
     data.recommendations = pl.DataFrame(
         {
             "cluster": [1, 1, 1],
             "final_score": [1, 1, 1],
             "title": ["Test 1", "Test 2", "Test 3"],
-            "user_status": [pd.NA, pd.NA, pd.NA],
+            "user_status": [None, None, None],
         }
     )
 
@@ -215,7 +215,7 @@ def test_nsfw_tags_are_filtered_from_cluster_category():
             "cluster": [0, 1, 1],
             "final_score": [0, 1, 1],
             "title": ["Test 1", "Test 2", "Test 3"],
-            "user_status": [pd.NA, pd.NA, pd.NA],
+            "user_status": [None, None, None],
         }
     )
 
@@ -226,7 +226,7 @@ def test_nsfw_tags_are_filtered_from_cluster_category():
 
     actual = cat.categorize(data)
 
-    assert actual["title"].tolist() == ["Test 1"]
+    assert actual["title"].to_list() == ["Test 1"]
     assert cat.description == "Romance Sports"
 
 
@@ -266,7 +266,7 @@ def test_your_top_picks_category():
     recommendations = pl.DataFrame(
         {
             "title": ["Test 1", "Test 2", "Test 3"],
-            "user_status": [pd.NA, pd.NA, pd.NA],
+            "user_status": [None, None, None],
             "status": ["releasing", "releasing", "releasing"],
             "continuationscore": [0, 0, 10],
             "final_score": [2, 3, 1],
@@ -278,7 +278,7 @@ def test_your_top_picks_category():
 
     actual = cat.categorize(data)
 
-    assert actual["title"].tolist() == ["Test 2", "Test 1"]
+    assert actual["title"].to_list() == ["Test 2", "Test 1"]
 
 
 def test_top_upcoming_category():
@@ -300,7 +300,7 @@ def test_top_upcoming_category():
 
     actual = cat.categorize(data)
 
-    assert actual["title"].tolist() == ["Test 1"]
+    assert actual["title"].to_list() == ["Test 1"]
 
 
 def test_because_you_liked():
@@ -320,7 +320,7 @@ def test_because_you_liked():
             "title": ["Test 1", "Test 2", "Test 3"],
             "encoded": [[0, 1], [1, 0], [0, 0]],
             "start_season": [1, 1, 1],
-            "user_status": [pd.NA, pd.NA, pd.NA],
+            "user_status": [None, None, None],
         }
     )
 
@@ -338,7 +338,7 @@ def test_because_you_liked_does_not_fail_with_empty_likes():
     cat = categories.BecauseYouLikedCategory(99)
 
     watchlist = pl.DataFrame(
-        {"score": [1, 1], "user_complete_date": [1, 2], "user_status": [pd.NA, pd.NA]}
+        {"score": [1, 1], "user_complete_date": [1, 2], "user_status": [None, None]}
     )
 
     uprofile = profile.UserProfile("Test", watchlist)
@@ -372,7 +372,7 @@ def test_simulcastscategory(mocker):
 
     actual = cat.categorize(data)
 
-    assert actual["title"].tolist() == ["Test 2", "Test 1"]
+    assert actual["title"].to_list() == ["Test 2", "Test 1"]
 
 
 def test_simulcastscategory_current_season_getter(monkeypatch):
@@ -438,7 +438,7 @@ def test_adapatation_category():
 
     actual = cat.categorize(data)
 
-    assert actual["title"].tolist() == ["Test 3"]
+    assert actual["title"].to_list() == ["Test 3"]
 
 
 def test_genre_category():
@@ -472,7 +472,7 @@ def test_genre_category():
 
     actual = cat.categorize(data)
 
-    assert actual["title"].tolist() == ["Test 1", "Test 3"]
+    assert actual["title"].to_list() == ["Test 1", "Test 3"]
     assert cat.description == "Action"
 
 
@@ -520,7 +520,7 @@ def test_genre_category_can_cache_values():
 
     actual = cat.categorize(data)
 
-    assert actual["title"].tolist() == ["Test 1", "Test 3"]
+    assert actual["title"].to_list() == ["Test 1", "Test 3"]
     assert cat.description == "Action"
 
 
@@ -545,15 +545,15 @@ def test_discourage_wrapper():
 
     actual = dcat.categorize(data, max_items=2)
 
-    assert actual["title"].tolist() == ["Test 2", "Test 1"]
-    assert recommendations["discourage_score"].tolist() == [0.75, 0.75, 1]
+    assert actual["title"].to_list() == ["Test 2", "Test 1"]
+    assert recommendations["discourage_score"].to_list() == [0.75, 0.75, 1]
 
     actual = dcat.categorize(data, max_items=2)
 
-    assert actual["title"].tolist() == ["Test 3", "Test 2"]
+    assert actual["title"].to_list() == ["Test 3", "Test 2"]
 
     assert dcat.description == cat.description
-    assert recommendations["discourage_score"].tolist() == [0.75, 0.5, 0.75]
+    assert recommendations["discourage_score"].to_list() == [0.75, 0.5, 0.75]
 
 
 def test_debug_category_returns_all_recommendations():
@@ -569,7 +569,7 @@ def test_debug_category_returns_all_recommendations():
     data = dataset.RecommendationModel(None, None, None)
     data.recommendations = recommendations
 
-    assert cat.categorize(data)["title"].tolist() == ["Test 2", "Test 1", "Test 3"]
+    assert cat.categorize(data)["title"].to_list() == ["Test 2", "Test 1", "Test 3"]
 
 
 def test_planning_category():
@@ -588,4 +588,4 @@ def test_planning_category():
 
     actual = cat.categorize(data)
 
-    assert actual["title"].tolist() == ["Test 2"]
+    assert actual["title"].to_list() == ["Test 2"]

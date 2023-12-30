@@ -37,8 +37,7 @@ class AnimeRecommendationEngine:
             else all_features
         )
 
-        dataset.all_features = all_features.explode().unique().drop_nans()
-        # With polars
+        dataset.all_features = all_features.explode().unique().drop_nulls()
 
         self.encoder.fit(dataset.all_features)
 
@@ -97,7 +96,7 @@ class AnimeRecommendationEngine:
             group = grouper.categorize(data)
 
             if group is not None and len(group) > 0:
-                items = group.index.tolist()
+                items = group.select("id").to_series().to_list()
                 cats.append({"name": grouper.description, "items": items})
 
         return cats
