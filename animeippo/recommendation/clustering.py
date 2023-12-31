@@ -37,10 +37,12 @@ class AnimeClustering:
         self.clustered_series = None
         self.distance_metric = distance_metric
 
-    def cluster_by_features(self, series):
+    def cluster_by_features(self, dataframe):
+        series = self.remove_rows_with_no_features(np.vstack(dataframe["encoded"]))
+
         if self.distance_metric == "cosine":
             # Cosine is undefined for zero-vectors, need to hack (or change metric)
-            clusters = self.model.fit_predict(self.remove_rows_with_no_features(series))
+            clusters = self.model.fit_predict(series)
             clusters = self.reinsert_rows_with_no_features_as_a_new_cluster(clusters, series)
         else:
             clusters = self.model.fit_predict(series)
@@ -48,7 +50,7 @@ class AnimeClustering:
         if clusters is not None:
             self.fit = True
             self.n_clusters = self.model.n_clusters_
-            self.clustered_series = pl.DataFrame({"cluster": clusters, "encoded": series.tolist()})
+            self.clustered_series = dataframe.with_columns(cluster=clusters)
 
         return clusters
 
@@ -66,16 +68,16 @@ class AnimeClustering:
             raise RuntimeError("Cluster is not fitted yet. Please call cluster_by_features first.")
 
         similarities = analysis.categorical_similarity(
-            series, self.clustered_series["encoded"], metric=self.distance_metric
+            series,
+            self.clustered_series["encoded"],
+            metric=self.distance_metric,
         )
 
-        with_idxmax = similarities.with_columns(
-            idxmax=pl.Series(similarities.rows()).list.arg_max()
-        )
+        sim_t = similarities.transpose().with_columns(id=self.clustered_series["id"])
+        idymax = analysis.idymax(sim_t)
 
-        return with_idxmax.select([pl.col("idxmax").cast(pl.UInt32)]).join(
-            self.clustered_series.with_row_count().select(["row_nr", "cluster"]),
-            left_on="idxmax",
-            right_on="row_nr",
-            how="left",
+        return idymax.join(
+            self.clustered_series.select("id", "cluster"),
+            left_on="idymax",
+            right_on="id",
         )["cluster"]

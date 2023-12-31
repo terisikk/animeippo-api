@@ -14,6 +14,7 @@ class RecommendationModel:
 
         self.all_features = features
         self.nsfw_tags = []
+        self.similarity_matrix = None
 
     @lru_cache(maxsize=5)
     def watchlist_explode_cached(self, column):

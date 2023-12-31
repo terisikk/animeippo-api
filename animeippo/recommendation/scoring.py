@@ -1,6 +1,7 @@
 import abc
+import math
+
 import numpy as np
-import pandas as pd
 import polars as pl
 
 from animeippo.recommendation import analysis
@@ -150,42 +151,26 @@ class ClusterSimilarityScorer(AbstractScorer):
         scoring_target_df = data.seasonal
         compare_df = data.watchlist
 
-        st_encoded = np.stack(scoring_target_df["encoded"])
-
         scores = pl.DataFrame()
 
-        cluster_groups = compare_df.groupby("cluster")
+        similarities = data.similarity_matrix.join(
+            compare_df.select("id", "cluster", "score"), how="left", on="id"
+        )
 
-        for cluster_id, cluster in cluster_groups:
-            similarities = np.nanmean(
-                analysis.similarity(
-                    st_encoded,
-                    np.stack(cluster["encoded"]),
-                    metric=self.distance_metric,
-                ),
-                axis=1,
+        scores = (
+            similarities.group_by("cluster", maintain_order=True)
+            .agg(
+                pl.exclude("cluster", "id", "score").mean()
+                * pl.col("score").mean().fill_null(5)
+                * pl.col("id").len().sqrt()
             )
+            .select(pl.exclude("cluster"))
+            .max()
+            .transpose()
+            .to_series()
+        )
 
-            if self.weighted:
-                averages = cluster["score"].mean() or 5
-                similarities = similarities * averages
-
-            scores = scores.with_columns(**{str(cluster_id): similarities})
-
-        if self.weighted:
-            scores = pl.DataFrame().with_columns(
-                **{
-                    str(key): scores[str(key)]
-                    * compare_df["cluster"]
-                    .value_counts()
-                    .filter(pl.col("cluster") == key)["count"]
-                    .sqrt()
-                    .item()
-                    for key in compare_df["cluster"].unique().to_list()
-                }
-            )
-
-        return analysis.normalize_column(scores.max_horizontal())
+        return analysis.normalize_column(scores)
 
 
 class DirectSimilarityScorer(AbstractScorer):
@@ -195,28 +180,19 @@ class DirectSimilarityScorer(AbstractScorer):
         self.distance_metric = distance_metric or "jaccard"
 
     def score(self, data):
-        scoring_target_df = data.seasonal
         compare_df = data.watchlist
 
         compare_df = compare_df.with_columns(
-            clusterscore=pl.col("score").fill_null(pl.col("score").mean())
+            directscore=pl.col("score").fill_null(pl.col("score").mean())
         )
 
-        filtered_compare = compare_df.filter(~pl.col("id").is_in(scoring_target_df["id"]))
+        similarities = data.similarity_matrix
 
-        similarities = analysis.categorical_similarity(
-            scoring_target_df["encoded"],
-            filtered_compare["encoded"],
-            metric=self.distance_metric,
-            columns=filtered_compare["title"],
-        )
-
-        sim_t = similarities.transpose().with_columns(id=filtered_compare["id"])
-        idymax = analysis.idymax(sim_t)
+        idymax = analysis.idymax(similarities)
 
         scores = idymax.join(
-            compare_df.select("id", "clusterscore"), left_on="idymax", right_on="id"
-        )["clusterscore"]
+            compare_df.select("id", "directscore"), left_on="idymax", right_on="id"
+        )["directscore"]
 
         return analysis.normalize_column(scores)
 

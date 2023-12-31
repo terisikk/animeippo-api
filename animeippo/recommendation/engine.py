@@ -2,7 +2,7 @@ import numpy as np
 import pandas as pd
 import polars as pl
 
-from animeippo.recommendation import encoding, clustering
+from animeippo.recommendation import encoding, clustering, analysis
 
 
 class AnimeRecommendationEngine:
@@ -49,8 +49,17 @@ class AnimeRecommendationEngine:
         )
 
         dataset.watchlist = dataset.watchlist.with_columns(
-            cluster=self.get_clustering(dataset.watchlist["encoded"])
+            cluster=self.clustering_model.cluster_by_features(dataset.watchlist)
         )
+
+        filtered_watchlist = dataset.watchlist.filter(~pl.col("id").is_in(dataset.seasonal["id"]))
+
+        dataset.similarity_matrix = analysis.categorical_similarity(
+            filtered_watchlist["encoded"],
+            dataset.seasonal["encoded"],
+            self.clustering_model.distance_metric,
+            dataset.seasonal["id"].cast(pl.Utf8),
+        ).with_columns(id=filtered_watchlist["id"])
 
         return dataset
 
@@ -67,6 +76,10 @@ class AnimeRecommendationEngine:
 
     def score_anime(self, dataset):
         scoring_target_df = dataset.seasonal
+
+        # Rechunk to maximize performance, not sure if it has any real effect
+        dataset.seasonal = dataset.seasonal.rechunk()
+        dataset.watchlist = dataset.watchlist.rechunk()
 
         if len(self.scorers) > 0:
             names = []
@@ -106,7 +119,3 @@ class AnimeRecommendationEngine:
 
     def add_categorizer(self, categorizer):
         self.categorizers.append(categorizer)
-
-    def get_clustering(self, series):
-        encoded = np.vstack(series)
-        return self.clustering_model.cluster_by_features(encoded)

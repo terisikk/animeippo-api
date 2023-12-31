@@ -1,4 +1,3 @@
-import pandas as pd
 import polars as pl
 import numpy as np
 import scipy.spatial.distance as scdistance
@@ -36,7 +35,7 @@ def categorical_similarity(features1, features2, metric="jaccard", columns=None)
     if columns is not None:
         similarities.columns = columns
 
-    return similarities.fill_nan(0.0)
+    return similarities
 
 
 def similarity_of_anime_lists(features1, features2, metric="jaccard"):
@@ -120,22 +119,25 @@ def weight_encoded_categoricals_correlation(dataframe, column, features, against
 
 
 def weight_categoricals_correlation(dataframe, column, against=None):
-    dataframe = dataframe.filter(dataframe[column].is_not_null())
+    dataframe = dataframe.filter(pl.col(column).is_not_null())
     against = against if against is not None else dataframe["score"]
 
-    dummies = dataframe[column].to_dummies()
-    dummies = dummies.with_columns(score=against)
-
-    dummies_non_na = dummies.filter(dummies["score"].is_not_null())
-
-    correlation_matrix = np.corrcoef(dummies_non_na, rowvar=False)[:-1, -1]
-
     counts = dataframe[column].value_counts().sort(pl.col(column).cast(pl.Utf8))
-    weights = counts["count"].sqrt()
+    weights = counts["count"].sqrt()  # Lessen the effect of outliers
 
-    correlations = np.nan_to_num(correlation_matrix * weights, nan=0.0)
+    correlations = (
+        dataframe.select(column)
+        .to_dummies()  # Convert to marker variables so that we can correlate with 1 and 0
+        .with_columns(score=against)  # Score or other variable to correlate with
+        .filter(pl.col("score").is_not_null())  # Remove nulls, not scored items are not interesting
+        .select(pl.corr(pl.exclude("score"), pl.col("score")))  # Correlate with score
+        .transpose()  # Transpose to get correlations as rows
+        .select(pl.col("column_0").mul(weights).alias("weight"))  # Multiply with weights
+        .fill_nan(0.0)
+        .with_columns(**{column: counts[column]})  # Add categorical names
+    )
 
-    return pl.DataFrame({column: counts[column], "weight": correlations})
+    return correlations
 
 
 def normalize_column(df_column):

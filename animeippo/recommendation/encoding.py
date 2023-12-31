@@ -1,6 +1,5 @@
 import sklearn.preprocessing as skpre
 import numpy as np
-import ast
 
 
 class CategoricalEncoder:
@@ -30,10 +29,16 @@ class WeightedCategoricalEncoder:
         self.initial_encoding = dict.fromkeys(self.classes, 0)
 
     def encode(self, dataframe):
-        return dataframe[self.weight_field].map_elements(self.get_weights)
+        return (
+            dataframe.select([self.class_field, self.weight_field])
+            .map_rows(self.get_weights)
+            .to_series()
+        )
 
     def get_weights(self, row):
-        encoding = self.initial_encoding.copy()
-        encoding.update(ast.literal_eval(row))
+        weights = dict(zip(row[0], row[1]))
 
-        return np.fromiter(encoding.values(), dtype=float)
+        encoding = self.initial_encoding.copy()
+        encoding.update(weights)
+
+        return (np.fromiter(encoding.values(), dtype=float),)

@@ -129,17 +129,17 @@ def get_user_complete_date(year, month, day):
     return (datetime.datetime(int(year), int(month), int(day)),)
 
 
-def get_ranks(tags, genres):
+def get_ranks(tags):
     ranks = {}
 
     for tag in tags:
         value = tag["rank"]
-        ranks[tag["name"]] = value / 100 if value is not None else 0
+        ranks[tag["name"]] = value if value is not None else 0
 
-    for genre in genres:
-        ranks[genre] = 1
+    if len(ranks) == 0:
+        return {"fake": None}  # Some pyarrow shenanigans, need a non-empty dict
 
-    return (str(ranks),)
+    return ranks
 
 
 def get_nsfw_tags(items):
@@ -189,7 +189,7 @@ ANILIST_MAPPING = {
     Columns.ADAPTATION_OF:      SingleMapper("relations.edges", get_adaptation),
     Columns.NSFW_TAGS:          SingleMapper("tags", get_nsfw_tags),
     Columns.STUDIOS:            SingleMapper("studios.edges", get_studios),
-    Columns.RANKS:              MultiMapper(["tags", "genres"], get_ranks),
+    Columns.RANKS:              SingleMapper("tags", get_ranks),
     Columns.DIRECTOR:           MultiMapper(["staff.edges", "staff.nodes"], functools.partial(get_staff, role="Director")),
     Columns.USER_COMPLETE_DATE: MultiMapper(["completedAt.year", "completedAt.month", "completedAt.day"], get_user_complete_date),
     Columns.START_SEASON:       MultiMapper(["seasonYear", "season"], util.get_season),
