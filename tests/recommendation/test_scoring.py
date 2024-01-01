@@ -91,6 +91,7 @@ def test_feature_similarity_scorer_weighted():
 def test_feature_correlation_scorer():
     source_df = pl.DataFrame(
         {
+            "id": [1, 2],
             "features": [["Action", "Adventure"], ["Action", "Fantasy"]],
             "title": ["Bleach", "Fate/Zero"],
             "encoded": [[1, 1, 0, 0, 0], [1, 0, 1, 0, 0]],
@@ -101,6 +102,7 @@ def test_feature_correlation_scorer():
 
     target_df = pl.DataFrame(
         {
+            "id": [3, 4],
             "features": [["Action", "Fantasy"], ["Action", "Adventure"]],
             "title": ["Fate/Grand Order", "Naruto"],
             "encoded": [[1, 0, 1, 0, 0], [1, 1, 0, 0, 0]],
@@ -132,6 +134,7 @@ def test_genre_average_scorer():
     # see also studio_correlation_scorer
     source_df = pl.DataFrame(
         {
+            "id": [1, 2],
             "genres": [["Action", "Adventure"], ["Fantasy", "Adventure"]],
             "title": ["Bleach", "Fate/Zero"],
             "score": [1, 10],
@@ -139,6 +142,7 @@ def test_genre_average_scorer():
     )
     target_df = pl.DataFrame(
         {
+            "id": [3, 4],
             "genres": [["Action", "Adventure"], ["Fantasy", "Adventure"]],
             "title": ["Naruto", "Inuyasha"],
         }
@@ -164,21 +168,12 @@ def test_genre_average_scorer():
 
 
 def test_cluster_similarity_scorer():
-    encoded1 = [
-        [True, True, False, False, False],
-        [True, False, True, False, False],
-    ]
-    encoded2 = [
-        [False, False, False, True, True],
-        [True, True, False, False, False],
-    ]
-
     source_df = pl.DataFrame(
         {
             "id": [1, 2],
             "features": [["Action", "Adventure"], ["Action", "Fantasy"]],
             "title": ["Bleach", "Fate/Zero"],
-            "encoded": encoded1,
+            "score": [10, 10],
             "cluster": [1, 0],
         },
     )
@@ -188,21 +183,28 @@ def test_cluster_similarity_scorer():
             "id": [3, 4],
             "features": [["Romance", "Comedy"], ["Action", "Adventure"]],
             "title": ["Kaguya", "Naruto"],
-            "encoded": encoded2,
         }
     )
 
     scorer = scoring.ClusterSimilarityScorer()
 
     uprofile = profile.UserProfile("Test", source_df)
-    recommendations = target_df.with_columns(
-        recommend_score=scorer.score(
-            dataset.RecommendationModel(
-                uprofile,
-                target_df,
-            )
-        )
-    ).sort("recommend_score", descending=True)
+    data = dataset.RecommendationModel(
+        uprofile,
+        target_df,
+    )
+
+    data.similarity_matrix = pl.DataFrame(
+        {
+            "3": [0, 0],
+            "4": [1, 0.5],
+            "id": [1, 2],
+        }
+    )
+
+    recommendations = target_df.with_columns(recommend_score=scorer.score(data)).sort(
+        "recommend_score", descending=True
+    )
 
     expected = "Naruto"
     actual = recommendations["title"].item(0)
@@ -214,32 +216,39 @@ def test_cluster_similarity_scorer():
 def test_cluster_similarity_scorer_weighted():
     source_df = pl.DataFrame(
         {
+            "id": [1, 2],
             "features": [["Action", "Adventure"], ["Fantasy", "Adventure"]],
             "title": ["Bleach", "Fate/Zero"],
             "score": [10, 1],
             "cluster": [0, 1],
-            "encoded": [[True, True, False], [False, True, True]],
         }
     )
     target_df = pl.DataFrame(
         {
+            "id": [3, 4],
             "features": [["Fantasy", "Adventure"], ["Action", "Adventure"]],
             "title": ["Inuyasha", "Naruto"],
-            "encoded": [[False, True, True], [True, True, False]],
         }
     )
 
     scorer = scoring.ClusterSimilarityScorer(weighted=True)
 
     uprofile = profile.UserProfile("Test", source_df)
-    recommendations = target_df.with_columns(
-        recommend_score=scorer.score(
-            dataset.RecommendationModel(
-                uprofile,
-                target_df,
-            )
-        )
-    ).sort("recommend_score", descending=True)
+    data = dataset.RecommendationModel(
+        uprofile,
+        target_df,
+    )
+    data.similarity_matrix = pl.DataFrame(
+        {
+            "3": [0.5, 1],
+            "4": [1, 0.5],
+            "id": [1, 2],
+        }
+    )
+
+    recommendations = target_df.with_columns(recommend_score=scorer.score(data)).sort(
+        "recommend_score", descending=True
+    )
 
     expected = "Naruto"
     actual = recommendations["title"].item(0)
@@ -313,6 +322,7 @@ def test_studio_count_scorer_does_not_fail_with_zero_studios():
 def test_studio_correlation_scorer():
     source_df = pl.DataFrame(
         {
+            "id": [1, 2],
             "studios": [["MAPPA"], ["Bones"]],
             "title": ["Vinland Saga", "Fullmetal Alchemist: Brotherhood"],
             "score": [10, 1],
@@ -320,6 +330,7 @@ def test_studio_correlation_scorer():
     )
     target_df = pl.DataFrame(
         {
+            "id": [3, 4],
             "studios": [["Bones"], ["MAPPA"]],
             "title": ["Bungou Stray Dogs", "Jujutsu Kaisen"],
         }
@@ -491,7 +502,6 @@ def test_direct_similarity_scorer():
             "features": [["Action", "Adventure"], ["Action", "Fantasy"]],
             "title": ["Bleach", "Fate/Zero"],
             "score": [10, 9],
-            "encoded": [[1, 1, 0, 0, 0], [1, 0, 1, 0, 0]],
         },
     )
     target_df = pl.DataFrame(
@@ -499,21 +509,28 @@ def test_direct_similarity_scorer():
             "id": [3, 4],
             "features": [["Fantasy", "Romance", "Comedy"], ["Action", "Adventure"]],
             "title": ["Kaguya", "Naruto"],
-            "encoded": [[0, 0, 1, 1, 1], [1, 1, 0, 0, 0]],
         },
     )
 
     scorer = scoring.DirectSimilarityScorer()
 
     uprofile = profile.UserProfile("Test", source_df)
-    recommendations = target_df.with_columns(
-        recommend_score=scorer.score(
-            dataset.RecommendationModel(
-                uprofile,
-                target_df,
-            )
-        )
-    ).sort("recommend_score", descending=True)
+    data = dataset.RecommendationModel(
+        uprofile,
+        target_df,
+    )
+
+    data.similarity_matrix = pl.DataFrame(
+        {
+            "3": [0, 0],
+            "4": [1, 0.5],
+            "id": [1, 2],
+        }
+    )
+
+    recommendations = target_df.with_columns(recommend_score=scorer.score(data)).sort(
+        "recommend_score", descending=True
+    )
 
     expected = "Naruto"
     actual = recommendations["title"].item(0)
@@ -584,6 +601,7 @@ def test_format_scorer():
 def test_director_correlation_scorer():
     source_df = pl.DataFrame(
         {
+            "id": [1, 2],
             "directors": [["1"], ["2"]],
             "title": ["Vinland Saga", "Fullmetal Alchemist: Brotherhood"],
             "score": [10, 1],
@@ -591,6 +609,7 @@ def test_director_correlation_scorer():
     )
     target_df = pl.DataFrame(
         {
+            "id": [3, 4],
             "directors": [["3"], ["1"]],
             "title": ["Bungou Stray Dogs", "Jujutsu Kaisen"],
         }

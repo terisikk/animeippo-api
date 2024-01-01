@@ -39,7 +39,7 @@ class FeaturesSimilarityScorer(AbstractScorer):
             averages = analysis.mean_score_per_categorical(
                 data.watchlist_explode_cached("features"), "features"
             )
-            averages.columns = ["features", "weight"]
+            averages.columns = ["name", "weight"]
 
             weights = analysis.weighted_mean_for_categorical_values(
                 compare_df, "features", averages
