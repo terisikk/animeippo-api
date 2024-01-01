@@ -23,7 +23,8 @@ class ContinueWatchingCategory:
         target = dataset.recommendations
 
         mask = (
-            (pl.col(scoring.ContinuationScorer.name) > 0) & (pl.col("user_status") != "completed")
+            (pl.col(scoring.ContinuationScorer.name) > 0)
+            & (pl.col("user_status").ne_missing("completed"))
         ) | (pl.col("user_status") == "paused")
 
         return target.filter(mask).sort("final_score", descending=True)[0:max_items]
@@ -37,7 +38,8 @@ class AdaptationCategory:
         target = dataset.recommendations
 
         return target.filter(
-            (pl.col(scoring.AdaptationScorer.name) > 0) & (pl.col("user_status") != "completed")
+            (pl.col(scoring.AdaptationScorer.name) > 0)
+            & (pl.col("user_status").ne_missing("completed"))
         ).sort(scoring.AdaptationScorer.name, descending=True)[0:max_items]
 
 
@@ -136,18 +138,14 @@ class GenreCategory:
         user_profile = dataset.user_profile
 
         if self.nth_genre < len(user_profile.genre_correlations):
-            genre = user_profile.genre_correlations[self.nth_genre]["genres"].item()
+            genre = user_profile.genre_correlations[self.nth_genre]["name"].item()
 
-            rdf = dataset.recommendations_explode_cached("genres")
-
-            mask = (pl.col("genres") == genre) & (
+            mask = (pl.col("genres").list.contains(genre)) & (
                 ~(pl.col("user_status").is_in(["completed", "dropped"]))
                 | (pl.col("user_status").is_null())
             )
 
-            relevant_shows = dataset.recommendations.filter(
-                pl.col("id").is_in(rdf.filter(mask)["id"])
-            )
+            relevant_shows = dataset.recommendations.filter(mask)
 
             self.description = genre
 
@@ -204,13 +202,10 @@ class BecauseYouLikedCategory:
 
     def categorize(self, dataset, max_items=20):
         wl = dataset.watchlist
-        target = dataset.recommendations
 
-        target = target.filter(pl.col("user_status").is_null())
-
-        mean = wl["score"].mean()
-
-        mask = pl.col("score").ge(mean) & pl.col("user_complete_date").is_not_null()
+        mask = (
+            pl.col("score").ge(pl.col("score").mean()) & pl.col("user_complete_date").is_not_null()
+        )
 
         last_liked = wl.filter(mask).sort("user_complete_date", descending=True)
 
@@ -218,13 +213,23 @@ class BecauseYouLikedCategory:
             # We need a row, not an object
             liked_item = last_liked[self.nth_liked]
 
-            self.description = "Because You Liked " + liked_item["title"].item()
-            similarity = analysis.similarity_of_anime_lists(
-                target["encoded"], liked_item["encoded"], self.distance_metric
-            )
-            return pl.concat(
-                [target, pl.DataFrame(similarity.alias("similarity"))], how="horizontal"
-            ).sort("similarity", descending=True)[0:max_items]
+            similarity = dataset.similarity_matrix.filter(pl.col("id") == liked_item["id"])
+
+            if len(similarity) > 0:
+                self.description = f"Because You Liked {liked_item['title'].item()}"
+
+                return (
+                    dataset.recommendations.join(
+                        similarity.select(pl.exclude("user_status")).transpose(
+                            include_header=True, header_name="id", column_names=["gscore"]
+                        ),
+                        left_on=pl.col("id").cast(pl.Utf8),
+                        right_on="id",
+                        how="left",
+                    )
+                    .filter(pl.col("user_status").is_null() & pl.col("gscore").is_not_nan())
+                    .sort(pl.col("gscore"), descending=True)
+                )[0:max_items]
 
         return None
 

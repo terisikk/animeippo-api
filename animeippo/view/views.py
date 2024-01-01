@@ -51,4 +51,5 @@ def console_view(dataframe):
     with pl.Config(tbl_rows=40):
         print(dataframe.head(25).select(["title", "ranks", "genres"]))
 
-    dataframe.sort("id").write_excel()
+    # For debug purposes
+    # dataframe.sort("id").write_excel()

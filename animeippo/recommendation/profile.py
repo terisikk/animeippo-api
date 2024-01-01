@@ -26,7 +26,6 @@ class UserProfile:
 
         self.director_correlations = self.get_director_correlations()
         self.studio_correlations = self.get_studio_correlations()
-        # self.feature_correlations = self.get_feature_correlations()
         # self.last_liked = self.get_last_liked()
 
     def get_genre_correlations(self):
@@ -57,14 +56,6 @@ class UserProfile:
 
         return analysis.weight_categoricals_correlation(gdf, "directors").sort(
             "weight", descending=True
-        )
-
-    def get_feature_correlations(self, all_features):
-        if "encoded" not in self.watchlist.columns:
-            return None
-
-        return analysis.weight_encoded_categoricals_correlation(
-            self.watchlist, "encoded", all_features
         )
 
     def get_cluster_correlations(self):

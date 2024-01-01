@@ -60,6 +60,7 @@ class AnimeRecommendationEngine:
             self.clustering_model.distance_metric,
             dataset.seasonal["id"].cast(pl.Utf8),
         ).with_columns(id=filtered_watchlist["id"])
+        # Categories could use unfiltered watchlist, but scoring needs to filter it
 
         return dataset
 
@@ -109,7 +110,7 @@ class AnimeRecommendationEngine:
             group = grouper.categorize(data)
 
             if group is not None and len(group) > 0:
-                items = group.select("id").to_series().to_list()
+                items = group.select("id").cast(pl.Int32).to_series().to_list()
                 cats.append({"name": grouper.description, "items": items})
 
         return cats

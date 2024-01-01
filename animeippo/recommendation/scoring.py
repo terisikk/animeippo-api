@@ -88,11 +88,14 @@ class GenreAverageScorer(AbstractScorer):
 
         weights = analysis.weight_categoricals(data.watchlist_explode_cached("genres"), "genres")
 
-        scores = analysis.weighted_sum_for_categorical_values(
-            scoring_target_df,
-            "genres",
-            weights,
-        ) / np.sqrt(scoring_target_df["genres"].list.len())
+        scores = (
+            analysis.weighted_sum_for_categorical_values(
+                scoring_target_df,
+                "genres",
+                weights,
+            )
+            / scoring_target_df["genres"].list.len().sqrt()
+        )
 
         return analysis.normalize_column(scores)
 
@@ -186,15 +189,29 @@ class DirectSimilarityScorer(AbstractScorer):
             directscore=pl.col("score").fill_null(pl.col("score").mean())
         )
 
-        similarities = data.similarity_matrix
+        # Want to sort this so that argmax gives at least consistent results,
+        # returning the index of the max score on invalid cases
+        similarities = (
+            data.similarity_matrix.join(compare_df.select("id", "directscore"), on="id", how="left")
+            .sort(["directscore", "id"], descending=[True, True])
+            .drop("directscore")
+        )
 
         idymax = analysis.idymax(similarities)
 
-        scores = idymax.join(
-            compare_df.select("id", "directscore"), left_on="idymax", right_on="id"
-        )["directscore"]
+        # Feels kinda hackish, I think the max column should not have nans in the first place,
+        # need to investigate why it does.
+        idymax = idymax.with_columns(max=pl.col("max").fill_nan(None)).fill_null(
+            pl.col("max").mean()
+        )
 
-        return analysis.normalize_column(scores)
+        scores = idymax.join(
+            compare_df.select("id", "directscore"), left_on="idymax", right_on="id", how="left"
+        )
+
+        return analysis.normalize_column(
+            scores.select(pl.col("directscore") * pl.col("max"))["directscore"]
+        )
 
 
 class PopularityScorer(AbstractScorer):
