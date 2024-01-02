@@ -441,6 +441,7 @@ ANI_SEASONAL_LIST = {
                     "genres": ["Action", "Adventure", "Drama", "Fantasy", "Supernatural"],
                     "coverImage": {"medium": "https://localhost/test.png"},
                     "popularity": 14090,
+                    "directors": ["Haha Miyazaki"],
                 },
                 {
                     "id": 145139,
@@ -456,6 +457,7 @@ ANI_SEASONAL_LIST = {
                     "genres": ["Action", "Adventure", "Comedy", "Fantasy", "Sci-Fi"],
                     "coverImage": {"medium": "https://localhost/test.png"},
                     "popularity": 131620,
+                    "directors": ["Mago Senkai"],
                 },
             ],
         }
@@ -574,6 +576,7 @@ FORMATTED_MAL_SEASONAL_LIST = [
         "relations": [],
         "cluster": 1,
         "source": "Original",
+        "directors": [12345],
     },
     {
         "id": 51535,
@@ -611,6 +614,7 @@ FORMATTED_MAL_SEASONAL_LIST = [
         "relations": [1],
         "cluster": 0,
         "source": "Manga",
+        "directors": [34567],
     },
 ]
 
@@ -634,6 +638,7 @@ FORMATTED_ANI_SEASONAL_LIST = [
             "Shounen",
             "Super Power",
         ],
+        "directors": [12345],
     },
     {
         "id": 145139,
@@ -646,6 +651,7 @@ FORMATTED_ANI_SEASONAL_LIST = [
         "tags": ["Mythology", "Gore"],
         "status": "not_yet_released",
         "features": ["Action", "Adventure", "Comedy", "Fantasy", "Sci-Fi", "Mythology", "Gore"],
+        "directors": [456],
     },
 ]
 

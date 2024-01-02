@@ -1,7 +1,7 @@
 import asyncio
 from concurrent.futures import ThreadPoolExecutor
 
-import numpy as np
+import polars as pl
 
 from animeippo.recommendation import clustering, encoding, dataset, analysis, util as pdutil
 
@@ -58,12 +58,6 @@ class UserProfile:
             "weight", descending=True
         )
 
-    def get_cluster_correlations(self):
-        if "cluster" not in self.watchlist.columns:
-            return None
-
-        return analysis.weight_categoricals_correlation(self.watchlist, "cluster")
-
 
 class ProfileAnalyser:
     """Clusters a user watchlist titles to clusters of similar anime."""
@@ -89,18 +83,17 @@ class ProfileAnalyser:
 
     async def databuilder(self, user):
         user_watchlist = await self.provider.get_user_anime_list(user)
-
         user_profile = UserProfile(user, user_watchlist)
 
-        all_features = user_profile.watchlist.explode("features")["features"].dropna().unique()
+        all_features = user_profile.watchlist.explode("features")["features"].unique().drop_nulls()
 
         self.encoder.fit(all_features)
+        user_profile.watchlist = user_profile.watchlist.with_columns(
+            encoded=self.encoder.encode(user_profile.watchlist)
+        )
 
-        user_profile.watchlist["encoded"] = self.encoder.encode(user_profile.watchlist)
-
-        encoded = np.stack(user_profile.watchlist["encoded"].values)
-        user_profile.watchlist["cluster"] = self.clusterer.cluster_by_features(
-            encoded, user_profile.watchlist.index
+        user_profile.watchlist = user_profile.watchlist.with_columns(
+            cluster=self.clusterer.cluster_by_features(user_profile.watchlist)
         )
 
         data = dataset.RecommendationModel(user_profile, None, all_features)
@@ -110,7 +103,7 @@ class ProfileAnalyser:
 
     def get_nsfw_tags(self, df):
         if "nsfw_tags" in df.columns:
-            return df["nsfw_tags"].explode().dropna().unique().tolist()
+            return df["nsfw_tags"].explode().unique().drop_nulls().to_list()
 
         return []
 
@@ -124,31 +117,36 @@ class ProfileAnalyser:
         top_genre_items = []
         top_tag_items = []
 
-        if "genres" in dataset.watchlist.columns:
-            top_5_genres = dataset.user_profile.genre_correlations.iloc[0:5].index.tolist()
+        if (
+            "genres" in dataset.watchlist.columns
+            and dataset.user_profile.genre_correlations is not None
+        ):
+            top_5_genres = dataset.user_profile.genre_correlations[0:5]["name"].to_list()
 
             for genre in top_5_genres:
                 gdf = dataset.watchlist_explode_cached("genres")
-                filtered = gdf[gdf["genres"] == genre].sort_values("score", descending=True)
+                filtered = gdf.filter(pl.col("genres") == genre).sort("score", descending=True)
 
                 if len(filtered) > 0:
-                    top_genre_items.append(int(filtered.iloc[0].name))
+                    top_genre_items.append(filtered.item(0, "id"))
 
             categories.append({"name": ", ".join(top_5_genres), "items": top_genre_items})
 
         if "tags" in dataset.watchlist.columns:
             tag_correlations = analysis.weight_categoricals_correlation(
                 dataset.watchlist.explode("tags"), "tags"
-            ).sort_values(descending=True)
+            ).sort("weight", descending=True)
 
-            top_5_tags = tag_correlations.iloc[0:5].index.tolist()
+            top_5_tags = tag_correlations[0:5]["name"].to_list()
 
             for tag in top_5_tags:
-                gdf = dataset.watchlist.drop(top_genre_items).drop(top_tag_items).explode("tags")
-                filtered = gdf[gdf["tags"] == tag].sort_values("score", descending=True)
+                gdf = dataset.watchlist.filter(
+                    ~pl.col("id").is_in(top_genre_items.extend(top_tag_items))
+                ).explode("tags")
+                filtered = gdf.filter(pl.col("tags") == tag).sort("score", descending=True)
 
                 if len(filtered) > 0:
-                    top_tag_items.append(int(filtered.iloc[0].name))
+                    top_tag_items.append(str(filtered.item(0, "id")))
 
             categories.append({"name": ", ".join(top_5_tags), "items": top_tag_items})
 
@@ -159,13 +157,16 @@ class ProfileAnalyser:
 
         gdf = dataset.watchlist_explode_cached("features")
 
-        gdf = gdf[~gdf["features"].isin(dataset.nsfw_tags)]
+        gdf = gdf.filter(~pl.col("features").is_in(dataset.nsfw_tags))
 
         descriptions = pdutil.extract_features(gdf["features"], gdf["cluster"], 2)
 
-        clustergroups = target.sort_values(["title"]).groupby("cluster")
+        clustergroups = target.sort("title").group_by("cluster")
 
         return [
-            {"name": " ".join(descriptions.iloc[key].tolist()), "items": value.tolist()}
-            for key, value in clustergroups.groups.items()
+            {
+                "name": " ".join(descriptions.iloc[key].tolist()),
+                "items": value["id"].to_list(),
+            }
+            for key, value in clustergroups
         ]

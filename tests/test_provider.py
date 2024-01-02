@@ -8,7 +8,7 @@ class AsyncProviderStub:
         self,
         seasonal=test_data.FORMATTED_MAL_SEASONAL_LIST,
         user=test_data.FORMATTED_MAL_USER_LIST,
-        manga=[],
+        manga=None,
         cache=None,
     ):
         self.seasonal = seasonal
@@ -26,7 +26,7 @@ class AsyncProviderStub:
         return pl.DataFrame(self.manga)
 
     async def get_related_anime(self, *args, **kwargs):
-        return pl.DataFrame()
+        return []  # Only for mal
 
     def get_features(self, *args, **kwargs):
         return ["genres"]

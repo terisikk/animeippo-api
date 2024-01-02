@@ -38,11 +38,12 @@ class AnimeClustering:
         self.distance_metric = distance_metric
 
     def cluster_by_features(self, dataframe):
-        series = self.remove_rows_with_no_features(np.vstack(dataframe["encoded"]))
+        series = np.vstack(dataframe["encoded"])
 
         if self.distance_metric == "cosine":
             # Cosine is undefined for zero-vectors, need to hack (or change metric)
-            clusters = self.model.fit_predict(series)
+            filtered_series = self.remove_rows_with_no_features(series)
+            clusters = self.model.fit_predict(filtered_series)
             clusters = self.reinsert_rows_with_no_features_as_a_new_cluster(clusters, series)
         else:
             clusters = self.model.fit_predict(series)

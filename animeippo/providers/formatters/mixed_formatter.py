@@ -1,4 +1,6 @@
-import pandas as pd
+import polars as pl
+from fast_json_normalize import fast_json_normalize
+
 
 from .mal_formatter import MAL_MAPPING
 from .ani_formatter import ANILIST_MAPPING
@@ -7,7 +9,7 @@ from animeippo.providers.formatters.schema import SingleMapper, Columns
 
 
 def transform_mal_watchlist_data(data, feature_names):
-    original = pd.json_normalize(data["data"])
+    original = pl.from_pandas(fast_json_normalize(data["data"]))
 
     keys = [
         Columns.ID,
@@ -20,9 +22,10 @@ def transform_mal_watchlist_data(data, feature_names):
 
 
 def transform_ani_watchlist_data(data, feature_names, mal_df):
-    original = pd.json_normalize(data["data"]["media"])
-
+    original = fast_json_normalize(data["data"]["media"])
     original.columns = [x.removeprefix("media.") for x in original.columns]
+
+    original = pl.from_pandas(original)
 
     keys = [
         Columns.ID,
@@ -42,11 +45,11 @@ def transform_ani_watchlist_data(data, feature_names, mal_df):
 
     df = transform_to_animeippo_format(original, feature_names, keys, ANILIST_MAPPING)
 
-    return df.join(mal_df.drop(Columns.FEATURES, axis=1), on=Columns.ID_MAL)
+    return df.join(mal_df.drop(Columns.FEATURES), left_on=Columns.ID_MAL, right_on="id", how="left")
 
 
 def transform_ani_seasonal_data(data, feature_names):
-    original = pd.json_normalize(data["data"]["media"])
+    original = pl.from_pandas(fast_json_normalize(data["data"]["media"]))
 
     keys = [
         Columns.ID,
@@ -72,12 +75,11 @@ def transform_ani_seasonal_data(data, feature_names):
 
     ani_df = transform_to_animeippo_format(original, feature_names, keys, ANILIST_MAPPING)
 
-    temp_df = pl.DataFrame()
-    temp_df[Columns.ADAPTATION_OF] = SingleMapper("relations.edges", get_adaptation).map(original)
-    temp_df["idx"] = ani_df.index.to_list()
-    temp_df = temp_df.set_index("idx")
-
-    ani_df[Columns.ADAPTATION_OF] = temp_df[Columns.ADAPTATION_OF]
+    ani_df = ani_df.with_columns(
+        **{
+            Columns.ADAPTATION_OF: SingleMapper("relations.edges", get_adaptation).map(original),
+        }
+    )
 
     return ani_df
 

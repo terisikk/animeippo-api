@@ -53,7 +53,7 @@ def get_default_categorizers(distance_metric="jaccard"):
         categories.PlanningCategory(),
         # categories.ClusterCategory(2),
         categories.DiscouragingWrapper(categories.GenreCategory(2)),
-        ## put this back categories.SourceCategory(),
+        categories.SourceCategory(),
         # categories.ClusterCategory(3),
         categories.DiscouragingWrapper(categories.GenreCategory(3)),
         categories.StudioCategory(),
@@ -93,7 +93,7 @@ async def get_dataset(provider, user, year, season):
 
 
 def remove_duplicates(df):
-    if df is not None:
+    if df is not None and "id" in df.columns:
         df = df.unique(subset=["id"], keep="first")
 
     return df
@@ -161,8 +161,9 @@ async def construct_myanimelist_data(provider, year, season, user):
         for f in seasonal_filters:
             data.seasonal = f.filter(data.seasonal)
 
-        indices = data.seasonal.index.to_list()
-        data.seasonal["continuation_to"] = await get_related_anime(indices, provider)
+        indices = data.seasonal["id"].to_list()
+        related_anime = await get_related_anime(indices, provider)
+        data.seasonal.with_columns(continuation_to=related_anime)
 
     if data.watchlist is not None and data.seasonal is not None:
         data.seasonal = fill_user_status_data_from_watchlist(data.seasonal, data.watchlist)

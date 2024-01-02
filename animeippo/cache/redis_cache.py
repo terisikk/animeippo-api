@@ -2,8 +2,8 @@ import io
 
 import redis
 import hashlib
-import pyarrow as pa
 import polars as pl
+import polars.selectors as cs
 
 from datetime import timedelta
 
@@ -29,7 +29,13 @@ class RedisCache:
 
     def set_dataframe(self, key, dataframe, ttl=timedelta(days=7)):
         if dataframe is not None:
-            self.connection.json().set(key, "$", dataframe.write_json())
+            self.connection.json().set(
+                # Trying to write a null column to json will result in an error
+                # at least with polars 0.20
+                key,
+                "$",
+                dataframe.select(~cs.by_dtype(pl.Null)).write_json(),
+            )
             self.connection.expire(key, ttl)
 
     def get_dataframe(self, key):

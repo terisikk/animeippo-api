@@ -58,7 +58,7 @@ class MixedProvider(provider.AbstractAnimeProvider):
         }
         """
 
-        variables = {"idMal_in": mal_df.index.to_list()}
+        variables = {"idMal_in": mal_df["id"].to_list()}
 
         ani_list = await self.ani_provider.connection.request_paginated(ani_query, variables)
 

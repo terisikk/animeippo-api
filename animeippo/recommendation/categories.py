@@ -43,36 +43,37 @@ class AdaptationCategory:
         ).sort(scoring.AdaptationScorer.name, descending=True)[0:max_items]
 
 
-# class SourceCategory:
-#     description = "Based on a"
-#     requires = [scoring.SourceScorer.name, scoring.DirectSimilarityScorer.name]
+class SourceCategory:
+    description = "Based on a"
+    requires = [scoring.SourceScorer.name, scoring.DirectSimilarityScorer.name]
 
-#     def categorize(self, dataset, max_items=20):
-#         target = dataset.recommendations
-#         compare = dataset.watchlist
+    def categorize(self, dataset, max_items=20):
+        target = dataset.recommendations
+        compare = dataset.watchlist
 
-#         source_mean = compare.groupby("source")["score"].mean()
-#         weights = compare["source"].value_counts().sort("source")["count"].sqrt()
-#         scores = weights * source_mean
+        best_source = (
+            compare.group_by("source")
+            .agg(pl.col("score").mean() * pl.col("source").count().sqrt())
+            .drop_nulls("score")
+            .sort("score", descending=True)
+            .select(pl.first("source"))
+            .item()
+        )
 
-#         best_source = pd.to_numeric(scores).idxmax(skipna=True)
+        if best_source is None:
+            best_source = "Manga"
 
-#         if pd.isna(best_source) or len(best_source) <= 0:
-#             best_source = "Manga"
+        mask = (pl.col("user_status").is_null()) & (pl.col("source") == best_source.lower())
 
-#         target = target[(pd.isnull(target["user_status"]))]
+        match best_source.lower():
+            case "original":
+                self.description = "Anime Originals"
+            case "other":
+                self.description = "Unusual Sources"
+            case _:
+                self.description = "Based on a " + str.title(best_source)
 
-#         match best_source.lower():
-#             case "original":
-#                 self.description = "Anime Originals"
-#             case "other":
-#                 self.description = "Unusual Sources"
-#             case _:
-#                 self.description = "Based on a " + str.title(best_source)
-
-#         return target[target["source"] == best_source.lower()].sort("final_score", descending=True)[
-#             0:max_items
-#         ]
+        return target.filter(mask).sort("final_score", descending=True)[0:max_items]
 
 
 class StudioCategory:
@@ -91,40 +92,40 @@ class StudioCategory:
         )[0:max_items]
 
 
-# class ClusterCategory:
-#     description = "X and Y Category"
-#     requires = ["cluster"]
+class ClusterCategory:
+    description = "X and Y Category"
+    requires = ["cluster"]
 
-#     def __init__(self, nth_cluster):
-#         self.nth_cluster = nth_cluster
+    def __init__(self, nth_cluster):
+        self.nth_cluster = nth_cluster
 
-#     def categorize(self, dataset, max_items=None):
-#         target = dataset.recommendations
-#         compare = dataset.watchlist
+    def categorize(self, dataset, max_items=None):
+        target = dataset.recommendations
+        compare = dataset.watchlist
 
-#         gdf = dataset.watchlist_explode_cached("features")
+        gdf = dataset.watchlist_explode_cached("features")
 
-#         gdf = gdf.filter(~pl.col("features").is_in(dataset.nsfw_tags))
+        gdf = gdf.filter(~pl.col("features").is_in(dataset.nsfw_tags))
 
-#         descriptions = util.extract_features(gdf["features"], gdf["cluster"], 2)
+        descriptions = pl.from_pandas(util.extract_features(gdf["features"], gdf["cluster"], 2))
 
-#         biggest_clusters = compare["cluster"].value_counts().index.to_list()
+        biggest_clusters = compare["cluster"].value_counts().sort("count", descending=True)
 
-#         if self.nth_cluster < len(biggest_clusters):
-#             cluster = biggest_clusters[self.nth_cluster]
+        if self.nth_cluster < len(biggest_clusters):
+            cluster = biggest_clusters.item(self.nth_cluster, "cluster")
 
-#             mask = (pl.col("cluster") == cluster) & (pl.col("user_status").is_null())
+            mask = (pl.col("cluster") == cluster) & (pl.col("user_status").is_null())
 
-#             relevant_shows = target[mask]
+            relevant_shows = target.filter(mask)
 
-#             if len(relevant_shows) > 0:
-#                 relevant = descriptions.iloc[cluster].tolist()
+            if len(relevant_shows) > 0:
+                desc_list = descriptions.select(pl.concat_list(pl.col("*"))).item(0, 0).to_list()
 
-#                 self.description = " ".join(relevant)
+                self.description = " ".join(desc_list)
 
-#             return relevant_shows.sort("final_score", descending=True)[0:max_items]
+            return relevant_shows.sort("final_score", descending=True)[0:max_items]
 
-#         return None
+        return None
 
 
 class GenreCategory:
@@ -279,23 +280,25 @@ class PlanningCategory:
 
 
 class DiscouragingWrapper:
+    DISCOURAGE_AMOUNT = 0.25
+
     def __init__(self, category):
         self.category = category
 
     def categorize(self, dataset, **kwargs):
         dataset.recommendations = dataset.recommendations.with_columns(
-            recommend_score=pl.col("recommend_score") * pl.col("discourage_score")
+            final_score=pl.col("recommend_score") * pl.col("discourage_score")
         )
 
         result = self.category.categorize(dataset, **kwargs)
 
         self.description = self.category.description
 
-        # dataset.recommendations.loc[
-        #     result.index, "discourage_score"
-        # ] = discourager.apply_discourage_on_repeating_items(result["discourage_score"])
-
-        # dataset.recommendations["final_score"] = dataset.recommendations["recommend_score"]
+        dataset.recommendations = dataset.recommendations.with_columns(
+            discourage_score=pl.when(pl.col("id").is_in(result["id"]))
+            .then(pl.col("discourage_score") - self.DISCOURAGE_AMOUNT)
+            .otherwise(pl.col("discourage_score")),
+        )
 
         return result
 

@@ -3,7 +3,7 @@ import polars as pl
 from animeippo.recommendation.encoding import CategoricalEncoder, WeightedCategoricalEncoder
 
 
-def test_categorical_encoded():
+def test_categorical_encoder():
     classes = pl.Series(["Test 1", "Test 2", "Test 3"])
 
     encoder = CategoricalEncoder()
@@ -12,7 +12,7 @@ def test_categorical_encoded():
     original = pl.DataFrame({"features": [["Test 3", "Test 2"]]})
     expected = [False, True, True]
 
-    assert encoder.encode(original) == [expected]
+    assert encoder.encode(original).tolist() == [expected]
 
 
 def test_weighted_encoder():

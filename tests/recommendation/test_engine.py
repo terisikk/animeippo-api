@@ -1,5 +1,4 @@
 from animeippo.recommendation import engine, scoring, dataset, categories, profile
-import pandas as pd
 import polars as pl
 import pytest
 
@@ -91,8 +90,8 @@ def test_runtime_error_is_raised_when_no_scorers_exist():
 def test_categorize():
     recengine = engine.AnimeRecommendationEngine()
     recengine.add_categorizer(categories.ContinueWatchingCategory())
-    recengine.add_categorizer(categories.SourceCategory())
-    recengine.add_categorizer(categories.ClusterCategory(100))
+    recengine.add_categorizer(categories.StudioCategory())
+    recengine.add_categorizer(categories.GenreCategory(100))
 
     data = dataset.RecommendationModel(
         profile.UserProfile("Test", pl.DataFrame(test_data.FORMATTED_MAL_USER_LIST)), None, None
@@ -100,17 +99,19 @@ def test_categorize():
 
     data.recommendations = pl.DataFrame(
         {
+            "id": [1],
             "popularityscore": [1],
             "continuationscore": [2],
             "sourcescore": [3],
             "directscore": [4],
             "clusterscore": [5],
+            "formatscore": [1],
             "studiocorrelationscore": [6],
             "cluster": [1],
             "features": [["test"]],
             "source": ["original"],
             "score": [123],
-            "user_status": [pd.NA],
+            "user_status": [None],
             "recommend_score": [1],
             "final_score": [1],
         }

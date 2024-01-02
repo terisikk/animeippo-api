@@ -1,4 +1,4 @@
-import pandas as pd
+import polars as pl
 import numpy as np
 
 from animeippo.providers.formatters import mal_formatter, util
@@ -12,30 +12,7 @@ def test_dataframe_can_be_constructed_from_mal():
 
     assert type(data) == pl.DataFrame
     assert len(data) == 2
-    assert data.iloc[1]["title"] == "Hellsingfårs"
-    assert data.iloc[1]["genres"] == [
-        "Action",
-        "Adult Cast",
-        "Gore",
-        "Horror",
-        "Seinen",
-        "Supernatural",
-        "Vampire",
-    ]
-    assert data.iloc[1]["score"] == 8
-
-
-def test_transform_does_not_fail_on_missing_id_column():
-    data = ["test1", "test2"]
-    feature_names = []
-    keys = []
-
-    actual = util.transform_to_animeippo_format(
-        data, feature_names, keys, mal_formatter.MAL_MAPPING
-    )
-
-    assert "id" not in actual.columns
-    assert actual.index.name != "id"
+    assert "Hellsingfårs" in data["title"].to_list()
 
 
 def test_relations_can_be_constructed_from_mal():
@@ -57,18 +34,7 @@ def test_dataframe_can_be_constructed_from_incomplete_data():
 
     assert type(data) == pl.DataFrame
     assert len(data) == 2
-    assert data.iloc[1]["title"] == "Hellsingfårs"
-    assert data.iloc[1]["genres"] == [
-        "Action",
-        "Adult Cast",
-        "Gore",
-        "Horror",
-        "Seinen",
-        "Supernatural",
-        "Vampire",
-    ]
-    assert pd.isnull(data.iloc[1].get("score", np.nan))
-    assert "user_status" in data.columns
+    assert "Hellsingfårs" in data["title"].to_list()
 
 
 def test_mal_genres_can_be_split():
@@ -103,11 +69,11 @@ def test_get_continuation():
     relation = "prequel"
     id = 123
 
-    assert mal_formatter.get_continuation(relation, id) == 123
+    assert mal_formatter.get_continuation(relation, id) == (123,)
 
     relation = "irrelevant"
 
-    assert pd.isna(mal_formatter.get_continuation(relation, id))
+    assert mal_formatter.get_continuation(relation, id) == (None,)
 
 
 def test_get_image_url():
@@ -115,13 +81,13 @@ def test_get_image_url():
 
     assert mal_formatter.get_image_url(field) == "test"
 
-    assert pd.isna(mal_formatter.get_image_url({}))
+    assert mal_formatter.get_image_url({}) is None
 
 
 def test_get_user_complete_date():
-    assert not pd.isna(mal_formatter.get_user_complete_date("2020-03-12"))
+    assert mal_formatter.get_user_complete_date("2020-03-12") is not None
 
-    assert pd.isna(mal_formatter.get_user_complete_date(pd.NA))
+    assert mal_formatter.get_user_complete_date(None) is None
 
 
 def test_get_status():

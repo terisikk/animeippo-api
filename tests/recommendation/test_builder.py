@@ -144,7 +144,7 @@ def test_status_data_is_filled_to_dataset():
                 "completed",
             ],
         }
-    ).set_index("id")
+    )
 
     seasonal = pl.DataFrame(
         {
@@ -155,14 +155,14 @@ def test_status_data_is_filled_to_dataset():
                 "Test 3",
             ],
         }
-    ).set_index("id")
+    )
 
     seasonal = recommender_builder.fill_user_status_data_from_watchlist(seasonal, watchlist)
 
     assert "user_status" in seasonal.columns
-    assert seasonal.loc[110, "user_status"] == "completed"
-    assert seasonal.loc[120, "user_status"] == "watching"
-    assert seasonal.loc[140, "user_status"] == None
+    assert seasonal.item(0, "user_status") == "completed"
+    assert seasonal.item(1, "user_status") == "watching"
+    assert seasonal.item(2, "user_status") == None
     assert len(seasonal) == 3
 
 
@@ -179,6 +179,6 @@ def test_nsfw_tags_are_recorded_if_available():
             ],
             "nsfw_tags": [["tag1"]],
         }
-    ).set_index("id")
+    )
 
     assert recommender_builder.get_nswf_tags(watchlist) == ["tag1"]

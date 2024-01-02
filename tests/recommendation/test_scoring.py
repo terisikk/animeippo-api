@@ -601,16 +601,16 @@ def test_format_scorer():
 def test_director_correlation_scorer():
     source_df = pl.DataFrame(
         {
-            "id": [1, 2],
-            "directors": [["1"], ["2"]],
-            "title": ["Vinland Saga", "Fullmetal Alchemist: Brotherhood"],
-            "score": [10, 1],
+            "id": [1, 2, 3],
+            "directors": [["1"], ["2"], ["3"]],
+            "title": ["Vinland Saga", "Fullmetal Alchemist: Brotherhood", "Bleach"],
+            "score": [10, 1, 2],
         }
     )
     target_df = pl.DataFrame(
         {
-            "id": [3, 4],
-            "directors": [["3"], ["1"]],
+            "id": [4, 5],
+            "directors": [["4"], ["1"]],
             "title": ["Bungou Stray Dogs", "Jujutsu Kaisen"],
         }
     )

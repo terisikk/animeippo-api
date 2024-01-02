@@ -1,5 +1,5 @@
 import animeippo.recommendation.util as pdutil
-import pandas as pd
+import polars as pl
 import numpy as np
 
 

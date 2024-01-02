@@ -52,7 +52,7 @@ def test_source_category():
             "final_score": [1, 2, 3],
             "title": ["Test 1", "Test 2", "Test 3"],
             "source": ["manga", "manga", "ligh_novel"],
-            "user_status": [pd.NA, pd.NA, pd.NA],
+            "user_status": [None, None, None],
         }
     )
 
@@ -78,7 +78,7 @@ def test_source_category_defaults_to_manga_without_scores():
             "final_score": [1, 2, 3],
             "title": ["Test 1", "Test 2", "Test 3"],
             "source": ["manga", "manga", "ligh_novel"],
-            "user_status": [pd.NA, pd.NA, pd.NA],
+            "user_status": [None, None, None],
         }
     )
 
@@ -102,7 +102,7 @@ def test_source_category_descriptions():
             "final_score": [1, 2, 3],
             "title": ["Test 1", "Test 2", "Test 3"],
             "source": ["manga", "other", "original"],
-            "user_status": [pd.NA, pd.NA, pd.NA],
+            "user_status": [None, None, None],
         }
     )
 
@@ -165,7 +165,7 @@ def test_cluster_category():
             "cluster": [0, 1, 1],
             "final_score": [1, 1, 1],
             "title": ["Test 1", "Test 2", "Test 3"],
-            "user_status": [pd.NA, pd.NA, pd.NA],
+            "user_status": [None, None, None],
         }
     )
 
@@ -308,6 +308,7 @@ def test_because_you_liked():
 
     watchlist = pl.DataFrame(
         {
+            "id": [1, 2],
             "score": [1, 2],
             "encoded": [[1, 1], [0, 1]],
             "user_complete_date": [1, 2],
@@ -317,6 +318,7 @@ def test_because_you_liked():
 
     recommendations = pl.DataFrame(
         {
+            "id": [3, 4, 5],
             "title": ["Test 1", "Test 2", "Test 3"],
             "encoded": [[0, 1], [1, 0], [0, 0]],
             "start_season": [1, 1, 1],
@@ -327,10 +329,18 @@ def test_because_you_liked():
     uprofile = profile.UserProfile("Test", watchlist)
     data = dataset.RecommendationModel(uprofile, None, None)
     data.recommendations = recommendations
+    data.similarity_matrix = pl.DataFrame(
+        {
+            "3": [0.5, 1],
+            "4": [0.5, 0],
+            "5": [0, 0.5],
+            "id": [1, 2],
+        }
+    )
 
-    actual = cat.categorize(data).to_list()
+    actual = cat.categorize(data)["id"].to_list()
 
-    assert actual[0:2] == [1, 0]
+    assert actual == ["3", "5", "4"]
     assert cat.description == "Because You Liked W2"
 
 
@@ -451,7 +461,7 @@ def test_genre_category():
                 ["Action", "Romance"],
                 ["Sports", "Comedy"],
             ],
-            "user_status": ["not_watched", pd.NA, "in_progress"],
+            "user_status": ["not_watched", None, "in_progress"],
             "score": [10, 10, 10],
         }
     )
@@ -462,7 +472,7 @@ def test_genre_category():
             "discourage_score": [1, 1, 1],
             "final_score": [1, 1, 1],
             "title": ["Test 1", "Test 2", "Test 3"],
-            "user_status": [pd.NA, pd.NA, pd.NA],
+            "user_status": [None, None, None],
         }
     )
 
@@ -486,7 +496,7 @@ def test_genre_category_returns_none_for_too_big_genre_number():
                 ["Action", "Romance"],
                 ["Sports", "Comedy"],
             ],
-            "user_status": ["not_watched", pd.NA, "in_progress"],
+            "user_status": ["not_watched", None, "in_progress"],
             "score": [10, 10, 10],
         }
     )
@@ -508,12 +518,12 @@ def test_genre_category_can_cache_values():
             "discourage_score": [1, 1, 1],
             "final_score": [1, 1, 1],
             "title": ["Test 1", "Test 2", "Test 3"],
-            "user_status": [pd.NA, pd.NA, pd.NA],
+            "user_status": [None, None, None],
         }
     )
 
     uprofile = profile.UserProfile("Test", None)
-    uprofile.genre_correlations = pl.Series([0.5, 0.5], index=["Action", "Sports"])
+    uprofile.genre_correlations = pl.DataFrame({"weight": [0.5, 0.5], "name": ["Action", "Sports"]})
 
     data = dataset.RecommendationModel(uprofile, None, None)
     data.recommendations = recommendations
@@ -530,8 +540,9 @@ def test_discourage_wrapper():
 
     recommendations = pl.DataFrame(
         {
+            "id": [1, 2, 3],
             "title": ["Test 1", "Test 2", "Test 3"],
-            "user_status": [pd.NA, pd.NA, pd.NA],
+            "user_status": [None, None, None],
             "status": ["releasing", "releasing", "releasing"],
             "continuationscore": [0, 0, 0],
             "recommend_score": [2, 2.1, 1.99],
@@ -546,14 +557,14 @@ def test_discourage_wrapper():
     actual = dcat.categorize(data, max_items=2)
 
     assert actual["title"].to_list() == ["Test 2", "Test 1"]
-    assert recommendations["discourage_score"].to_list() == [0.75, 0.75, 1]
+    assert data.recommendations["discourage_score"].to_list() == [0.75, 0.75, 1]
 
     actual = dcat.categorize(data, max_items=2)
 
     assert actual["title"].to_list() == ["Test 3", "Test 2"]
 
     assert dcat.description == cat.description
-    assert recommendations["discourage_score"].to_list() == [0.75, 0.5, 0.75]
+    assert data.recommendations["discourage_score"].to_list() == [0.75, 0.5, 0.75]
 
 
 def test_debug_category_returns_all_recommendations():
@@ -578,7 +589,7 @@ def test_planning_category():
     recommendations = pl.DataFrame(
         {
             "title": ["Test 1", "Test 2", "Test 3"],
-            "user_status": [pd.NA, "planning", "in_progress"],
+            "user_status": [None, "planning", "in_progress"],
             "final_score": [1, 1, 1],
         }
     )

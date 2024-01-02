@@ -62,6 +62,10 @@ class AnimeRecommendationEngine:
         ).with_columns(id=filtered_watchlist["id"])
         # Categories could use unfiltered watchlist, but scoring needs to filter it
 
+        # Rechunk to maximize performance, not sure if it has any real effect
+        dataset.seasonal = dataset.seasonal.rechunk()
+        dataset.watchlist = dataset.watchlist.rechunk()
+
         return dataset
 
     def fit_predict(self, dataset):
@@ -77,10 +81,6 @@ class AnimeRecommendationEngine:
 
     def score_anime(self, dataset):
         scoring_target_df = dataset.seasonal
-
-        # Rechunk to maximize performance, not sure if it has any real effect
-        dataset.seasonal = dataset.seasonal.rechunk()
-        dataset.watchlist = dataset.watchlist.rechunk()
 
         if len(self.scorers) > 0:
             names = []

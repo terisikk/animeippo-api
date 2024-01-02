@@ -15,9 +15,12 @@ def transform_to_animeippo_format(original, feature_names, keys, mapping):
 
     df = run_mappers(df, original, mapping)
 
-    # Maybe here get feature ranks at the same time
+    existing_feature_columns = set(feature_names).intersection(df.columns)
 
-    df = df.with_columns(features=df.select(feature_names).map_rows(get_features).to_series())
+    if len(existing_feature_columns) > 0:
+        df = df.with_columns(
+            features=df.select(existing_feature_columns).map_rows(get_features).to_series()
+        )
 
     if "ranks" in df.columns:
         df = df.with_columns(ranks=df.select(["ranks", "features"]).map_rows(get_ranks).to_series())
@@ -29,8 +32,8 @@ def transform_to_animeippo_format(original, feature_names, keys, mapping):
 
 
 def run_mappers(dataframe, original, mapping):
-    return pl.DataFrame(
-        {key: mapper.map(original) for key, mapper in mapping.items() if key in dataframe.columns}
+    return pl.DataFrame().with_columns(
+        **{key: mapper.map(original) for key, mapper in mapping.items() if key in dataframe.columns}
     )
 
 

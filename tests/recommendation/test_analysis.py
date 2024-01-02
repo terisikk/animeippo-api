@@ -41,53 +41,60 @@ def test_genre_average_scores():
 
 def test_similarity_weights():
     genre_averages = pl.DataFrame([("Action", 9.0), ("Horror", 8.0), ("Romance", 7.0)])
-    genre_averages.columns = ["genres", "weight"]
+    genre_averages.columns = ["name", "weight"]
 
     original = pl.DataFrame(
         {
+            "id": [1, 2],
             "genres": [["Action", "Horror"], ["Action", "Romance"]],
         }
     )
 
-    weights = original["genres"].apply(
-        lambda row: analysis.weighted_mean_for_categorical_values(row, genre_averages)
-    )
+    weights = analysis.weighted_mean_for_categorical_values(original, "genres", genre_averages)
 
     assert weights.sort(descending=True).to_list() == [8.5, 8.0]
 
 
 def test_similarity_weight_uses_zero_to_subsitute_nan():
     genre_averages = pl.DataFrame([("Action", 9.0)])
-    genre_averages.columns = ["genres", "weight"]
+    genre_averages.columns = ["name", "weight"]
 
-    genres = ["Action", "Horror"]
+    original = pl.DataFrame(
+        {
+            "id": [1],
+            "genres": [["Action", "Horror"]],
+        }
+    )
 
-    weight = analysis.weighted_mean_for_categorical_values(genres, genre_averages)
+    weights = analysis.weighted_mean_for_categorical_values(original, "genres", genre_averages)
 
-    assert weight == 4.5
+    assert weights.to_list() == [4.5]
 
 
-@pytest.mark.filterwarnings("ignore:Mean of empty slice:RuntimeWarning")
 def test_similarity_weight_scores_genre_list_containing_only_unseen_genres_as_zero():
     genre_averages = pl.DataFrame([("Romance", 9.0)])
-    genre_averages.columns = ["genres", "weight"]
+    genre_averages.columns = ["name", "weight"]
 
-    original = ["Action", "Horror"]
+    original = pl.DataFrame(
+        {
+            "id": [1],
+            "genres": [["Action", "Horror"]],
+        }
+    )
 
-    weight = analysis.weighted_mean_for_categorical_values(original, genre_averages)
+    weights = analysis.weighted_mean_for_categorical_values(original, "genres", genre_averages)
 
-    assert weight == 0.0
+    assert weights.to_list() == [0.0]
 
 
-def test_categorical_uses_index_if_given():
-    original1 = pl.Series([[1, 2, 3], [4, 5, 6]], index=[4, 5])
+def test_categorical_uses_columns_if_given():
+    original1 = pl.Series([[1, 2, 3], [4, 5, 6]])
 
-    original2 = pl.Series([[2, 3, 4], [1, 2, 3]], index=[1, 2])
+    original2 = pl.Series([[2, 3, 4], [1, 2, 3]])
 
-    similarity = analysis.categorical_similarity(original1, original2, original2.index)
+    similarity = analysis.categorical_similarity(original1, original2, columns=["1a", "2b"])
 
-    assert similarity.index is not None
-    assert similarity.index.to_list() == original2.index.to_list()
+    assert similarity.columns == ["1a", "2b"]
 
 
 def test_get_mean_uses_default():

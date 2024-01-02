@@ -40,7 +40,7 @@ class AnimeRecommender:
         if user:
             recommendations = self.engine.fit_predict(self.dataset)
         else:
-            recommendations = self.dataset.seasonal.sort_values("popularity", descending=True)
+            recommendations = self.dataset.seasonal.sort("popularity", descending=True)
 
         self.dataset.recommendations = recommendations
 

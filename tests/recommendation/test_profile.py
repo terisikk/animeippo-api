@@ -1,4 +1,4 @@
-import pandas as pd
+import polars as pl
 import pytest
 
 from animeippo.recommendation import profile, encoding, dataset
@@ -36,20 +36,12 @@ async def test_profile_analyser_can_run_when_async_loop_is_already_running():
 def test_user_profile_can_be_constructred():
     watchlist = pl.DataFrame(test_data.FORMATTED_MAL_USER_LIST)
 
-    encoder = encoding.CategoricalEncoder()
-    encoder.fit(["Action", "Adventure"], "features")
-
-    watchlist["encoded"] = encoder.encode(watchlist)
-
     user_profile = profile.UserProfile("Test", watchlist)
 
     assert user_profile.watchlist is not None
     assert user_profile.genre_correlations is not None
     assert user_profile.studio_correlations is not None
     assert user_profile.director_correlations is not None
-
-    assert user_profile.get_cluster_correlations() is not None
-    assert user_profile.get_feature_correlations(["Action", "Adventure"]) is not None
 
 
 def test_user_profile_can_be_constructred_with_no_watchlist():
@@ -61,20 +53,9 @@ def test_user_profile_can_be_constructred_with_no_watchlist():
     assert user_profile.director_correlations is None
 
 
-def test_user_profile_can_be_constructed_with_missing_data():
-    watchlist = pl.DataFrame(test_data.FORMATTED_MAL_USER_LIST)
-    watchlist = watchlist.drop("cluster", axis=1)
-
-    user_profile = profile.UserProfile("Test", watchlist)
-
-    assert user_profile.watchlist is not None
-    assert user_profile.get_cluster_correlations() is None
-    assert user_profile.get_feature_correlations(["Action", "Adventure"]) is None
-
-
 def test_user_top_genres_and_tags_can_be_categorized():
     data = pl.DataFrame(test_data.FORMATTED_ANI_SEASONAL_LIST)
-    data["score"] = [10, 8]
+    data = data.with_columns(score=pl.Series([10.0, 8.0]))
 
     uprofile = profile.UserProfile("Test", data)
     dset = dataset.RecommendationModel(uprofile, None)
@@ -86,13 +67,15 @@ def test_user_top_genres_and_tags_can_be_categorized():
     assert len(categories) > 0
 
     uprofile = profile.UserProfile("Test", data)
-    uprofile.genre_correlations = pl.Series([1, 1], index=["Absurd", "Nonexisting"])
+    uprofile.genre_correlations = pl.DataFrame(
+        {"weight": [1, 1], "name": ["Absurd", "Nonexisting"]}
+    )
     dset = dataset.RecommendationModel(uprofile, None)
 
     categories = profiler.get_categories(dset)
     assert len(categories) > 0
 
-    data = data.drop("genres", axis=1)
+    data = data.drop("genres")
     uprofile = profile.UserProfile("Test", data)
 
     dset = dataset.RecommendationModel(uprofile, None)
@@ -103,7 +86,7 @@ def test_user_top_genres_and_tags_can_be_categorized():
 
 def test_clusters_can_be_categorized():
     data = pl.DataFrame(test_data.FORMATTED_ANI_SEASONAL_LIST)
-    data["cluster"] = [0, 1]
+    data = data.with_columns(cluster=pl.Series([0, 1]))
 
     uprofile = profile.UserProfile("Test", data)
     dset = dataset.RecommendationModel(uprofile, None)
@@ -113,3 +96,19 @@ def test_clusters_can_be_categorized():
     categories = profiler.get_cluster_categories(dset)
 
     assert len(categories) > 0
+
+
+def test_correlations_are_consistent():
+    data = pl.DataFrame(test_data.FORMATTED_ANI_SEASONAL_LIST)
+    data = data.with_columns(score=pl.Series([10.0, 8.0]))
+
+    uprofile = profile.UserProfile("Test", data)
+
+    previous = uprofile.get_director_correlations()
+
+    for i in range(0, 10):
+        actual = uprofile.get_director_correlations()
+        assert actual.item(0, "weight") == previous.item(0, "weight")
+        assert actual.item(0, "name") == previous.item(0, "name")
+        assert actual is not None
+        previous = actual

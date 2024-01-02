@@ -9,8 +9,6 @@ def recommendations_web_view(dataframe, categories=None):
 
     filtered_fields = list(set(dataframe.columns).intersection(fields))
 
-    # dataframe["genres"] = dataframe["genres"].apply(list)
-
     df_json = dataframe.select(filtered_fields).to_dicts()
 
     return json.dumps(
@@ -26,15 +24,10 @@ def recommendations_web_view(dataframe, categories=None):
 def profile_web_view(user_profile, categories):
     dataframe = user_profile.watchlist
 
-    if "id" not in dataframe.columns:
-        dataframe["id"] = dataframe.index
-    else:
-        dataframe["id"] = dataframe.index.to_series()
-
     fields = set(["id", "title", "cover_image", "status", "user_status"])
-    filtered_fields = list(set(dataframe.columns.tolist()).intersection(fields))
+    filtered_fields = list(set(dataframe.columns).intersection(fields))
 
-    df_json = dataframe[filtered_fields].fillna("").to_dict(orient="records")
+    df_json = dataframe[filtered_fields].to_dicts()
 
     return json.dumps(
         {
@@ -49,7 +42,7 @@ def profile_web_view(user_profile, categories):
 
 def console_view(dataframe):
     with pl.Config(tbl_rows=40):
-        print(dataframe.head(25).select(["title", "ranks", "genres"]))
+        print(dataframe.head(25).select(["title", "genres"]))
 
     # For debug purposes
     # dataframe.sort("id").write_excel()

@@ -101,10 +101,13 @@ class ContinuationFilter(AbstractFilter):
         self.negative = negative
 
     def filter(self, dataframe):
-        completed = self.compare_df.filter(pl.col("user_status") == "completed")["id"].to_list()
+        if dataframe["continuation_to"].dtype == pl.List(pl.Null):
+            return dataframe
 
-        mask = (pl.col("continuation_to").list.set_intersection(completed) != []) | (
-            pl.col("continuation_to").list.len() == 0
+        completed = self.compare_df.filter(pl.col("user_status") == "completed")["id"]
+
+        mask = (pl.col("continuation_to").list.set_intersection(completed.to_list()) != []) | (
+            pl.col("continuation_to") == []
         )
 
         if self.negative:

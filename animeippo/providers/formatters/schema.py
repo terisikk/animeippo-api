@@ -1,4 +1,4 @@
-import pandas as pd
+import polars as pl
 from enum import StrEnum
 
 
@@ -36,17 +36,7 @@ class DefaultMapper:
         self.default = default
 
     def map(self, series):
-        return series.get_column(self.name) if self.name in series.columns else self.default
-
-
-class PandasMapper:
-    def __init__(self, name, func, default=None):
-        self.name = name
-        self.func = func
-        self.default = default
-
-    def map(self, dataframe):
-        return self.func(dataframe[self.name])
+        return series.get_column(self.name) if self.name in series.columns else pl.lit(self.default)
 
 
 class SingleMapper:
@@ -57,7 +47,7 @@ class SingleMapper:
 
     def map(self, dataframe):
         if self.name not in dataframe.columns and len(dataframe) > 0:
-            return self.default
+            return pl.lit(self.default)
 
         return dataframe[self.name].map_elements(self.row_wrapper)
 
@@ -77,7 +67,7 @@ class MultiMapper:
 
     def map(self, dataframe):
         if any((column not in dataframe.columns for column in self.columns)):
-            return self.default
+            return pl.lit(self.default)
 
         return dataframe.select(self.columns).map_rows(self.row_wrapper).to_series()
 

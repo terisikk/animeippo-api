@@ -1,17 +1,16 @@
 import datetime
 import functools
 
-import pandas as pd
 import polars as pl
 
-import fast_json_normalize
+from fast_json_normalize import fast_json_normalize
 
 from . import util
 from animeippo.providers.formatters.schema import DefaultMapper, SingleMapper, MultiMapper, Columns
 
 
 def transform_seasonal_data(data, feature_names):
-    original = pl.from_pandas(fast_json_normalize.fast_json_normalize(data["data"]["media"]))
+    original = pl.from_pandas(fast_json_normalize(data["data"]["media"]))
 
     keys = [
         Columns.ID,
@@ -40,7 +39,7 @@ def transform_seasonal_data(data, feature_names):
 
 
 def transform_watchlist_data(data, feature_names):
-    original = fast_json_normalize.fast_json_normalize(data["data"])
+    original = fast_json_normalize(data["data"])
     original.columns = [x.removeprefix("media.") for x in original.columns]
 
     original = pl.from_pandas(original)
@@ -71,7 +70,7 @@ def transform_watchlist_data(data, feature_names):
 
 
 def transform_user_manga_list_data(data, feature_names):
-    original = fast_json_normalize.fast_json_normalize(data["data"])
+    original = fast_json_normalize(data["data"])
     original.columns = [x.removeprefix("media.") for x in original.columns]
 
     original = pl.from_pandas(original)
@@ -126,7 +125,7 @@ def get_user_complete_date(year, month, day):
     if year is None or month is None or day is None:
         return (None,)
 
-    return (datetime.datetime(int(year), int(month), int(day)),)
+    return (datetime.date(int(year), int(month), int(day)),)
 
 
 def get_ranks(tags):

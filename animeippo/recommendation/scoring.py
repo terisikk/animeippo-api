@@ -132,12 +132,10 @@ class StudioCorrelationScorer:
 
         weights = data.user_profile.studio_correlations
 
-        mode = weights["weight"].mode()
-
-        mode = mode[0] if len(mode) > 0 else mode
+        median = weights["weight"].median()
 
         scores = analysis.weighted_mean_for_categorical_values(
-            scoring_target_df, "studios", weights, mode
+            scoring_target_df, "studios", weights, median
         )
 
         return analysis.normalize_column(scores)
@@ -368,12 +366,10 @@ class DirectorCorrelationScorer:
 
         weights = data.user_profile.director_correlations
 
-        mode = weights["weight"].mode()
-
-        mode = mode[0] if len(mode) > 0 else mode
+        median = weights["weight"].median()
 
         scores = analysis.weighted_mean_for_categorical_values(
-            scoring_target_df, "directors", weights, mode
+            scoring_target_df, "directors", weights, median
         )
 
         return analysis.normalize_column(scores)
