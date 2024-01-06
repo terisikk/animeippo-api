@@ -23,3 +23,7 @@ class RecommendationModel:
     @lru_cache(maxsize=5)
     def recommendations_explode_cached(self, column):
         return self.recommendations.explode(column)
+
+    @lru_cache(maxsize=5)
+    def seasonal_explode_cached(self, column):
+        return self.seasonal.explode(column)

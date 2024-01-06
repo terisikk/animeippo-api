@@ -110,7 +110,7 @@ class AnimeRecommendationEngine:
             group = grouper.categorize(data)
 
             if group is not None and len(group) > 0:
-                items = group.select("id").cast(pl.Int32).to_series().to_list()
+                items = group["id"].to_list()
                 cats.append({"name": grouper.description, "items": items})
 
         return cats

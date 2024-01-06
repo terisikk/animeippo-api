@@ -6,11 +6,34 @@ import polars as pl
 from fast_json_normalize import fast_json_normalize
 
 from . import util
-from animeippo.providers.formatters.schema import DefaultMapper, SingleMapper, MultiMapper, Columns
+from animeippo.providers.formatters.schema import (
+    DefaultMapper,
+    SingleMapper,
+    MultiMapper,
+    SelectorMapper,
+    QueryMapper,
+    Columns,
+)
 
 
 def transform_seasonal_data(data, feature_names):
-    original = pl.from_pandas(fast_json_normalize(data["data"]["media"]))
+    # original = pl.from_pandas(fast_json_normalize(data["data"]["media"]))
+    original = (
+        pl.DataFrame(data["data"]["media"])
+        .unnest(["coverImage", "staff", "title"])
+        .rename(
+            {
+                "edges": "staff.edges",
+                "nodes": "staff.nodes",
+                "romaji": "title.romaji",
+                "large": "coverImage.large",
+            }
+        )
+        .unnest("relations")
+        .rename({"edges": "relations.edges"})
+        .unnest("studios")
+        .rename({"edges": "studios.edges"})
+    )
 
     keys = [
         Columns.ID,
@@ -39,10 +62,26 @@ def transform_seasonal_data(data, feature_names):
 
 
 def transform_watchlist_data(data, feature_names):
-    original = fast_json_normalize(data["data"])
-    original.columns = [x.removeprefix("media.") for x in original.columns]
+    original = (
+        pl.DataFrame(data["data"])
+        .unnest("media")
+        .unnest(["coverImage", "staff", "title", "completedAt"])
+        .rename(
+            {
+                "edges": "staff.edges",
+                "nodes": "staff.nodes",
+                "romaji": "title.romaji",
+                "large": "coverImage.large",
+                "day": "completedAt.day",
+                "month": "completedAt.month",
+                "year": "completedAt.year",
+            }
+        )
+        .unnest("studios")
+        .rename({"edges": "studios.edges"})
+    )
 
-    original = pl.from_pandas(original)
+    # original = pl.from_pandas(original)
 
     keys = [
         Columns.ID,
@@ -70,10 +109,19 @@ def transform_watchlist_data(data, feature_names):
 
 
 def transform_user_manga_list_data(data, feature_names):
-    original = fast_json_normalize(data["data"])
-    original.columns = [x.removeprefix("media.") for x in original.columns]
-
-    original = pl.from_pandas(original)
+    original = (
+        pl.DataFrame(data["data"])
+        .unnest("media")
+        .unnest(["title", "completedAt"])
+        .rename(
+            {
+                "romaji": "title.romaji",
+                "day": "completedAt.day",
+                "month": "completedAt.month",
+                "year": "completedAt.year",
+            }
+        )
+    )
 
     keys = [
         Columns.ID,
@@ -91,24 +139,22 @@ def transform_user_manga_list_data(data, feature_names):
     return util.transform_to_animeippo_format(original, feature_names, keys, ANILIST_MAPPING)
 
 
-def filter_relations(field, meaningful_relations):
-    relations = []
-
-    for item in field:
-        relationType = item.get("relationType", "")
-        node = item.get("node", {})
-        id = node.get("id", None)
-
-        if relationType in meaningful_relations and id is not None:
-            relations.append(id)
-
-    return relations
+def filter_relations(dataframe, meaningful_relations):
+    return dataframe.select(
+        pl.col("relations.edges")
+        .list.eval(
+            pl.when(pl.element().struct.field("relationType").is_in(meaningful_relations)).then(
+                pl.element().struct.field("node").struct.field("id")
+            )
+        )
+        .list.drop_nulls()
+    ).to_series()
 
 
-def get_continuation(field):
+def get_continuation(dataframe):
     meaningful_relations = ["PARENT", "PREQUEL"]
 
-    return filter_relations(field, meaningful_relations)
+    return filter_relations(dataframe, meaningful_relations)
 
 
 def get_adaptation(field):
@@ -117,44 +163,50 @@ def get_adaptation(field):
     return filter_relations(field, meaningful_relations)
 
 
-def get_tags(tags):
-    return [tag["name"] for tag in tags]
+def get_tags(dataframe):
+    return dataframe.select(pl.col("tags").list.eval(pl.element().struct.field("name"))).to_series()
 
 
-def get_user_complete_date(year, month, day):
-    if year is None or month is None or day is None:
-        return (None,)
-
-    return (datetime.date(int(year), int(month), int(day)),)
+def get_user_complete_date(dataframe):
+    return dataframe.select(
+        pl.date(pl.col("completedAt.year"), pl.col("completedAt.month"), pl.col("completedAt.day"))
+    ).to_series()
 
 
 def get_ranks(tags):
     ranks = {}
 
     for tag in tags:
-        value = tag["rank"]
-        ranks[tag["name"]] = value if value is not None else 0
+        ranks[tag["name"]] = tag["rank"]
 
-    if len(ranks) == 0:
+    if not ranks:
         return {"fake": None}  # Some pyarrow shenanigans, need a non-empty dict
 
     return ranks
 
 
-def get_nsfw_tags(items):
-    return [item["name"] for item in items if item.get("isAdult", False) is True]
-
-
-def get_studios(studios):
-    return list(
-        set(
-            [
-                studio["node"]["name"]
-                for studio in studios
-                if studio["node"].get("isAnimationStudio", False)
-            ]
+def get_nsfw_tags(dataframe):
+    return dataframe.select(
+        pl.col("tags")
+        .list.eval(
+            pl.when(pl.element().struct.field("isAdult") == True).then(
+                pl.element().struct.field("name")
+            )
         )
-    )
+        .list.drop_nulls()
+    ).to_series()
+
+
+def get_studios(dataframe):
+    return dataframe.select(
+        pl.col("studios.edges")
+        .list.eval(
+            pl.when(
+                pl.element().struct.field("node").struct.field("isAnimationStudio") == True
+            ).then(pl.element().struct.field("node").struct.field("name"))
+        )
+        .list.drop_nulls()
+    ).to_series()
 
 
 def get_staff(staffs, nodes, role):
@@ -162,6 +214,22 @@ def get_staff(staffs, nodes, role):
     staff_ids = [node["id"] for node in nodes]
 
     return ([int(staff_ids[i]) for i, r in enumerate(roles) if r == role],)
+
+
+# SLOWER, but could use for other things like ranks?
+
+# def get_staff_2(dataframe):
+#     return dataframe.select(
+#         pl.col("staff.nodes")
+#         .list.gather(
+#             pl.col("staff.edges").list.eval(
+#                 pl.when(pl.element().struct.field("role") == "Director").then(
+#                     pl.element().cum_count()
+#                 )
+#             )
+#         )
+#         .list.eval(pl.element().struct.field("id"))
+#     ).to_series()
 
 
 # fmt: off
@@ -177,20 +245,26 @@ ANILIST_MAPPING = {
     Columns.POPULARITY:         DefaultMapper("popularity"),
     Columns.DURATION:           DefaultMapper("duration"),
     Columns.EPISODES:           DefaultMapper("episodes"),
-    Columns.USER_STATUS:        SingleMapper("status", str.lower),
-    Columns.STATUS:             SingleMapper("status", str.lower),
-    Columns.SCORE:              SingleMapper("score", util.get_score),
-    Columns.SOURCE:             SingleMapper("source", 
-                                             lambda source: source.lower() 
-                                             if source else None),
-    Columns.TAGS:               SingleMapper("tags", get_tags),
-    Columns.CONTINUATION_TO:    SingleMapper("relations.edges", get_continuation),
-    Columns.ADAPTATION_OF:      SingleMapper("relations.edges", get_adaptation),
-    Columns.NSFW_TAGS:          SingleMapper("tags", get_nsfw_tags),
-    Columns.STUDIOS:            SingleMapper("studios.edges", get_studios),
+    Columns.USER_STATUS:        SelectorMapper(pl.col("status").str.to_lowercase()),
+    Columns.STATUS:             SelectorMapper(pl.col("status").str.to_lowercase()),
+    Columns.SCORE:              SelectorMapper(
+                                    pl.when(pl.col("score") > 0)
+                                    .then(pl.col("score"))
+                                    .otherwise(None)
+                                ),
+    Columns.SOURCE:             SelectorMapper(
+                                    pl.when(pl.col("source").is_not_null())
+                                    .then(pl.col("source").str.to_lowercase())
+                                    .otherwise(None)
+                                ),
+    Columns.TAGS:               QueryMapper(get_tags),
+    Columns.NSFW_TAGS:          QueryMapper(get_nsfw_tags),
+    Columns.CONTINUATION_TO:    QueryMapper(get_continuation),
+    Columns.ADAPTATION_OF:      QueryMapper(get_adaptation),
+    Columns.STUDIOS:            QueryMapper(get_studios),
+    Columns.USER_COMPLETE_DATE: QueryMapper(get_user_complete_date),
     Columns.RANKS:              SingleMapper("tags", get_ranks),
     Columns.DIRECTOR:           MultiMapper(["staff.edges", "staff.nodes"], functools.partial(get_staff, role="Director")),
-    Columns.USER_COMPLETE_DATE: MultiMapper(["completedAt.year", "completedAt.month", "completedAt.day"], get_user_complete_date),
-    Columns.START_SEASON:       MultiMapper(["seasonYear", "season"], util.get_season),
+    Columns.START_SEASON:       QueryMapper(util.get_season) # MultiMapper(["seasonYear", "season"], util.get_season),
 }
 # fmt: on

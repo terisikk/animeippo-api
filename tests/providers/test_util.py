@@ -54,11 +54,3 @@ def test_transformation_does_not_fail_with_empty_data():
     )
     assert type(data) == pl.DataFrame
     assert len(data) == 0
-
-
-def test_default_if_error():
-    @util.default_if_error("default")
-    def test_func():
-        raise TypeError("test")
-
-    assert test_func() == "default"

@@ -214,14 +214,14 @@ class BecauseYouLikedCategory:
             # We need a row, not an object
             liked_item = last_liked[self.nth_liked]
 
-            similarity = dataset.similarity_matrix.filter(pl.col("id") == liked_item["id"])
+            similarity = dataset.similarity_matrix.filter(pl.col("id") == liked_item["id"].item())
 
             if len(similarity) > 0:
                 self.description = f"Because You Liked {liked_item['title'].item()}"
 
                 return (
                     dataset.recommendations.join(
-                        similarity.select(pl.exclude("user_status")).transpose(
+                        similarity.select(pl.exclude("id")).transpose(
                             include_header=True, header_name="id", column_names=["gscore"]
                         ),
                         left_on=pl.col("id").cast(pl.Utf8),

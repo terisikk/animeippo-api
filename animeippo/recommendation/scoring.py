@@ -42,7 +42,7 @@ class FeaturesSimilarityScorer(AbstractScorer):
             averages.columns = ["name", "weight"]
 
             weights = analysis.weighted_mean_for_categorical_values(
-                compare_df, "features", averages
+                data.watchlist_explode_cached("features"), "features", averages
             )
 
             scores = scores * weights
@@ -61,20 +61,23 @@ class FeatureCorrelationScorer(AbstractScorer):
             compare_df, "encoded", data.all_features
         )
 
-        dropped_or_paused = compare_df["user_status"].is_in(["dropped", "paused"])
-
         drop_correlations = analysis.weight_encoded_categoricals_correlation(
-            compare_df, "encoded", data.all_features, dropped_or_paused
+            compare_df.with_columns(
+                dropped_or_paused=pl.col("user_status").is_in(["dropped", "paused"])
+            ),
+            "encoded",
+            data.all_features,
+            "dropped_or_paused",
         )
 
+        fdf = data.seasonal_explode_cached("features")
+
         scores = analysis.weighted_sum_for_categorical_values(
-            scoring_target_df, "features", score_correlations
+            fdf, "features", score_correlations
         ) / np.sqrt(scoring_target_df["features"].list.len())
 
         scores = scores - (
-            analysis.weighted_mean_for_categorical_values(
-                scoring_target_df, "features", drop_correlations
-            )
+            analysis.weighted_mean_for_categorical_values(fdf, "features", drop_correlations)
         )
 
         return analysis.normalize_column(scores)
@@ -85,12 +88,13 @@ class GenreAverageScorer(AbstractScorer):
 
     def score(self, data):
         scoring_target_df = data.seasonal
+        gdf = data.seasonal_explode_cached("genres")
 
         weights = analysis.weight_categoricals(data.watchlist_explode_cached("genres"), "genres")
 
         scores = (
             analysis.weighted_sum_for_categorical_values(
-                scoring_target_df,
+                gdf,
                 "genres",
                 weights,
             )
@@ -128,14 +132,12 @@ class StudioCorrelationScorer:
     name = "studiocorrelationscore"
 
     def score(self, data):
-        scoring_target_df = data.seasonal
-
         weights = data.user_profile.studio_correlations
 
         median = weights["weight"].median()
 
         scores = analysis.weighted_mean_for_categorical_values(
-            scoring_target_df, "studios", weights, median
+            data.seasonal_explode_cached("studios"), "studios", weights, median
         )
 
         return analysis.normalize_column(scores)
@@ -362,14 +364,12 @@ class DirectorCorrelationScorer:
     name = "directorcorrelationscore"
 
     def score(self, data):
-        scoring_target_df = data.seasonal
-
         weights = data.user_profile.director_correlations
 
         median = weights["weight"].median()
 
         scores = analysis.weighted_mean_for_categorical_values(
-            scoring_target_df, "directors", weights, median
+            data.seasonal_explode_cached("directors"), "directors", weights, median
         )
 
         return analysis.normalize_column(scores)

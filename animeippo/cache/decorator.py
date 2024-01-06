@@ -1,4 +1,5 @@
 import functools
+import asyncio
 
 
 def cached_query(ttl):
@@ -20,7 +21,7 @@ def cached_query(ttl):
 
                 if self.cache and self.cache.is_available():
                     print(f"Cache save for {cachekey}")
-                    self.cache.set_json(cachekey, data, ttl)
+                    asyncio.create_task(self.cache.set_json(cachekey, data, ttl))
 
             return data
 
@@ -54,7 +55,7 @@ def cached_dataframe(ttl):
 
                 if self.cache and self.cache.is_available():
                     print(f"Cache save for {cachekey}")
-                    self.cache.set_dataframe(cachekey, data, ttl)
+                    asyncio.create_task(self.cache.set_dataframe(cachekey, data, ttl))
 
             return data
 

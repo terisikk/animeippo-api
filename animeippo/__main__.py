@@ -1,9 +1,5 @@
-from profilehooks import profile, timecall
-
-
-@profile(filename=".profiling/cprofile.pstats")
 def get_recs():
-    year = "2023"
+    year = "2022"
     season = None
     user = "Janiskeisari"
 

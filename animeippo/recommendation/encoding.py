@@ -1,5 +1,6 @@
 import sklearn.preprocessing as skpre
 import numpy as np
+import polars as pl
 
 
 class CategoricalEncoder:

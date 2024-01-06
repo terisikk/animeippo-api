@@ -19,7 +19,7 @@ pyarrow = "^14.0.1"
 aiohttp = "^3.8.4"
 async-lru = "^2.0.4"
 fast-json-normalize = "^0.0.9"
-polars = {extras = ["numpy", "pandas", "pyarrow"], version = "^0.20.2"}
+polars = { extras = ["numpy", "pandas", "pyarrow"], version = "^0.20.2" }
 
 
 [tool.poetry.group.dev.dependencies]
@@ -70,7 +70,7 @@ exclude_lines = [
   # Don't complain if non-runnable code isn't run:
   "if __name__ == .__main__.:",
 ]
-omit = ["animeippo/main.py"]
+omit = ["animeippo/__main__.py"]
 
 [tool.pytest.ini_options]
 filterwarnings = [

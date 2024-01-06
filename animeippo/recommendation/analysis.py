@@ -24,11 +24,11 @@ def categorical_similarity(features1, features2, metric="jaccard", columns=None)
     that contains vector-encoded representation of features."""
     similarities = pl.DataFrame(
         similarity(
-            # Poetry seems to have a bug where to_numpy gets a cached value
+            # Polars seems to have a bug where to_numpy gets a cached value
             # instead of the actual conversion, thus np.array(x.to_list()),
             # not to_numpy().
-            np.stack(np.array(features1.to_list())),
-            np.stack(np.array(features2.to_list())),
+            np.stack(features1.to_list()),
+            np.stack(features2.to_list()),
             metric=metric,
         )
     )
@@ -53,17 +53,12 @@ def weighted_mean_for_categorical_values(dataframe, column, weights, fillna=0.0)
     if len(weights) == 0 or weights is None:
         return fillna
 
-    weights = {
-        key: weight if weight is not None else fillna
-        for key, weight in weights.select(["name", "weight"]).iter_rows()
-    }
-
     return (
-        dataframe.explode(column)
-        .select(
+        dataframe.select(
             pl.col("id"),
             pl.col(column).replace(
-                weights,
+                old=weights["name"],
+                new=weights["weight"],
                 default=fillna,
             ),
         )
@@ -76,17 +71,12 @@ def weighted_sum_for_categorical_values(dataframe, column, weights, fillna=0.0):
     if len(weights) == 0 or weights is None:
         return fillna
 
-    weights = {
-        key: weight if weight is not None else fillna
-        for key, weight in weights.select(["name", "weight"]).iter_rows()
-    }
-
     return (
-        dataframe.explode(column)
-        .select(
+        dataframe.select(
             pl.col("id"),
             pl.col(column).replace(
-                weights,
+                old=weights["name"],
+                new=weights["weight"],
                 default=fillna,
             ),
         )
@@ -109,20 +99,16 @@ def weight_categoricals(dataframe, column):
     )
 
 
-def weight_encoded_categoricals_correlation(dataframe, column, features, against=None):
+def weight_encoded_categoricals_correlation(dataframe, column, features, against="score"):
     """
     Weights running-length encoded categorical features by their correlation with the score.
     Assumes that the encoding is done with features sorted alphabetically.
     """
-    if against is not None:
-        dataframe = pl.concat([dataframe, pl.DataFrame(against.alias("against"))], how="horizontal")
-        df_non_na = dataframe.filter(dataframe["against"].is_not_null())
-    else:
-        df_non_na = dataframe.filter(pl.col("score").is_not_null())
-        against = df_non_na["score"]
+
+    df_non_na = dataframe.filter(pl.col(against).is_not_null())
 
     values = np.stack(df_non_na[column])
-    scores = np.array(against)
+    scores = np.array(df_non_na[against])
 
     correlations = np.corrcoef(np.hstack((values, scores.reshape(-1, 1))), rowvar=False)[:-1, -1]
 

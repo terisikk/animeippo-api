@@ -11,7 +11,7 @@ def extract_features(features, columns, n_features=None):
     Creating a crosstab in polars is much more inconvenient than in pandas
     currently, so we convert to pandas here until I find a better way.
     """
-    fetures = features.to_pandas()
+    features = features.to_pandas()
     columns = columns.to_pandas()
 
     contingency_table = pd.crosstab(features, columns)

@@ -39,6 +39,22 @@ class DefaultMapper:
         return series.get_column(self.name) if self.name in series.columns else pl.lit(self.default)
 
 
+class SelectorMapper:
+    def __init__(self, selector):
+        self.selector = selector
+
+    def map(self, dataframe):
+        return dataframe.select(self.selector).to_series()
+
+
+class QueryMapper:
+    def __init__(self, query):
+        self.query = query
+
+    def map(self, dataframe):
+        return self.query(dataframe)
+
+
 class SingleMapper:
     def __init__(self, name, func, default=None):
         self.name = name

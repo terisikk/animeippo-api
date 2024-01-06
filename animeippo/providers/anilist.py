@@ -2,6 +2,8 @@ import aiohttp
 from datetime import timedelta
 from async_lru import alru_cache
 
+from animeippo.providers.anilist_data import ALL_FEATURES
+
 from . import provider
 from .formatters import ani_formatter
 
@@ -211,6 +213,9 @@ class AniListProvider(provider.AbstractAnimeProvider):
 
     def get_related_anime(self, id):
         pass
+
+    def get_all_features(self):
+        return ALL_FEATURES
 
 
 class AnilistConnection:
