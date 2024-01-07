@@ -12,7 +12,7 @@ class UserProfile:
         self.watchlist = watchlist
         self.mangalist = None
 
-        self.last_liked = None
+        self.last_liked = self.get_last_liked()
 
         self.genre_correlations = None
         self.director_correlations = None
@@ -27,6 +27,13 @@ class UserProfile:
         self.director_correlations = self.get_director_correlations()
         self.studio_correlations = self.get_studio_correlations()
         # self.last_liked = self.get_last_liked()
+
+    def get_last_liked(self):
+        mask = (
+            pl.col("score").ge(pl.col("score").mean()) & pl.col("user_complete_date").is_not_null()
+        )
+
+        return self.watchlist.filter(mask).sort("user_complete_date", descending=True).head(10)
 
     def get_genre_correlations(self):
         if "genres" not in self.watchlist.columns:

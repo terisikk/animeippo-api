@@ -74,7 +74,9 @@ class AnimeRecommendationEngine:
         recommendations = self.score_anime(dataset)
 
         recommendations = recommendations.with_columns(
-            cluster=self.clustering_model.predict(dataset.seasonal["encoded"])
+            cluster=self.clustering_model.predict(
+                dataset.seasonal["encoded"], dataset.similarity_matrix
+            ),
         )
 
         return recommendations.sort("recommend_score", descending=True)

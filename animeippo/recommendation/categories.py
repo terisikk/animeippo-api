@@ -45,7 +45,7 @@ class AdaptationCategory:
 
 class SourceCategory:
     description = "Based on a"
-    requires = [scoring.SourceScorer.name, scoring.DirectSimilarityScorer.name]
+    requires = [scoring.SourceScorer.name]
 
     def categorize(self, dataset, max_items=20):
         target = dataset.recommendations
@@ -202,19 +202,13 @@ class BecauseYouLikedCategory:
         self.distance_metric = distance_metric
 
     def categorize(self, dataset, max_items=20):
-        wl = dataset.watchlist
-
-        mask = (
-            pl.col("score").ge(pl.col("score").mean()) & pl.col("user_complete_date").is_not_null()
-        )
-
-        last_liked = wl.filter(mask).sort("user_complete_date", descending=True)
+        last_liked = dataset.user_profile.last_liked
 
         if len(last_liked) > self.nth_liked:
             # We need a row, not an object
             liked_item = last_liked[self.nth_liked]
 
-            similarity = dataset.similarity_matrix.filter(pl.col("id") == liked_item["id"].item())
+            similarity = dataset.similarity_matrix.filter(pl.col("id") == liked_item["id"])
 
             if len(similarity) > 0:
                 self.description = f"Because You Liked {liked_item['title'].item()}"

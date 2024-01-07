@@ -13,7 +13,7 @@ def transform_to_animeippo_format(original, feature_names, keys, mapping):
         return df
 
     if "id" in original.columns:
-        original = original.unique(subset=["id"])
+        original = original.unique(subset=["id"], keep="first")
 
     df = run_mappers(df, original, mapping)
 

@@ -64,18 +64,19 @@ class AnimeClustering:
 
         return np.insert(clusters, np.where(series.sum(axis=1) == 0)[0], -1)
 
-    def predict(self, series):
+    def predict(self, series, similarities=None):
         if not self.fit:
             raise RuntimeError("Cluster is not fitted yet. Please call cluster_by_features first.")
 
-        similarities = analysis.categorical_similarity(
-            series,
-            self.clustered_series["encoded"],
-            metric=self.distance_metric,
-        )
+        if similarities is None:
+            similarities = analysis.categorical_similarity(
+                self.clustered_series["encoded"],
+                series,
+                metric=self.distance_metric,
+            )
+            similarities = similarities.with_columns(id=self.clustered_series["id"])
 
-        sim_t = similarities.transpose().with_columns(id=self.clustered_series["id"])
-        idymax = analysis.idymax(sim_t)
+        idymax = analysis.idymax(similarities)
 
         return idymax.join(
             self.clustered_series.select("id", "cluster"),

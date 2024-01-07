@@ -119,8 +119,12 @@ def weight_categoricals_correlation(dataframe, column, against=None):
     dataframe = dataframe.filter(pl.col(column).is_not_null())
     against = against if against is not None else dataframe["score"]
 
-    counts = dataframe[column].value_counts().sort(pl.col(column).cast(pl.Utf8))
-    weights = counts["count"].sqrt()  # Lessen the effect of outliers
+    weights = (
+        dataframe[column]
+        .value_counts()
+        .sort(pl.col(column).cast(pl.Utf8))
+        .select(column, pl.col("count").sqrt().alias("weight"))  # Lessen the effect of outliers
+    )
 
     correlations = (
         dataframe.select(column)
@@ -129,9 +133,9 @@ def weight_categoricals_correlation(dataframe, column, against=None):
         .filter(pl.col("score").is_not_null())  # Remove nulls, not scored items are not interesting
         .select(pl.corr(pl.exclude("score"), pl.col("score")))  # Correlate with score
         .transpose()  # Transpose to get correlations as rows
-        .select(pl.col("column_0").mul(weights).alias("weight"))  # Multiply with weights
+        .select(pl.col("column_0").mul(weights["weight"]).alias("weight"))  # Multiply with weights
         .fill_nan(0.0)
-        .with_columns(**{"name": counts[column]})  # Add categorical names
+        .with_columns(name=weights[column])  # Add categorical names
     )
 
     return correlations

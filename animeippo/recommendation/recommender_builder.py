@@ -70,7 +70,7 @@ def get_default_categorizers(distance_metric="jaccard"):
 @alru_cache(maxsize=1)
 async def get_user_profile(provider, user):
     user_data = await provider.get_user_anime_list(user)
-    user_profile = profile.UserProfile(user, remove_duplicates(user_data))
+    user_profile = profile.UserProfile(user, user_data)
 
     return user_profile
 
@@ -82,9 +82,9 @@ async def get_dataset(provider, user, year, season):
         provider.get_seasonal_anime_list(year, season),
     )
 
-    user_profile.mangalist = remove_duplicates(manga_data)
+    user_profile.mangalist = manga_data
 
-    data = dataset.RecommendationModel(user_profile, remove_duplicates(season_data))
+    data = dataset.RecommendationModel(user_profile, season_data)
 
     data.nsfw_tags += get_nswf_tags(user_profile.watchlist)
     data.nsfw_tags += get_nswf_tags(season_data)
@@ -92,16 +92,9 @@ async def get_dataset(provider, user, year, season):
     return data
 
 
-def remove_duplicates(df):
-    if df is not None and "id" in df.columns:
-        df = df.unique(subset=["id"], keep="first")
-
-    return df
-
-
 def get_nswf_tags(df):
     if df is not None and "nsfw_tags" in df.columns:
-        return df["nsfw_tags"].explode().drop_nans().unique().to_list()
+        return df["nsfw_tags"].explode().unique().drop_nans().to_list()
 
     return []
 
@@ -115,7 +108,7 @@ async def construct_anilist_data(provider, year, season, user):
 
     if data.seasonal is not None and data.watchlist is not None:
         data.seasonal = fill_user_status_data_from_watchlist(data.seasonal, data.watchlist)
-        data.seasonal = filters.ContinuationFilter(data.watchlist).filter(data.seasonal)
+        data.seasonal = data.seasonal.filter(filters.ContinuationFilter(data.watchlist))
 
     if data.seasonal is not None:
         seasonal_filters = [
@@ -128,8 +121,7 @@ async def construct_anilist_data(provider, year, season, user):
             else filters.StartSeasonFilter((year, season)),
         ]
 
-        for f in seasonal_filters:
-            data.seasonal = f.filter(data.seasonal)
+        data.seasonal = data.seasonal.filter(seasonal_filters)
 
     return data
 
@@ -158,8 +150,7 @@ async def construct_myanimelist_data(provider, year, season, user):
             else filters.StartSeasonFilter((year, season)),
         ]
 
-        for f in seasonal_filters:
-            data.seasonal = f.filter(data.seasonal)
+        data.seasonal = data.seasonal.filter(seasonal_filters)
 
         indices = data.seasonal["id"].to_list()
         related_anime = await get_related_anime(indices, provider)
@@ -167,7 +158,7 @@ async def construct_myanimelist_data(provider, year, season, user):
 
     if data.watchlist is not None and data.seasonal is not None:
         data.seasonal = fill_user_status_data_from_watchlist(data.seasonal, data.watchlist)
-        data.seasonal = filters.ContinuationFilter(data.watchlist).filter(data.seasonal)
+        data.seasonal = data.seasonal.filter(filters.ContinuationFilter(data.watchlist))
 
     return data
 

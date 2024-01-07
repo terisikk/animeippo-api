@@ -1,4 +1,5 @@
 from functools import lru_cache
+import polars as pl
 
 
 class RecommendationModel:
