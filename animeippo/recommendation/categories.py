@@ -1,8 +1,7 @@
-import numpy as np
 import polars as pl
 import datetime
 
-from animeippo.recommendation import scoring, util, analysis, discourager
+from animeippo.recommendation import scoring, util
 
 
 class MostPopularCategory:

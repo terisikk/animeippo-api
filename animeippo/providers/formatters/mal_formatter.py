@@ -7,7 +7,14 @@ from fast_json_normalize import fast_json_normalize
 
 from . import util
 
-from animeippo.providers.formatters.schema import DefaultMapper, SingleMapper, MultiMapper, Columns
+from animeippo.providers.formatters.schema import (
+    DefaultMapper,
+    SingleMapper,
+    MultiMapper,
+    Columns,
+    QueryMapper,
+    SelectorMapper,
+)
 
 
 def combine_dataframes(dataframes):
@@ -48,7 +55,6 @@ def transform_seasonal_data(data, feature_names):
         Columns.MEAN_SCORE,
         Columns.POPULARITY,
         Columns.STATUS,
-        Columns.SCORE,
         Columns.DURATION,
         Columns.EPISODES,
         Columns.SOURCE,
@@ -140,6 +146,18 @@ def get_status(status):
     return mapping.get(status, status)
 
 
+def get_season(dataframe):
+    return dataframe.select(
+        pl.concat_str(
+            [
+                pl.col("node.startseason.year").fill_null("?"),
+                pl.col("node.startseason.season").fill_null("?"),
+            ],
+            separator="/",
+        ).str.to_lowercase()
+    ).to_series()
+
+
 # fmt: off
 MAL_MAPPING = {
     Columns.ID:                 DefaultMapper("node.id"),
@@ -156,9 +174,13 @@ MAL_MAPPING = {
     Columns.GENRES:             SingleMapper("node.genres", split_id_name_field, []),
     Columns.STUDIOS:            SingleMapper("node.studios", split_id_name_field),
     Columns.STATUS:             SingleMapper("node.status", get_status),
-    Columns.SCORE:              SingleMapper("list_status.score", util.get_score),
+    Columns.SCORE:              SelectorMapper(
+                                    pl.when(pl.col("list_status.score") > 0)
+                                    .then(pl.col("list_status.score"))
+                                    .otherwise(None)
+                                ),    
     Columns.USER_COMPLETE_DATE: SingleMapper("list_status.finish_date", get_user_complete_date),
-    Columns.START_SEASON:       MultiMapper(["node.start_season.year", "node.start_season.season"], util.get_season),
+    Columns.START_SEASON:       QueryMapper(get_season),
     Columns.CONTINUATION_TO:    MultiMapper(["relation_type", "node.id"], get_continuation),
 }
 

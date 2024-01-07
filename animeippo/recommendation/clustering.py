@@ -1,6 +1,5 @@
 import sklearn.cluster as skcluster
 
-import polars as pl
 import numpy as np
 
 from animeippo.recommendation import analysis

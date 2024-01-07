@@ -1,5 +1,4 @@
 import abc
-import math
 
 import numpy as np
 import polars as pl
@@ -104,15 +103,15 @@ class GenreAverageScorer(AbstractScorer):
         return analysis.normalize_column(scores)
 
 
-# This gives way too much zero. Replace with mean / mode or just use the better studiocorrelationscore.
+# This gives way too much zero. Replace with mean / mode
+# or just use the better studiocorrelationscore.
 class StudioCountScorer(AbstractScorer):
     name = "studiocountscore"
 
     def score(self, data):
         scoring_target_df = data.seasonal
-        compare_df = data.watchlist
 
-        counts = compare_df.explode("studios")["studios"].value_counts()
+        counts = data.watchlist_explode_cached("studios")["studios"].value_counts()
         counts = dict(zip(counts["studios"], counts["count"]))
 
         scores = scoring_target_df["studios"].map_elements(
@@ -151,7 +150,6 @@ class ClusterSimilarityScorer(AbstractScorer):
         self.distance_metric = distance_metric or "jaccard"
 
     def score(self, data):
-        scoring_target_df = data.seasonal
         compare_df = data.watchlist
 
         scores = pl.DataFrame()

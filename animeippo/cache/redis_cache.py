@@ -1,9 +1,6 @@
-import io
-
-import redis
+import redis as redis
 import hashlib
 import polars as pl
-import polars.selectors as cs
 
 from datetime import timedelta
 
@@ -16,7 +13,7 @@ class RedisCache:
         # TODO: Remove this hardcoded server value, add to config
         self.connection = redis.Redis(host="redis-stack-server", port=6379)
 
-    async def set_json(self, key, value, ttl=timedelta(days=7)):
+    def set_json(self, key, value, ttl=timedelta(days=7)):
         # We are using query strings as keys, better to hash them for perf
         key = hashlib.sha256(key.encode("utf-8")).hexdigest()
 
@@ -27,9 +24,10 @@ class RedisCache:
         key = hashlib.sha256(key.encode("utf-8")).hexdigest()
         return self.connection.json().get(key)
 
-    async def set_dataframe(self, key, dataframe, ttl=timedelta(days=7)):
-        self.connection.set(key, dataframe.write_ipc(None).getvalue())
-        self.connection.expire(key, ttl)
+    def set_dataframe(self, key, dataframe, ttl=timedelta(days=7)):
+        if dataframe is not None:
+            self.connection.set(key, dataframe.write_ipc(None).getvalue())
+            self.connection.expire(key, ttl)
 
     def get_dataframe(self, key):
         data = self.connection.get(key)

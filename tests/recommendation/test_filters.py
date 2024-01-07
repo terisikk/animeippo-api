@@ -2,27 +2,16 @@ import animeippo.recommendation.filters as filters
 import polars as pl
 
 
-def test_abstract_filter_can_be_instantiated():
-    class ConcreteFilter(filters.AbstractFilter):
-        def filter(self, dataframe):
-            return super().filter(dataframe)
-
-    filter = ConcreteFilter()
-    filter.filter(None)
-
-    assert issubclass(filter.__class__, filters.AbstractFilter)
-
-
 def test_media_type_filter():
     original = pl.DataFrame({"format": ["tv", "tv", "special", "movie"]})
 
     filter = filters.MediaTypeFilter("tv")
 
-    assert filter.filter(original)["format"].to_list() == ["tv", "tv"]
+    assert original.filter(filter)["format"].to_list() == ["tv", "tv"]
 
-    filter.negative = True
+    filter = filters.MediaTypeFilter("tv", negative=True)
 
-    assert filter.filter(original)["format"].to_list() == ["special", "movie"]
+    assert original.filter(filter)["format"].to_list() == ["special", "movie"]
 
 
 def test_feature_filter():
@@ -30,11 +19,11 @@ def test_feature_filter():
 
     filter = filters.FeatureFilter("Action")
 
-    assert filter.filter(original)["features"].to_list() == [["Action", "Adventure"]]
+    assert original.filter(filter)["features"].to_list() == [["Action", "Adventure"]]
 
-    filter.negative = True
+    filter = filters.FeatureFilter("Action", negative=True)
 
-    assert filter.filter(original)["features"].to_list() == [["Fantasy", "Comedy"]]
+    assert original.filter(filter)["features"].to_list() == [["Fantasy", "Comedy"]]
 
 
 def test_status_filter():
@@ -44,11 +33,11 @@ def test_status_filter():
 
     filter = filters.UserStatusFilter("completed")
 
-    assert filter.filter(original)["user_status"].to_list() == ["completed", "completed"]
+    assert original.filter(filter)["user_status"].to_list() == ["completed", "completed"]
 
-    filter.negative = True
+    filter = filters.UserStatusFilter("completed", negative=True)
 
-    assert filter.filter(original)["user_status"].to_list() == ["dropped", "on_hold", "unwatched"]
+    assert original.filter(filter)["user_status"].to_list() == ["dropped", "on_hold", "unwatched"]
 
 
 def test_rating_filter():
@@ -56,11 +45,11 @@ def test_rating_filter():
 
     filter = filters.RatingFilter("g", "pg_13")
 
-    assert filter.filter(original)["rating"].to_list() == ["g", "g", "pg_13"]
+    assert original.filter(filter)["rating"].to_list() == ["g", "g", "pg_13"]
 
-    filter.negative = True
+    filter = filters.RatingFilter("g", "pg_13", negative=True)
 
-    assert filter.filter(original)["rating"].to_list() == ["r", "r"]
+    assert original.filter(filter)["rating"].to_list() == ["r", "r"]
 
 
 def test_season_filter():
@@ -68,11 +57,11 @@ def test_season_filter():
 
     filter = filters.StartSeasonFilter(("2023", "winter"))
 
-    assert filter.filter(original)["start_season"].to_list() == ["2023/winter", "2023/winter"]
+    assert original.filter(filter)["start_season"].to_list() == ["2023/winter", "2023/winter"]
 
-    filter.negative = True
+    filter = filters.StartSeasonFilter(("2023", "winter"), negative=True)
 
-    assert filter.filter(original)["start_season"].to_list() == ["2023/spring"]
+    assert original.filter(filter)["start_season"].to_list() == ["2023/spring"]
 
 
 def test_continuation_filter():
@@ -94,8 +83,8 @@ def test_continuation_filter():
         }
     )
 
-    assert filter.filter(original)["id"].to_list() == [5, 7, 8]
+    assert original.filter(filter)["id"].to_list() == [5, 7, 8]
 
-    filter.negative = True
+    filter = filters.ContinuationFilter(compare, negative=True)
 
-    assert filter.filter(original)["id"].to_list() == [6]
+    assert original.filter(filter)["id"].to_list() == [6]

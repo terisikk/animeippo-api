@@ -1,4 +1,5 @@
 import functools
+import threading
 import asyncio
 
 
@@ -9,8 +10,10 @@ def cached_query(ttl):
             data = None
             cachekey = "".join(query.split()) + str(parameters)
 
-            if self.cache and self.cache.is_available():
-                data = self.cache.get_json(cachekey)
+            cache_available = self.cache is not None and self.cache.is_available()
+
+            if cache_available:
+                data = await asyncio.to_thread(self.cache.get_json, cachekey)
 
             if data:
                 print(f"Cache hit for {cachekey}")
@@ -19,9 +22,16 @@ def cached_query(ttl):
                 print(f"Cache miss for {cachekey}")
                 data = await func(self, query, parameters)
 
-                if self.cache and self.cache.is_available():
+                if cache_available:
                     print(f"Cache save for {cachekey}")
-                    asyncio.create_task(self.cache.set_json(cachekey, data, ttl))
+                    threading.Thread(
+                        target=self.cache.set_json,
+                        args=(
+                            cachekey,
+                            data,
+                            ttl,
+                        ),
+                    ).start()
 
             return data
 
@@ -43,8 +53,10 @@ def cached_dataframe(ttl):
                 + str(self.__class__)
             )
 
-            if self.cache and self.cache.is_available():
-                data = self.cache.get_dataframe(cachekey)
+            cache_available = self.cache is not None and self.cache.is_available()
+
+            if cache_available:
+                data = await asyncio.to_thread(self.cache.get_dataframe, cachekey)
 
             if data is not None:
                 print(f"Cache hit for {cachekey}")
@@ -53,9 +65,16 @@ def cached_dataframe(ttl):
                 print(f"Cache miss for {cachekey}")
                 data = await func(self, *args)
 
-                if self.cache and self.cache.is_available():
+                if cache_available:
                     print(f"Cache save for {cachekey}")
-                    asyncio.create_task(self.cache.set_dataframe(cachekey, data, ttl))
+                    threading.Thread(
+                        target=self.cache.set_dataframe,
+                        args=(
+                            cachekey,
+                            data,
+                            ttl,
+                        ),
+                    ).start()
 
             return data
 

@@ -1,7 +1,5 @@
 import animeippo.recommendation.analysis as analysis
-import pandas as pd
 import numpy as np
-import pytest
 import polars as pl
 
 
@@ -50,7 +48,9 @@ def test_similarity_weights():
         }
     )
 
-    weights = analysis.weighted_mean_for_categorical_values(original, "genres", genre_averages)
+    weights = analysis.weighted_mean_for_categorical_values(
+        original.explode("genres"), "genres", genre_averages
+    )
 
     assert weights.sort(descending=True).to_list() == [8.5, 8.0]
 
@@ -66,7 +66,9 @@ def test_similarity_weight_uses_zero_to_subsitute_nan():
         }
     )
 
-    weights = analysis.weighted_mean_for_categorical_values(original, "genres", genre_averages)
+    weights = analysis.weighted_mean_for_categorical_values(
+        original.explode("genres"), "genres", genre_averages
+    )
 
     assert weights.to_list() == [4.5]
 
@@ -82,7 +84,9 @@ def test_similarity_weight_scores_genre_list_containing_only_unseen_genres_as_ze
         }
     )
 
-    weights = analysis.weighted_mean_for_categorical_values(original, "genres", genre_averages)
+    weights = analysis.weighted_mean_for_categorical_values(
+        original.explode("genres"), "genres", genre_averages
+    )
 
     assert weights.to_list() == [0.0]
 

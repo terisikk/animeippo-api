@@ -1,7 +1,6 @@
 import polars as pl
-import numpy as np
 
-from animeippo.providers.formatters import mal_formatter, util
+from animeippo.providers.formatters import mal_formatter
 from tests import test_data
 
 

@@ -94,7 +94,7 @@ async def get_dataset(provider, user, year, season):
 
 def get_nswf_tags(df):
     if df is not None and "nsfw_tags" in df.columns:
-        return df["nsfw_tags"].explode().unique().drop_nans().to_list()
+        return df["nsfw_tags"].explode().unique().to_list()
 
     return []
 
@@ -108,12 +108,14 @@ async def construct_anilist_data(provider, year, season, user):
 
     if data.seasonal is not None and data.watchlist is not None:
         data.seasonal = fill_user_status_data_from_watchlist(data.seasonal, data.watchlist)
-        data.seasonal = data.seasonal.filter(filters.ContinuationFilter(data.watchlist))
+        data.seasonal = (
+            data.seasonal.filter(filters.ContinuationFilter(data.watchlist))
+            if data.seasonal["continuation_to"].dtype != pl.List(pl.Null)
+            else data.seasonal
+        )
 
     if data.seasonal is not None:
         seasonal_filters = [
-            filters.FeatureFilter("Kids", negative=True),
-            filters.FeatureFilter("Hentai", negative=True),
             filters.StartSeasonFilter(
                 (year, "winter"), (year, "spring"), (year, "summer"), (year, "fall")
             )
@@ -158,7 +160,11 @@ async def construct_myanimelist_data(provider, year, season, user):
 
     if data.watchlist is not None and data.seasonal is not None:
         data.seasonal = fill_user_status_data_from_watchlist(data.seasonal, data.watchlist)
-        data.seasonal = data.seasonal.filter(filters.ContinuationFilter(data.watchlist))
+        data.seasonal = (
+            data.seasonal.filter(filters.ContinuationFilter(data.watchlist))
+            if data.seasonal["continuation_to"].dtype != pl.List(pl.Null)
+            else data.seasonal
+        )
 
     return data
 

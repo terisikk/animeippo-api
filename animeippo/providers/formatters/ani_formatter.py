@@ -1,8 +1,6 @@
-import datetime
 import functools
 
 import polars as pl
-
 from fast_json_normalize import fast_json_normalize
 
 from . import util
@@ -17,23 +15,7 @@ from animeippo.providers.formatters.schema import (
 
 
 def transform_seasonal_data(data, feature_names):
-    # original = pl.from_pandas(fast_json_normalize(data["data"]["media"]))
-    original = (
-        pl.DataFrame(data["data"]["media"])
-        .unnest(["coverImage", "staff", "title"])
-        .rename(
-            {
-                "edges": "staff.edges",
-                "nodes": "staff.nodes",
-                "romaji": "title.romaji",
-                "large": "coverImage.large",
-            }
-        )
-        .unnest("relations")
-        .rename({"edges": "relations.edges"})
-        .unnest("studios")
-        .rename({"edges": "studios.edges"})
-    )
+    original = pl.from_pandas(fast_json_normalize(data["data"]["media"]))
 
     keys = [
         Columns.ID,
@@ -62,26 +44,10 @@ def transform_seasonal_data(data, feature_names):
 
 
 def transform_watchlist_data(data, feature_names):
-    original = (
-        pl.DataFrame(data["data"])
-        .unnest("media")
-        .unnest(["coverImage", "staff", "title", "completedAt"])
-        .rename(
-            {
-                "edges": "staff.edges",
-                "nodes": "staff.nodes",
-                "romaji": "title.romaji",
-                "large": "coverImage.large",
-                "day": "completedAt.day",
-                "month": "completedAt.month",
-                "year": "completedAt.year",
-            }
-        )
-        .unnest("studios")
-        .rename({"edges": "studios.edges"})
-    )
+    original = fast_json_normalize(data["data"])
+    original.columns = [x.removeprefix("media.") for x in original.columns]
 
-    # original = pl.from_pandas(original)
+    original = pl.from_pandas(original)
 
     keys = [
         Columns.ID,
@@ -109,19 +75,10 @@ def transform_watchlist_data(data, feature_names):
 
 
 def transform_user_manga_list_data(data, feature_names):
-    original = (
-        pl.DataFrame(data["data"])
-        .unnest("media")
-        .unnest(["title", "completedAt"])
-        .rename(
-            {
-                "romaji": "title.romaji",
-                "day": "completedAt.day",
-                "month": "completedAt.month",
-                "year": "completedAt.year",
-            }
-        )
-    )
+    original = fast_json_normalize(data["data"])
+    original.columns = [x.removeprefix("media.") for x in original.columns]
+
+    original = pl.from_pandas(original)
 
     keys = [
         Columns.ID,
@@ -185,11 +142,19 @@ def get_ranks(tags):
     return ranks
 
 
+def get_season(dataframe):
+    return dataframe.select(
+        pl.concat_str(
+            [pl.col("seasonYear").fill_null("?"), pl.col("season").fill_null("?")], separator="/"
+        ).str.to_lowercase()
+    ).to_series()
+
+
 def get_nsfw_tags(dataframe):
     return dataframe.select(
         pl.col("tags")
         .list.eval(
-            pl.when(pl.element().struct.field("isAdult") == True).then(
+            pl.when(pl.element().struct.field("isAdult") is True).then(
                 pl.element().struct.field("name")
             )
         )
@@ -202,7 +167,7 @@ def get_studios(dataframe):
         pl.col("studios.edges")
         .list.eval(
             pl.when(
-                pl.element().struct.field("node").struct.field("isAnimationStudio") == True
+                pl.element().struct.field("node").struct.field("isAnimationStudio") is True
             ).then(pl.element().struct.field("node").struct.field("name"))
         )
         .list.drop_nulls()
@@ -214,22 +179,6 @@ def get_staff(staffs, nodes, role):
     staff_ids = [node["id"] for node in nodes]
 
     return ([int(staff_ids[i]) for i, r in enumerate(roles) if r == role],)
-
-
-# SLOWER, but could use for other things like ranks?
-
-# def get_staff_2(dataframe):
-#     return dataframe.select(
-#         pl.col("staff.nodes")
-#         .list.gather(
-#             pl.col("staff.edges").list.eval(
-#                 pl.when(pl.element().struct.field("role") == "Director").then(
-#                     pl.element().cum_count()
-#                 )
-#             )
-#         )
-#         .list.eval(pl.element().struct.field("id"))
-#     ).to_series()
 
 
 # fmt: off
@@ -264,7 +213,8 @@ ANILIST_MAPPING = {
     Columns.STUDIOS:            QueryMapper(get_studios),
     Columns.USER_COMPLETE_DATE: QueryMapper(get_user_complete_date),
     Columns.RANKS:              SingleMapper("tags", get_ranks),
-    Columns.DIRECTOR:           MultiMapper(["staff.edges", "staff.nodes"], functools.partial(get_staff, role="Director")),
-    Columns.START_SEASON:       QueryMapper(util.get_season) # MultiMapper(["seasonYear", "season"], util.get_season),
+    Columns.DIRECTOR:           MultiMapper(["staff.edges", "staff.nodes"], 
+                                            functools.partial(get_staff, role="Director")),
+    Columns.START_SEASON:       QueryMapper(get_season)
 }
 # fmt: on

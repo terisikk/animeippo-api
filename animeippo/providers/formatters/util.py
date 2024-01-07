@@ -1,5 +1,4 @@
 import polars as pl
-from ..anilist_data import ALL_GENRES
 
 
 def combine_dataframes(dataframes):
@@ -45,18 +44,12 @@ def get_ranks(row):
 
     if rank_mapping is None:
         all_ranks = [100] * len(features)
-
-    for feature in features:
-        all_ranks.append(rank_mapping.get(feature, 100))
+    else:
+        for feature in features:
+            all_ranks.append(rank_mapping.get(feature, 100))
 
     return (all_ranks,)
 
 
 def get_score(score):
     return score if score != 0 else None
-
-
-def get_season(dataframe):
-    return dataframe.select(
-        pl.concat_str(["seasonYear", "season"], separator="/").str.to_lowercase()
-    ).to_series()

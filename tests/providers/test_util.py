@@ -9,15 +9,12 @@ class StubMapper:
         return [f"{original} ran"]
 
 
-def test_get_features_works_for_different_data_types():
-    features = util.get_features((["1", "2", "3"], "test"))
+def test_get_features():
+    original = pl.DataFrame({"features1": ["1", "2", "3"], "features2": ["test", "test", "test"]})
 
-    assert features[0] == ["1", "2", "3", "test"]
+    features = util.get_features(original, ["features1", "features2"])
 
-
-def test_season_can_be_extracted():
-    assert util.get_season(2023, "summer") == ("2023/summer",)
-    assert util.get_season(None, "winter") == ("?/winter",)
+    assert features[0].to_list() == ["1", "test"]
 
 
 def test_user_score_cannot_be_zero():
@@ -44,13 +41,13 @@ def test_mapping_skips_keys_not_in_dataframe():
 
 
 def test_transformation_does_not_fail_with_empty_data():
-    data = util.transform_to_animeippo_format({}, ["genres", "tags"], [], {})
+    data = util.transform_to_animeippo_format(pl.DataFrame(), ["genres", "tags"], [], {})
 
     assert type(data) == pl.DataFrame
     assert len(data) == 0
 
     data = util.transform_to_animeippo_format(
-        {"data": {"test": "test"}}, ["genres", "tags"], [], {}
+        pl.DataFrame({"data": {"test": "test"}}), ["genres", "tags"], [], {}
     )
     assert type(data) == pl.DataFrame
     assert len(data) == 0

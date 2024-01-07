@@ -11,7 +11,7 @@ def get_recs():
     # recommender = recommender_builder.create_builder(os.environ.get("DEFAULT_PROVIDER")).build()
     dataset = recommender.recommend_seasonal_anime(year, season, user)
 
-    categories = recommender.get_categories(dataset)
+    recommender.get_categories(dataset)
 
     return dataset.recommendations
 

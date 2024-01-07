@@ -162,7 +162,7 @@ def test_status_data_is_filled_to_dataset():
     assert "user_status" in seasonal.columns
     assert seasonal.item(0, "user_status") == "completed"
     assert seasonal.item(1, "user_status") == "watching"
-    assert seasonal.item(2, "user_status") == None
+    assert seasonal.item(2, "user_status") is None
     assert len(seasonal) == 3
 
 

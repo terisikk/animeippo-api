@@ -44,7 +44,10 @@ class SelectorMapper:
         self.selector = selector
 
     def map(self, dataframe):
-        return dataframe.select(self.selector).to_series()
+        try:
+            return dataframe.select(self.selector).to_series()
+        except pl.ColumnNotFoundError:
+            return pl.lit(None)
 
 
 class QueryMapper:
@@ -52,7 +55,10 @@ class QueryMapper:
         self.query = query
 
     def map(self, dataframe):
-        return self.query(dataframe)
+        try:
+            return self.query(dataframe)
+        except pl.ColumnNotFoundError:
+            return pl.lit(None)
 
 
 class SingleMapper:

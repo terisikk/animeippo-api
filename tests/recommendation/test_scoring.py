@@ -1,4 +1,3 @@
-import pandas as pd
 import polars as pl
 
 from animeippo.recommendation import scoring, dataset, profile

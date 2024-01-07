@@ -1,8 +1,6 @@
 import polars as pl
-import polars.selectors as cs
 import numpy as np
 import scipy.spatial.distance as scdistance
-import sklearn.preprocessing as skpre
 
 
 def distance(x_orig, y_orig, metric="jaccard"):
@@ -46,7 +44,7 @@ def similarity_of_anime_lists(features1, features2, metric="jaccard"):
 
 
 def mean_score_per_categorical(dataframe, column):
-    return dataframe.groupby(column, maintain_order=True).agg(pl.col("score").mean())
+    return dataframe.group_by(column, maintain_order=True).agg(pl.col("score").mean())
 
 
 def weighted_mean_for_categorical_values(dataframe, column, weights, fillna=0.0):
@@ -142,7 +140,9 @@ def weight_categoricals_correlation(dataframe, column, against=None):
 
 
 def normalize_column(df_column):
-    return skpre.minmax_scale(df_column)
+    return (df_column - df_column.min()) / (df_column.max() - df_column.min())
+
+    # return skpre.minmax_scale(df_column)
 
 
 def get_mean_score(compare_df, default=0):
@@ -158,7 +158,7 @@ def idymax(dataframe):
     return pl.DataFrame(
         {
             "idymax": dataframe.select(
-                pl.concat_list(pl.col("id").take(pl.exclude("id").arg_max())),
+                pl.concat_list(pl.col("id").gather(pl.exclude("id").arg_max())),
             ).item(),
             "max": dataframe.select(pl.concat_list(pl.exclude("id").max())).item(),
         }

@@ -1,5 +1,4 @@
 from functools import lru_cache
-import polars as pl
 
 
 class RecommendationModel:
@@ -17,14 +16,14 @@ class RecommendationModel:
         self.nsfw_tags = []
         self.similarity_matrix = None
 
-    @lru_cache(maxsize=5)
+    @lru_cache(maxsize=10)
     def watchlist_explode_cached(self, column):
         return self.watchlist.explode(column)
 
-    @lru_cache(maxsize=5)
+    @lru_cache(maxsize=10)
     def recommendations_explode_cached(self, column):
         return self.recommendations.explode(column)
 
-    @lru_cache(maxsize=5)
+    @lru_cache(maxsize=10)
     def seasonal_explode_cached(self, column):
         return self.seasonal.explode(column)
