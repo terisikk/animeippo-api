@@ -128,7 +128,8 @@ class AniListProvider(provider.AbstractAnimeProvider):
             query ($seasonYear: Int, $page: Int) {
                 Page(page: $page, perPage: 50) {
                     pageInfo { hasNextPage currentPage lastPage total perPage }
-                    media(seasonYear: $seasonYear, type: ANIME, isAdult: false, tag_not_in: ["Kids"]) {
+                    media(seasonYear: $seasonYear, type: ANIME, isAdult: false, 
+                        tag_not_in: ["Kids"]) {
                             id
                             idMal
                             title { romaji }

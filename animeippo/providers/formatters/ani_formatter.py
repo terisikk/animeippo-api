@@ -154,9 +154,7 @@ def get_nsfw_tags(dataframe):
     return dataframe.select(
         pl.col("tags")
         .list.eval(
-            pl.when(pl.element().struct.field("isAdult") is True).then(
-                pl.element().struct.field("name")
-            )
+            pl.when(pl.element().struct.field("isAdult")).then(pl.element().struct.field("name"))
         )
         .list.drop_nulls()
     ).to_series()
@@ -166,9 +164,9 @@ def get_studios(dataframe):
     return dataframe.select(
         pl.col("studios.edges")
         .list.eval(
-            pl.when(
-                pl.element().struct.field("node").struct.field("isAnimationStudio") == True
-            ).then(pl.element().struct.field("node").struct.field("name"))
+            pl.when(pl.element().struct.field("node").struct.field("isAnimationStudio")).then(
+                pl.element().struct.field("node").struct.field("name")
+            )
         )
         .list.drop_nulls()
     ).to_series()
