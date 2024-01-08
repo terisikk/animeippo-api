@@ -115,6 +115,9 @@ def weight_encoded_categoricals_correlation(dataframe, column, features, against
 
 def weight_categoricals_correlation(dataframe, column, against=None):
     dataframe = dataframe.filter(pl.col(column).is_not_null())
+    if len(dataframe) == 0:
+        return pl.DataFrame({"name": [], "weight": []})
+
     against = against if against is not None else dataframe["score"]
 
     weights = (

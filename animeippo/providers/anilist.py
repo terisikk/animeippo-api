@@ -24,6 +24,7 @@ class AniListProvider(provider.AbstractAnimeProvider):
 
         anime_list = {"data": []}
 
+        # fmt: off
         query = """
         query ($userName: String) {
             MediaListCollection(userName: $userName, type: ANIME) {
@@ -64,6 +65,7 @@ class AniListProvider(provider.AbstractAnimeProvider):
             }
         }
         """
+        # fmt: on
 
         variables = {"userName": user_id}
 
@@ -84,6 +86,7 @@ class AniListProvider(provider.AbstractAnimeProvider):
         variables = {}
 
         if season is not None:
+            # fmt: off
             query = """
             query ($seasonYear: Int, $season: MediaSeason, $page: Int) {
                 Page(page: $page, perPage: 50) {
@@ -116,15 +119,16 @@ class AniListProvider(provider.AbstractAnimeProvider):
                 }
             }
             """
+            # fmt: on
 
             variables = {"seasonYear": int(year), "season": str(season).upper()}
         else:
+            # fmt: off
             query = """
             query ($seasonYear: Int, $page: Int) {
                 Page(page: $page, perPage: 50) {
                     pageInfo { hasNextPage currentPage lastPage total perPage }
-                    media(seasonYear: $seasonYear, type: ANIME, 
-                        isAdult: false, tag_not_in: ["Kids"]) {
+                    media(seasonYear: $seasonYear, type: ANIME, isAdult: false, tag_not_in: ["Kids"]) {
                             id
                             idMal
                             title { romaji }
@@ -151,6 +155,7 @@ class AniListProvider(provider.AbstractAnimeProvider):
                 }
             }
             """
+            # fmt: on
 
             variables = {"seasonYear": int(year)}
 

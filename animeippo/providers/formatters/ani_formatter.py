@@ -167,7 +167,7 @@ def get_studios(dataframe):
         pl.col("studios.edges")
         .list.eval(
             pl.when(
-                pl.element().struct.field("node").struct.field("isAnimationStudio") is True
+                pl.element().struct.field("node").struct.field("isAnimationStudio") == True
             ).then(pl.element().struct.field("node").struct.field("name"))
         )
         .list.drop_nulls()
