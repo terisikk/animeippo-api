@@ -94,29 +94,51 @@ ANI_USER_LIST = {
                                 "title": {"romaji": "Dr. STRONK: OLD WORLD"},
                                 "genres": ["Action", "Adventure", "Comedy", "Sci-Fi"],
                                 "tags": [
-                                    {"name": "Post-Apocalyptic", "rank": 95},
-                                    {"name": "Survival", "rank": 89},
-                                    {"name": "Educational", "rank": 88},
-                                    {"name": "Male Protagonist", "rank": 85},
-                                    {"name": "Ships", "rank": 84},
-                                    {"name": "Shounen", "rank": 81},
-                                    {"name": "Conspiracy", "rank": 80},
-                                    {"name": "Ensemble Cast", "rank": 71},
-                                    {"name": "Amnesia", "rank": 60},
-                                    {"name": "Espionage", "rank": 60},
-                                    {"name": "Found Family", "rank": 60},
-                                    {"name": "Crossdressing", "rank": 50},
-                                    {"name": "Agriculture", "rank": 40},
-                                    {"name": "Butler", "rank": 33},
-                                    {"name": "Aliens", "rank": 33},
-                                    {"name": "War", "rank": 30},
-                                    {"name": "Female Harem", "rank": 10},
+                                    {"isAdult": False, "name": "Post-Apocalyptic", "rank": 95},
+                                    {"isAdult": False, "name": "Survival", "rank": 89},
+                                    {"isAdult": False, "name": "Educational", "rank": 88},
+                                    {"isAdult": False, "name": "Male Protagonist", "rank": 85},
+                                    {"isAdult": False, "name": "Ships", "rank": 84},
+                                    {"isAdult": False, "name": "Shounen", "rank": 81},
+                                    {"isAdult": False, "name": "Conspiracy", "rank": 80},
+                                    {"isAdult": False, "name": "Ensemble Cast", "rank": 71},
+                                    {"isAdult": False, "name": "Amnesia", "rank": 60},
+                                    {"isAdult": False, "name": "Espionage", "rank": 60},
+                                    {"isAdult": False, "name": "Found Family", "rank": 60},
+                                    {"isAdult": False, "name": "Crossdressing", "rank": 50},
+                                    {"isAdult": False, "name": "Agriculture", "rank": 40},
+                                    {"isAdult": False, "name": "Butler", "rank": 33},
+                                    {"isAdult": False, "name": "Aliens", "rank": 33},
+                                    {"isAdult": False, "name": "War", "rank": 30},
+                                    {"isAdult": False, "name": "Female Harem", "rank": 10},
                                 ],
                                 "meanScore": 82,
                                 "source": "MANGA",
-                                "studios": {"edges": [{"id": 29467}, {"id": 29998}, {"id": 32538}]},
+                                "studios": {
+                                    "edges": [
+                                        {
+                                            "node": {
+                                                "name": "Test Studio",
+                                                "isAnimationStudio": True,
+                                            }
+                                        },
+                                        {
+                                            "node": {
+                                                "name": "Test Studio 2",
+                                                "isAnimationStudio": False,
+                                            }
+                                        },
+                                        {
+                                            "node": {
+                                                "name": "Test Studio 3",
+                                                "isAnimationStudio": True,
+                                            }
+                                        },
+                                    ]
+                                },
                                 "seasonYear": 2023,
                                 "season": "SPRING",
+                                "isAdult": False,
                             },
                         },
                         {
@@ -129,36 +151,71 @@ ANI_USER_LIST = {
                                 "title": {"romaji": "Argo Roxy"},
                                 "genres": ["Adventure", "Mystery", "Psychological", "Sci-Fi"],
                                 "tags": [
-                                    {"name": "Post-Apocalyptic", "rank": 94},
-                                    {"name": "Philosophy", "rank": 93},
-                                    {"name": "Dissociative Identities", "rank": 90},
-                                    {"name": "Dystopian", "rank": 89},
-                                    {"name": "Cyberpunk", "rank": 85},
-                                    {"name": "Primarily Adult Cast", "rank": 85},
-                                    {"name": "Amnesia", "rank": 85},
-                                    {"name": "Robots", "rank": 85},
-                                    {"name": "Conspiracy", "rank": 84},
-                                    {"name": "Artificial Intelligence", "rank": 80},
-                                    {"name": "Anti-Hero", "rank": 79},
-                                    {"name": "Noir", "rank": 78},
-                                    {"name": "Fugitive", "rank": 74},
-                                    {"name": "Memory Manipulation", "rank": 73},
-                                    {"name": "Angels", "rank": 73},
-                                    {"name": "Female Protagonist", "rank": 72},
-                                    {"name": "Denpa", "rank": 70},
-                                    {"name": "Male Protagonist", "rank": 68},
-                                    {"name": "Tragedy", "rank": 64},
-                                    {"name": "Gods", "rank": 60},
-                                    {"name": "Travel", "rank": 60},
-                                    {"name": "Kuudere", "rank": 52},
-                                    {"name": "Police", "rank": 48},
-                                    {"name": "Meta", "rank": 40},
-                                    {"name": "Coming of Age", "rank": 38},
-                                    {"name": "Terrorism", "rank": 35},
-                                    {"name": "Guns", "rank": 30},
-                                    {"name": "Heterosexual", "rank": 30},
-                                    {"name": "Satire", "rank": 12},
+                                    {"isAdult": False, "name": "Post-Apocalyptic", "rank": 94},
+                                    {"isAdult": False, "name": "Philosophy", "rank": 93},
+                                    {
+                                        "isAdult": False,
+                                        "name": "Dissociative Identities",
+                                        "rank": 90,
+                                    },
+                                    {"isAdult": False, "name": "Dystopian", "rank": 89},
+                                    {"isAdult": False, "name": "Cyberpunk", "rank": 85},
+                                    {"isAdult": False, "name": "Primarily Adult Cast", "rank": 85},
+                                    {"isAdult": False, "name": "Amnesia", "rank": 85},
+                                    {"isAdult": False, "name": "Robots", "rank": 85},
+                                    {"isAdult": False, "name": "Conspiracy", "rank": 84},
+                                    {
+                                        "isAdult": False,
+                                        "name": "Artificial Intelligence",
+                                        "rank": 80,
+                                    },
+                                    {"isAdult": False, "name": "Anti-Hero", "rank": 79},
+                                    {"isAdult": False, "name": "Noir", "rank": 78},
+                                    {"isAdult": False, "name": "Fugitive", "rank": 74},
+                                    {"isAdult": False, "name": "Memory Manipulation", "rank": 73},
+                                    {"isAdult": False, "name": "Angels", "rank": 73},
+                                    {"isAdult": False, "name": "Female Protagonist", "rank": 72},
+                                    {"isAdult": False, "name": "Denpa", "rank": 70},
+                                    {"isAdult": False, "name": "Male Protagonist", "rank": 68},
+                                    {"isAdult": False, "name": "Tragedy", "rank": 64},
+                                    {"isAdult": False, "name": "Gods", "rank": 60},
+                                    {"isAdult": False, "name": "Travel", "rank": 60},
+                                    {"isAdult": False, "name": "Kuudere", "rank": 52},
+                                    {"isAdult": False, "name": "Police", "rank": 48},
+                                    {"isAdult": False, "name": "Meta", "rank": 40},
+                                    {"isAdult": False, "name": "Coming of Age", "rank": 38},
+                                    {"isAdult": False, "name": "Terrorism", "rank": 35},
+                                    {"isAdult": False, "name": "Guns", "rank": 30},
+                                    {"isAdult": False, "name": "Heterosexual", "rank": 30},
+                                    {"isAdult": False, "name": "Satire", "rank": 12},
                                 ],
+                                "meanScore": 82,
+                                "source": "MANGA",
+                                "studios": {
+                                    "edges": [
+                                        {
+                                            "node": {
+                                                "name": "Test Studio",
+                                                "isAnimationStudio": True,
+                                            }
+                                        },
+                                        {
+                                            "node": {
+                                                "name": "Test Studio 2",
+                                                "isAnimationStudio": False,
+                                            }
+                                        },
+                                        {
+                                            "node": {
+                                                "name": "Test Studio 3",
+                                                "isAnimationStudio": True,
+                                            }
+                                        },
+                                    ]
+                                },
+                                "seasonYear": 2023,
+                                "season": "SPRING",
+                                "isAdult": False,
                             },
                         },
                     ],
@@ -394,6 +451,7 @@ ANI_SEASONAL_LIST = {
                     "genres": ["Action", "Adventure", "Drama", "Fantasy", "Supernatural"],
                     "coverImage": {"medium": "https://localhost/test.png"},
                     "popularity": 14090,
+                    "directors": ["Haha Miyazaki"],
                 },
                 {
                     "id": 145139,
@@ -409,6 +467,7 @@ ANI_SEASONAL_LIST = {
                     "genres": ["Action", "Adventure", "Comedy", "Fantasy", "Sci-Fi"],
                     "coverImage": {"medium": "https://localhost/test.png"},
                     "popularity": 131620,
+                    "directors": ["Mago Senkai"],
                 },
             ],
         }
@@ -527,6 +586,7 @@ FORMATTED_MAL_SEASONAL_LIST = [
         "relations": [],
         "cluster": 1,
         "source": "Original",
+        "directors": [12345],
     },
     {
         "id": 51535,
@@ -564,6 +624,7 @@ FORMATTED_MAL_SEASONAL_LIST = [
         "relations": [1],
         "cluster": 0,
         "source": "Manga",
+        "directors": [34567],
     },
 ]
 
@@ -587,6 +648,7 @@ FORMATTED_ANI_SEASONAL_LIST = [
             "Shounen",
             "Super Power",
         ],
+        "directors": [12345],
     },
     {
         "id": 145139,
@@ -599,6 +661,7 @@ FORMATTED_ANI_SEASONAL_LIST = [
         "tags": ["Mythology", "Gore"],
         "status": "not_yet_released",
         "features": ["Action", "Adventure", "Comedy", "Fantasy", "Sci-Fi", "Mythology", "Gore"],
+        "directors": [456],
     },
 ]
 

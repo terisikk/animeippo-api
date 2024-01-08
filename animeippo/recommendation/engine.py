@@ -1,8 +1,7 @@
 import numpy as np
-import pandas as pd
+import polars as pl
 
-
-from animeippo.recommendation import encoding, clustering
+from animeippo.recommendation import encoding, clustering, analysis
 
 
 class AnimeRecommendationEngine:
@@ -30,25 +29,41 @@ class AnimeRecommendationEngine:
     def fit(self, dataset):
         self.validate(dataset)
 
-        dataset.all_features = (
-            pd.concat(
-                [
-                    dataset.all_features if dataset.all_features is not None else pd.Series(),
-                    dataset.seasonal["features"],
-                    dataset.watchlist["features"],
-                ]
-            )
-            .explode()
-            .dropna()
-            .unique()
+        all_features = pl.concat([dataset.seasonal["features"], dataset.watchlist["features"]])
+        all_features = (
+            pl.concat([all_features, dataset.all_features])
+            if dataset.all_features is not None
+            else all_features
         )
+
+        dataset.all_features = all_features.explode().unique().drop_nulls()
 
         self.encoder.fit(dataset.all_features)
 
-        dataset.watchlist["encoded"] = self.encoder.encode(dataset.watchlist)
-        dataset.seasonal["encoded"] = self.encoder.encode(dataset.seasonal)
+        dataset.watchlist = dataset.watchlist.with_columns(
+            encoded=self.encoder.encode(dataset.watchlist)
+        )
+        dataset.seasonal = dataset.seasonal.with_columns(
+            encoded=self.encoder.encode(dataset.seasonal)
+        )
 
-        dataset.watchlist["cluster"] = self.get_clustering(dataset.watchlist["encoded"])
+        dataset.watchlist = dataset.watchlist.with_columns(
+            cluster=self.clustering_model.cluster_by_features(dataset.watchlist)
+        )
+
+        filtered_watchlist = dataset.watchlist.filter(~pl.col("id").is_in(dataset.seasonal["id"]))
+
+        dataset.similarity_matrix = analysis.categorical_similarity(
+            filtered_watchlist["encoded"],
+            dataset.seasonal["encoded"],
+            self.clustering_model.distance_metric,
+            dataset.seasonal["id"].cast(pl.Utf8),
+        ).with_columns(id=filtered_watchlist["id"])
+        # Categories could use unfiltered watchlist, but scoring needs to filter it
+
+        # Rechunk to maximize performance, not sure if it has any real effect
+        dataset.seasonal = dataset.seasonal.rechunk()
+        dataset.watchlist = dataset.watchlist.rechunk()
 
         return dataset
 
@@ -57,9 +72,13 @@ class AnimeRecommendationEngine:
 
         recommendations = self.score_anime(dataset)
 
-        recommendations["cluster"] = self.clustering_model.predict(dataset.seasonal["encoded"])
+        recommendations = recommendations.with_columns(
+            cluster=self.clustering_model.predict(
+                dataset.seasonal["encoded"], dataset.similarity_matrix
+            ),
+        )
 
-        return recommendations.sort_values("recommend_score", ascending=False)
+        return recommendations.sort("recommend_score", descending=True)
 
     def score_anime(self, dataset):
         scoring_target_df = dataset.seasonal
@@ -69,12 +88,17 @@ class AnimeRecommendationEngine:
 
             for scorer in self.scorers:
                 scoring = scorer.score(dataset)
-                scoring_target_df.loc[:, scorer.name] = scoring.fillna(0)
+                scoring_target_df = scoring_target_df.with_columns(
+                    **{scorer.name: np.nan_to_num(scoring, nan=0.0)}
+                )
                 names.append(scorer.name)
 
-            scoring_target_df["recommend_score"] = scoring_target_df[names].mean(axis=1)
-            scoring_target_df["final_score"] = scoring_target_df["recommend_score"]
-            scoring_target_df["discourage_score"] = 1.0
+            scoring_target_df = scoring_target_df.with_columns(
+                recommend_score=scoring_target_df.select(names).mean_horizontal(),
+                final_score=scoring_target_df.select(names).mean_horizontal(),
+                discourage_score=1.0,
+            )
+
         else:
             raise RuntimeError("No scorers added for engine. Please add at least one.")
 
@@ -87,7 +111,7 @@ class AnimeRecommendationEngine:
             group = grouper.categorize(data)
 
             if group is not None and len(group) > 0:
-                items = group.index.tolist()
+                items = group["id"].to_list()
                 cats.append({"name": grouper.description, "items": items})
 
         return cats
@@ -97,7 +121,3 @@ class AnimeRecommendationEngine:
 
     def add_categorizer(self, categorizer):
         self.categorizers.append(categorizer)
-
-    def get_clustering(self, series):
-        encoded = np.vstack(series)
-        return self.clustering_model.cluster_by_features(encoded, series.index)

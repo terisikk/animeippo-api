@@ -50,6 +50,8 @@ class AniListProvider(provider.AbstractAnimeProvider):
                                 isAdult
                             }
                             meanScore
+                            duration
+                            episodes
                             source
                             studios { edges { node { name isAnimationStudio } }}
                             seasonYear
@@ -86,29 +88,30 @@ class AniListProvider(provider.AbstractAnimeProvider):
             query ($seasonYear: Int, $season: MediaSeason, $page: Int) {
                 Page(page: $page, perPage: 50) {
                     pageInfo { hasNextPage currentPage lastPage total perPage }
-                    media(seasonYear: $seasonYear, season: $season, type:ANIME) {
-                        id
-                        idMal
-                        title { romaji }
-                        status
-                        format
-                        genres
-                        tags {
-                            name
-                            rank
-                            isAdult
-                        }
-                        meanScore
-                        duration
-                        episodes
-                        source
-                        studios { edges { node { name isAnimationStudio } }}
-                        seasonYear
-                        season
-                        relations { edges { relationType, node { id, idMal }}}
-                        popularity
-                        coverImage { large }
-                        staff { edges {role} nodes {id}}
+                    media(seasonYear: $seasonYear, season: $season, type: ANIME, 
+                        isAdult: false, tag_not_in: ["Kids"]) {
+                            id
+                            idMal
+                            title { romaji }
+                            status
+                            format
+                            genres
+                            tags {
+                                name
+                                rank
+                                isAdult
+                            }
+                            meanScore
+                            duration
+                            episodes
+                            source
+                            studios { edges { node { name isAnimationStudio } }}
+                            seasonYear
+                            season
+                            relations { edges { relationType, node { id, idMal }}}
+                            popularity
+                            coverImage { large }
+                            staff { edges {role} nodes {id}}
                     }
                 }
             }
@@ -120,29 +123,30 @@ class AniListProvider(provider.AbstractAnimeProvider):
             query ($seasonYear: Int, $page: Int) {
                 Page(page: $page, perPage: 50) {
                     pageInfo { hasNextPage currentPage lastPage total perPage }
-                    media(seasonYear: $seasonYear, type:ANIME) {
-                        id
-                        idMal
-                        title { romaji }
-                        status
-                        format
-                        genres
-                        tags {
-                            name
-                            rank
-                            isAdult
-                        }
-                        meanScore
-                        duration
-                        episodes
-                        source
-                        studios { edges { node { name isAnimationStudio } }}
-                        seasonYear
-                        season
-                        relations { edges { relationType, node { id, idMal }}}
-                        popularity
-                        coverImage { large }
-                        staff { edges {role} nodes {id}}
+                    media(seasonYear: $seasonYear, type: ANIME, 
+                        isAdult: false, tag_not_in: ["Kids"]) {
+                            id
+                            idMal
+                            title { romaji }
+                            status
+                            format
+                            genres
+                            tags {
+                                name
+                                rank
+                                isAdult
+                            }
+                            meanScore
+                            duration
+                            episodes
+                            source
+                            studios { edges { node { name isAnimationStudio } }}
+                            seasonYear
+                            season
+                            relations { edges { relationType, node { id, idMal }}}
+                            popularity
+                            coverImage { large }
+                            staff { edges {role} nodes {id}}
                     }
                 }
             }
@@ -220,7 +224,7 @@ class AnilistConnection:
         anime_list = {"data": {"media": []}}
         variables = parameters.copy()  # To avoid cache miss with side effects
 
-        async for page in self.requests_get_all_pages(query, variables):
+        async for page in self.get_all_pages(query, variables):
             for item in page["media"]:
                 anime_list["data"]["media"].append(item)
 
@@ -242,7 +246,7 @@ class AnilistConnection:
                 response.raise_for_status()
                 return await response.json()
 
-    async def requests_get_all_pages(self, query, variables):
+    async def get_all_pages(self, query, variables):
         variables["page"] = 0
         variables["perPage"] = 50
 

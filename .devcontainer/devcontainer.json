@@ -31,7 +31,15 @@
 				"bungcip.better-toml",
 				"tintinweb.graphviz-interactive-preview",
 				"donjayamanne.githistory",
-				"mikestead.dotenv"
+				"mikestead.dotenv",
+				"ms-python.black-formatter",
+				"tamasfe.even-better-toml",
+				"github.vscode-github-actions",
+				"GitHub.copilot",
+				"eamodio.gitlens",
+				"ms-toolsai.jupyter",
+				"ms-toolsai.vscode-jupyter-cell-tags",
+				"ms-vscode.makefile-tools"
 			]
 		}
 	},

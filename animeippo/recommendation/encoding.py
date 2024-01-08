@@ -14,7 +14,7 @@ class CategoricalEncoder:
         self.mlb.fit(None)
 
     def encode(self, dataframe, dtype=bool):
-        return self.mlb.transform(dataframe[self.class_field]).astype(dtype).tolist()
+        return self.mlb.transform(dataframe[self.class_field]).astype(dtype)
 
 
 class WeightedCategoricalEncoder:
@@ -29,10 +29,16 @@ class WeightedCategoricalEncoder:
         self.initial_encoding = dict.fromkeys(self.classes, 0)
 
     def encode(self, dataframe):
-        return dataframe.apply(self.get_weights, axis=1)
+        return (
+            dataframe.select([self.class_field, self.weight_field])
+            .map_rows(self.get_weights)
+            .to_series()
+        )
 
     def get_weights(self, row):
-        encoding = self.initial_encoding.copy()
-        encoding.update(row[self.weight_field])
+        weights = dict(zip(row[0], row[1]))
 
-        return np.fromiter(encoding.values(), dtype=float)
+        encoding = self.initial_encoding.copy()
+        encoding.update(weights)
+
+        return (np.fromiter(encoding.values(), dtype=float),)

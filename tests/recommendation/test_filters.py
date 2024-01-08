@@ -1,128 +1,90 @@
 import animeippo.recommendation.filters as filters
-import pandas as pd
-
-
-def test_abstract_filter_can_be_instantiated():
-    class ConcreteFilter(filters.AbstractFilter):
-        def filter(self, dataframe):
-            return super().filter(dataframe)
-
-    filter = ConcreteFilter()
-    filter.filter(None)
-
-    assert issubclass(filter.__class__, filters.AbstractFilter)
+import polars as pl
 
 
 def test_media_type_filter():
-    original = pd.DataFrame({"format": ["tv", "tv", "special", "movie"]})
+    original = pl.DataFrame({"format": ["tv", "tv", "special", "movie"]})
 
     filter = filters.MediaTypeFilter("tv")
 
-    assert filter.filter(original)["format"].tolist() == ["tv", "tv"]
+    assert original.filter(filter)["format"].to_list() == ["tv", "tv"]
 
-    filter.negative = True
+    filter = filters.MediaTypeFilter("tv", negative=True)
 
-    assert filter.filter(original)["format"].tolist() == ["special", "movie"]
+    assert original.filter(filter)["format"].to_list() == ["special", "movie"]
 
 
 def test_feature_filter():
-    original = pd.DataFrame({"features": [["Action", "Adventure"], ["Fantasy", "Comedy"]]})
+    original = pl.DataFrame({"features": [["Action", "Adventure"], ["Fantasy", "Comedy"]]})
 
     filter = filters.FeatureFilter("Action")
 
-    assert filter.filter(original)["features"].tolist() == [["Action", "Adventure"]]
+    assert original.filter(filter)["features"].to_list() == [["Action", "Adventure"]]
 
-    filter.negative = True
+    filter = filters.FeatureFilter("Action", negative=True)
 
-    assert filter.filter(original)["features"].tolist() == [["Fantasy", "Comedy"]]
-
-
-def test_id_filter():
-    original = pd.DataFrame({"id": [1, 2, 3, 4], "data": ["a", "b", "c", "d"]})
-    original = original.set_index("id")
-
-    filter = filters.IdFilter(1, 3)
-
-    assert filter.filter(original).index.tolist() == [1, 3]
-
-    filter.negative = True
-
-    assert filter.filter(original).index.tolist() == [2, 4]
+    assert original.filter(filter)["features"].to_list() == [["Fantasy", "Comedy"]]
 
 
 def test_status_filter():
-    original = pd.DataFrame(
+    original = pl.DataFrame(
         {"user_status": ["dropped", "completed", "on_hold", "completed", "unwatched"]}
     )
 
     filter = filters.UserStatusFilter("completed")
 
-    assert filter.filter(original)["user_status"].tolist() == ["completed", "completed"]
+    assert original.filter(filter)["user_status"].to_list() == ["completed", "completed"]
 
-    filter.negative = True
+    filter = filters.UserStatusFilter("completed", negative=True)
 
-    assert filter.filter(original)["user_status"].tolist() == ["dropped", "on_hold", "unwatched"]
+    assert original.filter(filter)["user_status"].to_list() == ["dropped", "on_hold", "unwatched"]
 
 
 def test_rating_filter():
-    original = pd.DataFrame({"rating": ["g", "r", "g", "pg_13", "r"]})
+    original = pl.DataFrame({"rating": ["g", "r", "g", "pg_13", "r"]})
 
     filter = filters.RatingFilter("g", "pg_13")
 
-    assert filter.filter(original)["rating"].tolist() == ["g", "g", "pg_13"]
+    assert original.filter(filter)["rating"].to_list() == ["g", "g", "pg_13"]
 
-    filter.negative = True
+    filter = filters.RatingFilter("g", "pg_13", negative=True)
 
-    assert filter.filter(original)["rating"].tolist() == ["r", "r"]
+    assert original.filter(filter)["rating"].to_list() == ["r", "r"]
 
 
 def test_season_filter():
-    original = pd.DataFrame({"start_season": ["2023/winter", "2023/winter", "2023/spring"]})
+    original = pl.DataFrame({"start_season": ["2023/winter", "2023/winter", "2023/spring"]})
 
     filter = filters.StartSeasonFilter(("2023", "winter"))
 
-    assert filter.filter(original)["start_season"].tolist() == ["2023/winter", "2023/winter"]
+    assert original.filter(filter)["start_season"].to_list() == ["2023/winter", "2023/winter"]
 
-    filter.negative = True
+    filter = filters.StartSeasonFilter(("2023", "winter"), negative=True)
 
-    assert filter.filter(original)["start_season"].tolist() == ["2023/spring"]
+    assert original.filter(filter)["start_season"].to_list() == ["2023/spring"]
 
 
 def test_continuation_filter():
-    compare = pd.DataFrame(
+    compare = pl.DataFrame(
         {
             "id": [1, 2, 3, 4],
             "title": ["Anime A", "Anime B", "Anime B Spinoff", "Anime C"],
             "user_status": ["completed", "completed", "completed", "completed"],
         }
     )
-    compare = compare.set_index("id")
 
     filter = filters.ContinuationFilter(compare)
 
-    original = pd.DataFrame(
+    original = pl.DataFrame(
         {
             "id": [5, 6, 7, 8],
             "title": ["Anime A Season 2", "Anime E Season 2", "Anime B Season 2", "Anime F"],
             "continuation_to": [[1], [9], [2, 3], []],
         }
     )
-    original = original.set_index("id")
 
-    assert filter.filter(original).index.tolist() == [5, 7, 8]
+    assert original.filter(filter)["id"].to_list() == [5, 7, 8]
 
-    filter.negative = True
+    filter = filters.ContinuationFilter(compare, negative=True)
 
-    assert filter.filter(original).index.tolist() == [6]
-
-
-def test_filters_work_with_lists():
-    original = pd.DataFrame({"id": [1, 2, 3, 4], "data": ["a", "b", "c", "d"]}).set_index("id")
-
-    filter = filters.IdFilter(*[1, 3])
-
-    assert filter.filter(original).index.tolist() == [1, 3]
-
-    filter.negative = True
-
-    assert filter.filter(original).index.tolist() == [2, 4]
+    assert original.filter(filter)["id"].to_list() == [6]

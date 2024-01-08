@@ -1,11 +1,20 @@
 import numpy as np
-import pandas as pd
 
 from datetime import datetime
 
+import polars as pl
+from fast_json_normalize import fast_json_normalize
+
 from . import util
 
-from animeippo.providers.formatters.schema import DefaultMapper, SingleMapper, MultiMapper, Columns
+from animeippo.providers.formatters.schema import (
+    DefaultMapper,
+    SingleMapper,
+    MultiMapper,
+    Columns,
+    QueryMapper,
+    SelectorMapper,
+)
 
 
 def combine_dataframes(dataframes):
@@ -13,7 +22,7 @@ def combine_dataframes(dataframes):
 
 
 def transform_watchlist_data(data, feature_names):
-    original = pd.json_normalize(data["data"])
+    original = pl.from_pandas(fast_json_normalize(data["data"]))
 
     keys = [
         Columns.ID,
@@ -35,7 +44,7 @@ def transform_watchlist_data(data, feature_names):
 
 
 def transform_seasonal_data(data, feature_names):
-    original = pd.json_normalize(data["data"])
+    original = pl.from_pandas(fast_json_normalize(data["data"]))
 
     keys = [
         Columns.ID,
@@ -46,7 +55,6 @@ def transform_seasonal_data(data, feature_names):
         Columns.MEAN_SCORE,
         Columns.POPULARITY,
         Columns.STATUS,
-        Columns.SCORE,
         Columns.DURATION,
         Columns.EPISODES,
         Columns.SOURCE,
@@ -61,7 +69,7 @@ def transform_seasonal_data(data, feature_names):
 
 
 def transform_user_manga_list_data(data, feature_names):
-    original = pd.json_normalize(data["data"])
+    original = pl.from_pandas(fast_json_normalize(data["data"]))
 
     keys = [
         Columns.ID,
@@ -81,13 +89,15 @@ def transform_user_manga_list_data(data, feature_names):
 
 
 def transform_related_anime(data, feature_names):
-    original = pd.json_normalize(data["data"])
+    original = pl.from_pandas(fast_json_normalize(data["data"]))
 
     keys = [Columns.ID, Columns.CONTINUATION_TO]
 
     filtered = util.transform_to_animeippo_format(original, feature_names, keys, MAL_MAPPING)
 
-    return filtered[~pd.isna(filtered[Columns.CONTINUATION_TO])][Columns.CONTINUATION_TO].to_list()
+    return filtered.filter(~pl.col(Columns.CONTINUATION_TO).is_null())[
+        Columns.CONTINUATION_TO
+    ].to_list()
 
 
 def split_id_name_field(field):
@@ -103,22 +113,22 @@ def filter_relations(relation, id, meaningful_relations):
     if relation in meaningful_relations and id is not None:
         return id
 
-    return pd.NA
+    return None
 
 
 def get_continuation(relation, id):
     meaningful_relations = ["parent_story", "prequel"]
 
-    return filter_relations(relation, id, meaningful_relations)
+    return (filter_relations(relation, id, meaningful_relations),)
 
 
 def get_image_url(field):
-    return field.get("medium", pd.NA)
+    return field.get("medium", None)
 
 
 def get_user_complete_date(finish_date):
-    if pd.isna(finish_date):
-        return pd.NA
+    if finish_date is None:
+        return None
 
     return datetime.strptime(finish_date, "%Y-%m-%d")
 
@@ -134,6 +144,18 @@ def get_status(status):
     }
 
     return mapping.get(status, status)
+
+
+def get_season(dataframe):
+    return dataframe.select(
+        pl.concat_str(
+            [
+                pl.col("node.startseason.year").fill_null("?"),
+                pl.col("node.startseason.season").fill_null("?"),
+            ],
+            separator="/",
+        ).str.to_lowercase()
+    ).to_series()
 
 
 # fmt: off
@@ -152,16 +174,14 @@ MAL_MAPPING = {
     Columns.GENRES:             SingleMapper("node.genres", split_id_name_field, []),
     Columns.STUDIOS:            SingleMapper("node.studios", split_id_name_field),
     Columns.STATUS:             SingleMapper("node.status", get_status),
-    Columns.SCORE:              SingleMapper("list_status.score", util.get_score),
+    Columns.SCORE:              SelectorMapper(
+                                    pl.when(pl.col("list_status.score") > 0)
+                                    .then(pl.col("list_status.score"))
+                                    .otherwise(None)
+                                ),    
     Columns.USER_COMPLETE_DATE: SingleMapper("list_status.finish_date", get_user_complete_date),
-    Columns.START_SEASON:       MultiMapper(
-                                    lambda row: util.get_season(row["node.start_season.year"], 
-                                                                row["node.start_season.season"]),
-                                ),
-    Columns.CONTINUATION_TO:    MultiMapper(
-                                    lambda row: get_continuation(row["relation_type"], 
-                                                                 row["node.id"])
-                                ),
+    Columns.START_SEASON:       QueryMapper(get_season),
+    Columns.CONTINUATION_TO:    MultiMapper(["relation_type", "node.id"], get_continuation),
 }
 
 # fmt: on

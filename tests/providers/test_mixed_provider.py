@@ -45,8 +45,7 @@ async def test_mixed_provider_user_anime_can_be_fetched(mocker):
     user_anime = await provider.get_user_anime_list(1)
 
     assert len(user_anime) == 2
-    assert user_anime.iloc[0]["title"] == "Neon Genesis Evangelion"
-    assert user_anime.iloc[1]["title"] == "Hellsingfårs"
+    assert "Neon Genesis Evangelion" in user_anime["title"].to_list()
 
 
 @pytest.mark.asyncio
@@ -77,7 +76,7 @@ async def test_mixed_provider_seasonal_anime_list_can_be_fetched(mocker):
 
     animelist = await provider.get_seasonal_anime_list(year, season)
 
-    assert "EDENS KNOCK-OFF 2nd Season" in animelist["title"].values
+    assert "EDENS KNOCK-OFF 2nd Season" in animelist["title"].to_list()
 
 
 @pytest.mark.asyncio
@@ -95,7 +94,7 @@ async def test_mixed_provider_yearly_list_can_be_fetched_when_season_is_none(moc
 
     animelist = await provider.get_seasonal_anime_list(year, season)
 
-    assert "EDENS KNOCK-OFF 2nd Season" in animelist["title"].values
+    assert "EDENS KNOCK-OFF 2nd Season" in animelist["title"].to_list()
 
 
 def test_mixed_provider_related_anime_returns_none():

@@ -16,3 +16,5 @@ conf/*
 .DS_store
 *.png
 *.ipynb
+*.xlsx
+*.lcov

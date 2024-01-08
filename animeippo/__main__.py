@@ -1,12 +1,17 @@
-# @profile(filename=".profiling/cprofile.pstats")
+from profilehooks import profile as pr
+
+
+@pr(filename=".profiling/cprofile.pstats")
 def get_recs():
-    year = "2023"
+    year = "2022"
     season = None
     user = "Janiskeisari"
 
     recommender = recommender_builder.create_builder("anilist").build()
     # recommender = recommender_builder.create_builder(os.environ.get("DEFAULT_PROVIDER")).build()
     dataset = recommender.recommend_seasonal_anime(year, season, user)
+
+    recommender.get_categories(dataset)
 
     return dataset.recommendations
 

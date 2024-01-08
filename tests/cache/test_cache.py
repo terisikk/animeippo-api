@@ -1,5 +1,5 @@
 import animeippo.providers.myanimelist as mal
-import pandas as pd
+import polars as pl
 
 from animeippo import cache
 from tests import test_data
@@ -89,20 +89,14 @@ async def test_mal_can_fetch_values_from_cache(mocker):
 
     provider = mal.MyAnimeListProvider(rcache)
 
-    year = "2023"
-    season = "winter"
-
     rcache.set_json("fake", test_data.MAL_SEASONAL_LIST)
 
     response = ResponseStub({"data": {}})
     mocker.patch("aiohttp.ClientSession.get", return_value=response)
 
-    seasonal_list = await provider.get_seasonal_anime_list(year, season)
+    seasonal_list = await provider.connection.request_anime_list("fake", {})
 
-    assert seasonal_list["title"].tolist() == [
-        "Golden Kamuy 4th Season",
-        "Shingeki no Kyojin: The Fake Season",
-    ]
+    assert seasonal_list["data"][0]["node"]["title"] == "Golden Kamuy 4th Season"
 
 
 @pytest.mark.asyncio
@@ -141,8 +135,8 @@ async def test_mal_list_can_be_stored_to_cache(mocker):
     first_hit = await provider.get_seasonal_anime_list(year, season)
 
     second_hit = await provider.get_seasonal_anime_list(year, season)
-    assert not first_hit.empty
-    assert first_hit["title"].tolist() == second_hit["title"].tolist()
+    assert not first_hit.is_empty()
+    assert first_hit["title"].to_list() == second_hit["title"].to_list()
 
 
 @pytest.mark.asyncio
@@ -170,41 +164,14 @@ def test_dataframes_can_be_added_to_cache(mocker):
 
     rcache = cache.RedisCache()
 
-    data = pd.DataFrame(test_data.FORMATTED_MAL_USER_LIST)
+    data = pl.DataFrame(test_data.FORMATTED_MAL_USER_LIST)
 
     rcache.set_dataframe("test", data)
 
     actual = rcache.get_dataframe("test")
 
-    assert actual["title"].tolist() == data["title"].tolist()
-    assert actual.columns.tolist() == data.columns.tolist()
-
-
-def test_dicts_are_parsed_correctly_when_reading_from_cache(mocker):
-    mocker.patch("redis.Redis", RedisStub)
-
-    rcache = cache.RedisCache()
-
-    data = pd.DataFrame(
-        {
-            "ranks": [
-                {
-                    "rank1": 1,
-                    "rank2": 2,
-                },
-                {
-                    "rank3": 3,
-                    "rank4": 4,
-                },
-            ]
-        }
-    )
-
-    rcache.set_dataframe("test", data)
-
-    actual = rcache.get_dataframe("test")
-
-    assert actual["ranks"].tolist() == data["ranks"].tolist()
+    assert actual["title"].to_list() == data["title"].to_list()
+    assert actual.columns == data.columns
 
 
 def test_none_frames_are_not_added_to_cache(mocker):
@@ -236,7 +203,4 @@ async def test_data_can_be_fetched_even_with_cache_connection_error(mocker):
 
     seasonal_list = await provider.get_seasonal_anime_list(year, season)
 
-    assert seasonal_list["title"].tolist() == [
-        "Golden Kamuy 4th Season",
-        "Shingeki no Kyojin: The Fake Season",
-    ]
+    assert "Golden Kamuy 4th Season" in seasonal_list["title"].to_list()

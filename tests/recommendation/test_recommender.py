@@ -1,4 +1,4 @@
-import pandas as pd
+import polars as pl
 import pytest
 
 from animeippo.recommendation import recommender, dataset, profile
@@ -21,7 +21,7 @@ async def databuilder_stub(h, i, j, k, watchlist=None, seasonal=None):
 
 
 def test_recommender_can_return_plain_seasonal_data():
-    seasonal = pd.DataFrame(test_data.FORMATTED_MAL_SEASONAL_LIST)
+    seasonal = pl.DataFrame(test_data.FORMATTED_MAL_SEASONAL_LIST)
 
     provider = ProviderStub()
     engine = None
@@ -30,12 +30,12 @@ def test_recommender_can_return_plain_seasonal_data():
     rec = recommender.AnimeRecommender(provider, engine, databuilder)
     data = rec.recommend_seasonal_anime("2013", "winter")
 
-    assert seasonal.loc[0]["title"] in data.recommendations["title"].to_list()
+    assert seasonal.item(0, "title") in data.recommendations["title"].to_list()
 
 
 def test_recommender_can_recommend_seasonal_data_for_user():
-    seasonal = pd.DataFrame(test_data.FORMATTED_MAL_SEASONAL_LIST)
-    watchlist = pd.DataFrame(test_data.FORMATTED_MAL_USER_LIST)
+    seasonal = pl.DataFrame(test_data.FORMATTED_MAL_SEASONAL_LIST)
+    watchlist = pl.DataFrame(test_data.FORMATTED_MAL_USER_LIST)
 
     provider = ProviderStub()
     engine = EngineStub()
@@ -44,12 +44,12 @@ def test_recommender_can_recommend_seasonal_data_for_user():
     rec = recommender.AnimeRecommender(provider, engine, databuilder)
     data = rec.recommend_seasonal_anime("2013", "winter", "Janiskeisari")
 
-    assert seasonal.loc[0]["title"] in data.recommendations["title"].to_list()
+    assert seasonal.item(0, "title") in data.recommendations["title"].to_list()
 
 
 def test_recommender_categories():
-    seasonal = pd.DataFrame(test_data.FORMATTED_MAL_SEASONAL_LIST)
-    watchlist = pd.DataFrame(test_data.FORMATTED_MAL_USER_LIST)
+    seasonal = pl.DataFrame(test_data.FORMATTED_MAL_SEASONAL_LIST)
+    watchlist = pl.DataFrame(test_data.FORMATTED_MAL_USER_LIST)
 
     provider = ProviderStub()
     engine = EngineStub()
@@ -65,8 +65,8 @@ def test_recommender_categories():
 
 @pytest.mark.asyncio
 async def test_recommender_can_get_data_when_async_loop_is_already_running():
-    seasonal = pd.DataFrame(test_data.FORMATTED_MAL_SEASONAL_LIST)
-    watchlist = pd.DataFrame(test_data.FORMATTED_MAL_USER_LIST)
+    seasonal = pl.DataFrame(test_data.FORMATTED_MAL_SEASONAL_LIST)
+    watchlist = pl.DataFrame(test_data.FORMATTED_MAL_USER_LIST)
 
     provider = ProviderStub()
     engine = EngineStub()
@@ -75,4 +75,4 @@ async def test_recommender_can_get_data_when_async_loop_is_already_running():
     rec = recommender.AnimeRecommender(provider, engine, databuilder)
     data = rec.recommend_seasonal_anime("2013", "winter", "Janiskeisari")
 
-    assert seasonal.loc[0]["title"] in data.recommendations["title"].to_list()
+    assert seasonal.item(0, "title") in data.recommendations["title"].to_list()

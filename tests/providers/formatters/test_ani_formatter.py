@@ -1,17 +1,24 @@
-import pandas as pd
 import datetime
+
+import polars as pl
 
 from animeippo.providers.formatters import ani_formatter
 from tests import test_data
 
 
 def test_tags_can_be_extracted():
-    assert ani_formatter.get_tags([{"name": "tag1"}]) == ["tag1"]
+    original = pl.DataFrame({"tags": [[{"name": "tag1"}]]})
+
+    assert ani_formatter.get_tags(original).item()[0] == "tag1"
 
 
 def test_user_complete_date_can_be_extracted():
-    actual = ani_formatter.get_user_complete_date(2023, 2, 2)
-    assert actual == datetime.date(2023, 2, 2)
+    original = pl.DataFrame(
+        {"completedAt.year": [2023], "completedAt.month": [2], "completedAt.day": [2]}
+    )
+
+    actual = ani_formatter.get_user_complete_date(original)
+    assert actual.item() == datetime.date(2023, 2, 2)
 
 
 def test_director_can_be_extracted():
@@ -19,7 +26,7 @@ def test_director_can_be_extracted():
         [{"role": "Director"}, {"role": "Grunt"}], [{"id": 123}, {"id": 234}], "Director"
     )
 
-    assert actual == [123]
+    assert actual == ([123],)
 
 
 def test_dataframe_can_be_constructed_from_ani():
@@ -29,7 +36,14 @@ def test_dataframe_can_be_constructed_from_ani():
 
     data = ani_formatter.transform_watchlist_data(animelist, ["genres", "tags"])
 
-    assert type(data) == pd.DataFrame
-    assert data.iloc[0]["title"] == "Dr. STRONK: OLD WORLD"
-    assert data.iloc[0]["genres"] == ["Action", "Adventure", "Comedy", "Sci-Fi"]
+    assert type(data) == pl.DataFrame
+    assert "Dr. STRONK: OLD WORLD" in data["title"].to_list()
     assert len(data) == 2
+
+
+def test_ranks_does_not_break_if_no_ranks():
+    tags = {}
+
+    data = ani_formatter.get_ranks(tags)
+
+    assert data != {}

@@ -1,7 +1,6 @@
 import animeippo.recommendation.analysis as analysis
-import pandas as pd
 import numpy as np
-import pytest
+import polars as pl
 
 
 class EncoderStub:
@@ -26,7 +25,7 @@ def test_jaccard_similarity():
 
 
 def test_genre_average_scores():
-    original = pd.DataFrame(
+    original = pl.DataFrame(
         {
             "genres": [["Action"], ["Action", "Horror"], ["Action", "Horror", "Romance"]],
             "score": [10, 10, 7],
@@ -35,59 +34,79 @@ def test_genre_average_scores():
 
     avg = analysis.mean_score_per_categorical(original.explode("genres"), "genres")
 
-    assert avg.tolist() == [9.0, 8.5, 7.0]
+    assert avg.sort("genres")["score"].to_list() == [9.0, 8.5, 7.0]
 
 
 def test_similarity_weights():
-    genre_averages = pd.Series(data=[9.0, 8.0, 7.0], index=["Action", "Horror", "Romance"])
+    genre_averages = pl.DataFrame([("Action", 9.0), ("Horror", 8.0), ("Romance", 7.0)])
+    genre_averages.columns = ["name", "weight"]
 
-    original = pd.DataFrame(
+    original = pl.DataFrame(
         {
-            "title": ["Hellsingfårs", "Inuyasha"],
+            "id": [1, 2],
             "genres": [["Action", "Horror"], ["Action", "Romance"]],
         }
     )
 
-    weights = original["genres"].apply(
-        analysis.weighted_mean_for_categorical_values, args=(genre_averages,)
+    weights = analysis.weighted_mean_for_categorical_values(
+        original.explode("genres"), "genres", genre_averages
     )
 
-    assert weights.tolist() == [8.5, 8.0]
+    assert weights.sort(descending=True).to_list() == [8.5, 8.0]
 
 
 def test_similarity_weight_uses_zero_to_subsitute_nan():
-    genre_averages = pd.Series(data=[9.0], index=["Action"])
+    genre_averages = pl.DataFrame([("Action", 9.0)])
+    genre_averages.columns = ["name", "weight"]
 
-    genres = ["Action", "Horror"]
+    original = pl.DataFrame(
+        {
+            "id": [1],
+            "genres": [["Action", "Horror"]],
+        }
+    )
 
-    weight = analysis.weighted_mean_for_categorical_values(genres, genre_averages)
+    weights = analysis.weighted_mean_for_categorical_values(
+        original.explode("genres"), "genres", genre_averages
+    )
 
-    assert weight == 4.5
+    assert weights.to_list() == [4.5]
 
 
-@pytest.mark.filterwarnings("ignore:Mean of empty slice:RuntimeWarning")
 def test_similarity_weight_scores_genre_list_containing_only_unseen_genres_as_zero():
-    genre_averages = pd.Series(data=[9.0], index=["Romance"])
+    genre_averages = pl.DataFrame([("Romance", 9.0)])
+    genre_averages.columns = ["name", "weight"]
 
-    original = ["Action", "Horror"]
+    original = pl.DataFrame(
+        {
+            "id": [1],
+            "genres": [["Action", "Horror"]],
+        }
+    )
 
-    weight = analysis.weighted_mean_for_categorical_values(original, genre_averages)
+    weights = analysis.weighted_mean_for_categorical_values(
+        original.explode("genres"), "genres", genre_averages
+    )
 
-    assert weight == 0.0
-
-
-def test_categorical_uses_index_if_given():
-    original1 = pd.Series([[1, 2, 3], [4, 5, 6]], index=[4, 5])
-
-    original2 = pd.Series([[2, 3, 4], [1, 2, 3]], index=[1, 2])
-
-    similarity = analysis.categorical_similarity(original1, original2, original2.index)
-
-    assert similarity.index is not None
-    assert similarity.index.to_list() == original2.index.to_list()
+    assert weights.to_list() == [0.0]
 
 
-def test_get_mean():
-    df = pd.DataFrame({"score": [pd.NA, pd.NA, pd.NA]})
+def test_weighted_functions_return_default_if_no_weights():
+    assert analysis.weighted_mean_for_categorical_values(None, None, None) == 0.0
+    assert analysis.weighted_sum_for_categorical_values(None, None, None) == 0.0
+
+
+def test_categorical_uses_columns_if_given():
+    original1 = pl.Series([[1, 2, 3], [4, 5, 6]])
+
+    original2 = pl.Series([[2, 3, 4], [1, 2, 3]])
+
+    similarity = analysis.categorical_similarity(original1, original2, columns=["1a", "2b"])
+
+    assert similarity.columns == ["1a", "2b"]
+
+
+def test_get_mean_uses_default():
+    df = pl.DataFrame({"score": [None, None, None]})
 
     assert analysis.get_mean_score(df, 5) == 5

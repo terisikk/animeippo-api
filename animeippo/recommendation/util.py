@@ -4,6 +4,16 @@ import scipy.stats as scstats
 
 
 def extract_features(features, columns, n_features=None):
+    """
+    Extracts the most correlated features from a categorical column.
+    Used to find the most correlated features for a given cluster.
+
+    Creating a crosstab in polars is much more inconvenient than in pandas
+    currently, so we convert to pandas here until I find a better way.
+    """
+    features = features.to_pandas()
+    columns = columns.to_pandas()
+
     contingency_table = pd.crosstab(features, columns)
 
     _, _, _, expected = scstats.chi2_contingency(contingency_table)

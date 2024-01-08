@@ -24,6 +24,8 @@ class AnimeRecommender:
             asyncio.get_running_loop()
 
             with ThreadPoolExecutor(1) as pool:
+                print("using threading")
+
                 return pool.submit(
                     lambda: asyncio.run(self.databuilder(self.provider, year, season, user))
                 ).result()
@@ -38,7 +40,7 @@ class AnimeRecommender:
         if user:
             recommendations = self.engine.fit_predict(self.dataset)
         else:
-            recommendations = self.dataset.seasonal.sort_values("popularity", ascending=False)
+            recommendations = self.dataset.seasonal.sort("popularity", descending=True)
 
         self.dataset.recommendations = recommendations
 

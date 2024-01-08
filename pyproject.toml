@@ -6,7 +6,7 @@ authors = ["Teemu Risikko <teemu.risikko@gmail.com>"]
 readme = "README.md"
 
 [tool.poetry.dependencies]
-python = "^3.10"
+python = "^3.12"
 requests = "^2.28.2"
 python-dotenv = "^1.0.0"
 pandas = "^2.1.0"
@@ -19,6 +19,7 @@ pyarrow = "^14.0.1"
 aiohttp = "^3.8.4"
 async-lru = "^2.0.4"
 fast-json-normalize = "^0.0.9"
+polars = { extras = ["numpy", "pandas", "pyarrow"], version = "^0.20.2" }
 
 
 [tool.poetry.group.dev.dependencies]
@@ -37,6 +38,10 @@ profilehooks = "^1.12.0"
 pytest-asyncio = "^0.21.0"
 pydeps = "^1.12.8"
 seaborn = "^0.13.0"
+
+
+[tool.poetry.group.extras.dependencies]
+xlsxwriter = "^3.1.9"
 
 [build-system]
 requires = ["poetry-core"]
@@ -65,7 +70,7 @@ exclude_lines = [
   # Don't complain if non-runnable code isn't run:
   "if __name__ == .__main__.:",
 ]
-omit = ["animeippo/main.py"]
+omit = ["animeippo/__main__.py"]
 
 [tool.pytest.ini_options]
 filterwarnings = [

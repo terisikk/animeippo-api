@@ -1,79 +1,55 @@
-import functools
-import pandas as pd
-import numpy as np
+import polars as pl
 
 
 def combine_dataframes(dataframes):
-    return pd.concat(dataframes)
+    return pl.concat(dataframes)
 
 
 def transform_to_animeippo_format(original, feature_names, keys, mapping):
-    df = pd.DataFrame(columns=keys)
+    df = pl.DataFrame(schema=keys)
 
     if len(original) == 0:
         return df
 
+    if "id" in original.columns:
+        original = original.unique(subset=["id"], keep="first")
+
     df = run_mappers(df, original, mapping)
 
-    df["features"] = df.apply(get_features, args=(feature_names,), axis=1)
+    existing_feature_columns = set(feature_names).intersection(df.columns)
 
-    if "id" in df.columns:
-        df = df.drop_duplicates(subset="id")
-        df = df.set_index("id")
+    if len(existing_feature_columns) > 0:
+        df = df.with_columns(features=get_features(df, existing_feature_columns))
 
-    return df.infer_objects()
+    if "ranks" in df.columns:
+        df = df.with_columns(ranks=df.select(["ranks", "features"]).map_rows(get_ranks).to_series())
+
+    return df
 
 
 def run_mappers(dataframe, original, mapping):
-    for key, mapper in mapping.items():
-        if key in dataframe.columns:
-            dataframe[key] = mapper.map(original)
-
-    return dataframe
+    return pl.DataFrame().with_columns(
+        **{key: mapper.map(original) for key, mapper in mapping.items() if key in dataframe.columns}
+    )
 
 
-def default_if_error(default):
-    def decorator_function(func):
-        @functools.wraps(func)
-        def wrapper(*args):
-            try:
-                return func(*args)
-            except (TypeError, ValueError, AttributeError, KeyError) as error:
-                print(error)
-                return default
-
-        return wrapper
-
-    return decorator_function
+def get_features(dataframe, columns):
+    return dataframe.select(pl.concat_list(columns).list.sort().list.drop_nulls()).to_series()
 
 
-def get_features(row, feature_names):
-    all_features = []
+def get_ranks(row):
+    rank_mapping = row[0]
+    features = row[1]
+    all_ranks = []
 
-    if feature_names is not None:
-        for feature in feature_names:
-            value = row.get(feature, pd.NA)
+    if rank_mapping is None:
+        all_ranks = [100] * len(features)
+    else:
+        for feature in features:
+            all_ranks.append(rank_mapping.get(feature, 100))
 
-            if isinstance(value, list) or isinstance(value, np.ndarray):
-                all_features.extend([v for v in value])
-            else:
-                all_features.append(value)
-
-    return all_features
+    return (all_ranks,)
 
 
 def get_score(score):
-    # np.nan is a float, pd.NA is not, causes problems
-    return score if score != 0 else np.nan
-
-
-def get_season(year, season):
-    if year == 0 or pd.isna(year):
-        year = "?"
-    else:
-        year = str(int(year))
-
-    if pd.isna(season):
-        season = "?"
-
-    return f"{year}/{str(season).lower()}"
+    return score if score != 0 else None

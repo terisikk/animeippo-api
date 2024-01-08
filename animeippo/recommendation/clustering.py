@@ -1,6 +1,5 @@
 import sklearn.cluster as skcluster
 
-import pandas as pd
 import numpy as np
 
 from animeippo.recommendation import analysis
@@ -37,10 +36,13 @@ class AnimeClustering:
         self.clustered_series = None
         self.distance_metric = distance_metric
 
-    def cluster_by_features(self, series, index):
+    def cluster_by_features(self, dataframe):
+        series = np.vstack(dataframe["encoded"])
+
         if self.distance_metric == "cosine":
             # Cosine is undefined for zero-vectors, need to hack (or change metric)
-            clusters = self.model.fit_predict(self.remove_rows_with_no_features(series))
+            filtered_series = self.remove_rows_with_no_features(series)
+            clusters = self.model.fit_predict(filtered_series)
             clusters = self.reinsert_rows_with_no_features_as_a_new_cluster(clusters, series)
         else:
             clusters = self.model.fit_predict(series)
@@ -48,14 +50,12 @@ class AnimeClustering:
         if clusters is not None:
             self.fit = True
             self.n_clusters = self.model.n_clusters_
-            self.clustered_series = pd.DataFrame(
-                {"cluster": clusters, "encoded": series.tolist()}, index=index
-            )
+            self.clustered_series = dataframe.with_columns(cluster=clusters)
 
         return clusters
 
     def remove_rows_with_no_features(self, series):
-        return series[series.sum(axis=1) > 0]
+        return np.array(series[series.sum(axis=1) > 0])
 
     def reinsert_rows_with_no_features_as_a_new_cluster(self, clusters, series):
         if clusters is None:
@@ -63,14 +63,22 @@ class AnimeClustering:
 
         return np.insert(clusters, np.where(series.sum(axis=1) == 0)[0], -1)
 
-    def predict(self, series):
+    def predict(self, series, similarities=None):
         if not self.fit:
             raise RuntimeError("Cluster is not fitted yet. Please call cluster_by_features first.")
 
-        similarities = analysis.categorical_similarity(
-            series, self.clustered_series["encoded"], metric=self.distance_metric
-        )
+        if similarities is None:
+            similarities = analysis.categorical_similarity(
+                self.clustered_series["encoded"],
+                series,
+                metric=self.distance_metric,
+            )
+            similarities = similarities.with_columns(id=self.clustered_series["id"])
 
-        max_columns = similarities.idxmax(axis=1).astype(int)
+        idymax = analysis.idymax(similarities)
 
-        return self.clustered_series.loc[max_columns]["cluster"].values
+        return idymax.join(
+            self.clustered_series.select("id", "cluster"),
+            left_on="idymax",
+            right_on="id",
+        )["cluster"]
