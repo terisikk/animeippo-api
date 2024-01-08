@@ -13,10 +13,15 @@ lint:
 format:
 	poetry run black .
 
+# Lcov report included for vscode coverage
 .PHONY: test
 test:
 	poetry run coverage run
 	poetry run coverage report
+
+.PHONY: coverage-lcov
+coverage-lcov:
+	poetry run coverage lcov
 
 # Requires @profile decorator with filename=".profiling/cprofile.pstats" 
 # in function from profilehooks

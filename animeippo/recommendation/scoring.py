@@ -347,16 +347,6 @@ class FormatScorer(AbstractScorer):
 
         return analysis.normalize_column(scores)
 
-    def get_format_score(self, row, median_episodes, median_duration):
-        score = self.FORMAT_MAPPING.get(row["format"], 1)
-
-        if row.get("episodes", median_episodes) < (0.75 * median_episodes) and row.get(
-            "duration", median_duration
-        ) < (0.75 * median_duration):
-            score = score * 0.5
-
-        return score
-
 
 class DirectorCorrelationScorer:
     name = "directorcorrelationscore"

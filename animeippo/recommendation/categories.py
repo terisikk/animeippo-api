@@ -203,7 +203,11 @@ class BecauseYouLikedCategory:
     def categorize(self, dataset, max_items=20):
         last_liked = dataset.user_profile.last_liked
 
-        if len(last_liked) > self.nth_liked:
+        if (
+            last_liked is not None
+            and len(last_liked) > self.nth_liked
+            and dataset.similarity_matrix is not None
+        ):
             # We need a row, not an object
             liked_item = last_liked[self.nth_liked]
 

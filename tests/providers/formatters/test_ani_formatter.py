@@ -39,3 +39,11 @@ def test_dataframe_can_be_constructed_from_ani():
     assert type(data) == pl.DataFrame
     assert "Dr. STRONK: OLD WORLD" in data["title"].to_list()
     assert len(data) == 2
+
+
+def test_ranks_does_not_break_if_no_ranks():
+    tags = {}
+
+    data = ani_formatter.get_ranks(tags)
+
+    assert data != {}

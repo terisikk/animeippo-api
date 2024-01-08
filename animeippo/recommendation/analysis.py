@@ -48,7 +48,7 @@ def mean_score_per_categorical(dataframe, column):
 
 
 def weighted_mean_for_categorical_values(dataframe, column, weights, fillna=0.0):
-    if len(weights) == 0 or weights is None:
+    if weights is None or len(weights) == 0:
         return fillna
 
     return (
@@ -66,7 +66,7 @@ def weighted_mean_for_categorical_values(dataframe, column, weights, fillna=0.0)
 
 
 def weighted_sum_for_categorical_values(dataframe, column, weights, fillna=0.0):
-    if len(weights) == 0 or weights is None:
+    if weights is None or len(weights) == 0:
         return fillna
 
     return (

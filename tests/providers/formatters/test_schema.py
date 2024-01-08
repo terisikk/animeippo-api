@@ -1,3 +1,4 @@
+import math
 import polars as pl
 
 import animeippo.providers.formatters.schema as schema
@@ -33,7 +34,7 @@ def test_single_mapper():
 def test_single_mapper_default_works():
     mapper = schema.SingleMapper("test", str.lower)
 
-    original = pl.DataFrame({"test": ["TEST1", 2, 3]})
+    original = pl.DataFrame({"test": pl.Series(["TEST1", 2, 3])})
     actual = pl.DataFrame().with_columns(test=mapper.map(original))
 
     assert actual["test"].to_list() == ["test1", None, None]
@@ -41,9 +42,18 @@ def test_single_mapper_default_works():
     mapper = schema.SingleMapper("test", str.lower, 123)
 
     original = pl.DataFrame({"wrong": ["TEST1", 2, 3]})
-    actual = pl.DataFrame({"existing": [1, 2, 3]}).with_columns(test=mapper.map(original))
+    actual = pl.DataFrame({"existing": pl.Series([1, 2, 3])}).with_columns(
+        test=mapper.map(original)
+    )
 
     assert actual["test"].to_list() == [123, 123, 123]
+
+    mapper = schema.SingleMapper("test", math.pow, 5)
+
+    original = pl.DataFrame({"test": [1, 2, 3]})
+    actual = pl.DataFrame().with_columns(test=mapper.map(original))
+
+    assert actual["test"].to_list() == [5, 5, 5]
 
 
 def test_multi_mapper():

@@ -91,6 +91,11 @@ def test_similarity_weight_scores_genre_list_containing_only_unseen_genres_as_ze
     assert weights.to_list() == [0.0]
 
 
+def test_weighted_functions_return_default_if_no_weights():
+    assert analysis.weighted_mean_for_categorical_values(None, None, None) == 0.0
+    assert analysis.weighted_sum_for_categorical_values(None, None, None) == 0.0
+
+
 def test_categorical_uses_columns_if_given():
     original1 = pl.Series([[1, 2, 3], [4, 5, 6]])
 

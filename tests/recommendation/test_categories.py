@@ -344,7 +344,7 @@ def test_because_you_liked():
     assert cat.description == "Because You Liked W2"
 
 
-def test_because_you_liked_does_not_fail_with_empty_likes():
+def test_because_you_liked_does_not_raise_error_with_empty_likes():
     cat = categories.BecauseYouLikedCategory(99)
 
     watchlist = pl.DataFrame(
@@ -354,6 +354,36 @@ def test_because_you_liked_does_not_fail_with_empty_likes():
     uprofile = profile.UserProfile("Test", watchlist)
     data = dataset.RecommendationModel(uprofile, None, None)
     data.recommendations = watchlist
+
+    actual = cat.categorize(data)
+
+    assert actual is None
+
+
+def test_because_you_liked_does_not_raise_error_with_missing_similarity():
+    cat = categories.BecauseYouLikedCategory(0)
+
+    watchlist = pl.DataFrame(
+        {
+            "id": [1, 2],
+            "score": [1, 2],
+            "encoded": [[1, 1], [0, 1]],
+            "user_complete_date": [1, 2],
+            "title": ["W1", "W2"],
+        }
+    )
+
+    uprofile = profile.UserProfile("Test", watchlist)
+    data = dataset.RecommendationModel(uprofile, None, None)
+
+    data.similarity_matrix = pl.DataFrame(
+        {
+            "3": [0.5, 1],
+            "4": [0.5, 0],
+            "5": [0, 0.5],
+            "id": [6, 7],
+        }
+    )
 
     actual = cat.categorize(data)
 

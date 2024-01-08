@@ -53,7 +53,7 @@ def test_user_profile_can_be_constructred_with_no_watchlist():
     assert user_profile.director_correlations is None
 
 
-def test_user_top_genres_and_tags_can_be_categorized():
+def test_user_top_genres_and_tags_can_be_categorized(mocker):
     data = pl.DataFrame(test_data.FORMATTED_ANI_SEASONAL_LIST)
     data = data.with_columns(score=pl.Series([10.0, 8.0]))
 
@@ -71,6 +71,11 @@ def test_user_top_genres_and_tags_can_be_categorized():
         {"weight": [1, 1], "name": ["Absurd", "Nonexisting"]}
     )
     dset = dataset.RecommendationModel(uprofile, None)
+
+    mocker.patch(
+        "animeippo.recommendation.analysis.weight_categoricals_correlation",
+        return_value=pl.DataFrame({"weight": [1, 1], "name": ["Absurd", "Nonexisting"]}),
+    )
 
     categories = profiler.get_categories(dset)
     assert len(categories) > 0
