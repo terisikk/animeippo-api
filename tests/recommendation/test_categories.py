@@ -340,7 +340,7 @@ def test_because_you_liked():
 
     actual = cat.categorize(data)["id"].to_list()
 
-    assert actual == ["3", "5", "4"]
+    assert actual == [3, 5, 4]
     assert cat.description == "Because You Liked W2"
 
 

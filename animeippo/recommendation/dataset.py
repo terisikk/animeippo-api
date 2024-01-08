@@ -1,4 +1,5 @@
 from functools import lru_cache
+import polars as pl
 
 
 class RecommendationModel:
@@ -27,3 +28,10 @@ class RecommendationModel:
     @lru_cache(maxsize=10)
     def seasonal_explode_cached(self, column):
         return self.seasonal.explode(column)
+
+    @lru_cache(maxsize=10)
+    def get_similarity_matrix(self, filtered=False):
+        if filtered:
+            return self.similarity_matrix.filter(~pl.col("id").is_in(self.seasonal["id"]))
+
+        return self.similarity_matrix

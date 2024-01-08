@@ -51,14 +51,12 @@ class AnimeRecommendationEngine:
             cluster=self.clustering_model.cluster_by_features(dataset.watchlist)
         )
 
-        filtered_watchlist = dataset.watchlist.filter(~pl.col("id").is_in(dataset.seasonal["id"]))
-
         dataset.similarity_matrix = analysis.categorical_similarity(
-            filtered_watchlist["encoded"],
+            dataset.watchlist["encoded"],
             dataset.seasonal["encoded"],
             self.clustering_model.distance_metric,
             dataset.seasonal["id"].cast(pl.Utf8),
-        ).with_columns(id=filtered_watchlist["id"])
+        ).with_columns(id=dataset.watchlist["id"])
         # Categories could use unfiltered watchlist, but scoring needs to filter it
 
         # Rechunk to maximize performance, not sure if it has any real effect
@@ -74,7 +72,7 @@ class AnimeRecommendationEngine:
 
         recommendations = recommendations.with_columns(
             cluster=self.clustering_model.predict(
-                dataset.seasonal["encoded"], dataset.similarity_matrix
+                dataset.seasonal["encoded"], dataset.get_similarity_matrix(filtered=False)
             ),
         )
 

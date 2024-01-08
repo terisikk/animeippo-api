@@ -211,7 +211,9 @@ class BecauseYouLikedCategory:
             # We need a row, not an object
             liked_item = last_liked[self.nth_liked]
 
-            similarity = dataset.similarity_matrix.filter(pl.col("id") == liked_item["id"])
+            similarity = dataset.get_similarity_matrix(filtered=False).filter(
+                pl.col("id") == liked_item["id"]
+            )
 
             if len(similarity) > 0:
                 self.description = f"Because You Liked {liked_item['title'].item()}"
@@ -221,8 +223,8 @@ class BecauseYouLikedCategory:
                         similarity.select(pl.exclude("id")).transpose(
                             include_header=True, header_name="id", column_names=["gscore"]
                         ),
-                        left_on=pl.col("id").cast(pl.Utf8),
-                        right_on="id",
+                        left_on=pl.col("id"),
+                        right_on=pl.col("id").cast(pl.Int64),
                         how="left",
                     )
                     .filter(pl.col("user_status").is_null() & pl.col("gscore").is_not_nan())

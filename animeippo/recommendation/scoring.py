@@ -154,7 +154,7 @@ class ClusterSimilarityScorer(AbstractScorer):
 
         scores = pl.DataFrame()
 
-        similarities = data.similarity_matrix.join(
+        similarities = data.get_similarity_matrix(filtered=True).join(
             compare_df.select("id", "cluster", "score"), how="left", on="id"
         )
 
@@ -190,7 +190,8 @@ class DirectSimilarityScorer(AbstractScorer):
         # Want to sort this so that argmax gives at least consistent results,
         # returning the index of the max score on invalid cases
         similarities = (
-            data.similarity_matrix.join(compare_df.select("id", "directscore"), on="id", how="left")
+            data.get_similarity_matrix(filtered=True)
+            .join(compare_df.select("id", "directscore"), on="id", how="left")
             .sort(["directscore", "id"], descending=[True, True])
             .drop("directscore")
         )
