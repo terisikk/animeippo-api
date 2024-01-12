@@ -69,24 +69,39 @@ def get_default_categorizers(distance_metric="jaccard"):
 
 @alru_cache(maxsize=1)
 async def get_user_profile(provider, user):
+    if user is None:
+        return None
+
     user_data = await provider.get_user_anime_list(user)
     user_profile = profile.UserProfile(user, user_data)
 
     return user_profile
 
 
+async def get_user_manga_list(provider, user):
+    if user is None:
+        return None
+
+    manga_data = await provider.get_user_manga_list(user)
+
+    return manga_data
+
+
 async def get_dataset(provider, user, year, season):
     user_profile, manga_data, season_data = await asyncio.gather(
         get_user_profile(provider, user),
-        provider.get_user_manga_list(user),
+        get_user_manga_list(provider, user),
         provider.get_seasonal_anime_list(year, season),
     )
 
-    user_profile.mangalist = manga_data
+    if user_profile is not None:
+        user_profile.mangalist = manga_data
 
     data = dataset.RecommendationModel(user_profile, season_data)
 
-    data.nsfw_tags += get_nswf_tags(user_profile.watchlist)
+    if user_profile is not None:
+        data.nsfw_tags += get_nswf_tags(user_profile.watchlist)
+
     data.nsfw_tags += get_nswf_tags(season_data)
 
     return data

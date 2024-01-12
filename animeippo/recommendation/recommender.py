@@ -35,16 +35,16 @@ class AnimeRecommender:
     def recommend_seasonal_anime(self, year, season, user=None):
         recommendations = None
 
-        self.dataset = self.async_get_dataset(year, season, user)
+        dataset = self.async_get_dataset(year, season, user)
 
         if user:
-            recommendations = self.engine.fit_predict(self.dataset)
+            recommendations = self.engine.fit_predict(dataset)
         else:
-            recommendations = self.dataset.seasonal.sort("popularity", descending=True)
+            recommendations = dataset.seasonal.sort("popularity", descending=True)
 
-        self.dataset.recommendations = recommendations
+        dataset.recommendations = recommendations
 
-        return self.dataset
+        return dataset
 
     def get_categories(self, recommendations):
         return self.engine.categorize_anime(recommendations)

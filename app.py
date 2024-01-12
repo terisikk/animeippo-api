@@ -26,7 +26,7 @@ def seasonal_anime():
     dataset = recommender.recommend_seasonal_anime(year, season)
 
     return Response(
-        views.recommendations_web_view(dataset.seasonal.sort_values("popularity", descending=True)),
+        views.recommendations_web_view(dataset.seasonal),
         mimetype="application/json",
     )
 
@@ -39,6 +39,7 @@ def recommend_anime():
     user = request.args.get("user", None)
     year = request.args.get("year", None)
     season = request.args.get("season", None)
+    only_categories = request.args.get("only_categories", None)
 
     if not all([user, year]):
         return "Validation error", 400
@@ -50,7 +51,9 @@ def recommend_anime():
         return f"Could nof fetch data for user {user}.", 404
 
     return Response(
-        views.recommendations_web_view(dataset.recommendations, categories),
+        views.recommendations_web_view(
+            None if only_categories else dataset.recommendations, categories
+        ),
         mimetype="application/json",
     )
 

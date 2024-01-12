@@ -3,6 +3,15 @@ import polars as pl
 
 
 def recommendations_web_view(dataframe, categories=None):
+    if dataframe is None:
+        return json.dumps(
+            {
+                "data": {
+                    "categories": categories,
+                }
+            }
+        )
+
     fields = ["id", "title", "cover_image", "genres", "status", "start_season"]
     df_json = dataframe.select(fields).to_dicts()
 
