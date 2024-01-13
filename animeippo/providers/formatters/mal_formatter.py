@@ -12,7 +12,6 @@ from animeippo.providers.formatters.schema import (
     SingleMapper,
     MultiMapper,
     Columns,
-    QueryMapper,
     SelectorMapper,
 )
 

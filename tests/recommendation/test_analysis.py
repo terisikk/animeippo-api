@@ -1,4 +1,3 @@
-import animeippo.clustering.metrics
 import animeippo.recommendation.analysis as analysis
 import numpy as np
 import polars as pl

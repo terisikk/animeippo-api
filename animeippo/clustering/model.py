@@ -22,14 +22,14 @@ class AnimeClustering:
         distance_threshold=0.85,
         linkage="average",
         n_clusters=None,
-        **kwargs
+        **kwargs,
     ):
         self.model = skcluster.AgglomerativeClustering(
             n_clusters=n_clusters,
             metric=distance_metric,
             distance_threshold=distance_threshold,
             linkage=linkage,
-            **kwargs
+            **kwargs,
         )
 
         self.n_clusters = None

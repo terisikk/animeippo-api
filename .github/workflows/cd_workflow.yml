@@ -61,7 +61,7 @@ jobs:
       - run: poetry install
       - run: poetry run bandit -q -c pyproject.toml -r .
   formatting:
-    name: "Check formatting with black"
+    name: "Check formatting with ruff"
     needs:
       - build
     runs-on: ubuntu-latest
@@ -73,7 +73,7 @@ jobs:
           python-version: '3.12'
           cache: 'poetry'
       - run: poetry install
-      - run: poetry run black -q --check .
+      - run: poetry run ruff format --check .
   build-and-publish:
     runs-on: ubuntu-latest
     name: "Docker image build & publish"
