@@ -29,14 +29,7 @@ class AnimeRecommendationEngine:
     def fit(self, dataset):
         self.validate(dataset)
 
-        all_features = pl.concat([dataset.seasonal["features"], dataset.watchlist["features"]])
-        all_features = (
-            pl.concat([all_features, dataset.all_features])
-            if dataset.all_features is not None
-            else all_features
-        )
-
-        dataset.all_features = all_features.explode().unique().drop_nulls()
+        dataset.all_features = self.extract_features(dataset)
 
         self.encoder.fit(dataset.all_features)
 
@@ -65,6 +58,16 @@ class AnimeRecommendationEngine:
 
         return dataset
 
+    def extract_features(self, dataset):
+        all_features = pl.concat([dataset.seasonal["features"], dataset.watchlist["features"]])
+        all_features = (
+            pl.concat([all_features, dataset.all_features])
+            if dataset.all_features is not None
+            else all_features
+        )
+
+        return all_features.explode().unique().drop_nulls()
+
     def fit_predict(self, dataset):
         dataset = self.fit(dataset)
 
@@ -87,13 +90,15 @@ class AnimeRecommendationEngine:
             for scorer in self.scorers:
                 scoring = scorer.score(dataset)
                 scoring_target_df = scoring_target_df.with_columns(
-                    **{scorer.name: np.nan_to_num(scoring, nan=0.0)}
+                    **{scorer.name: scoring.fill_nan(0.0)}
                 )
                 names.append(scorer.name)
 
+            mean_score = scoring_target_df.select(names).mean_horizontal()
+
             scoring_target_df = scoring_target_df.with_columns(
-                recommend_score=scoring_target_df.select(names).mean_horizontal(),
-                final_score=scoring_target_df.select(names).mean_horizontal(),
+                recommend_score=mean_score,
+                final_score=mean_score,
                 discourage_score=1.0,
             )
 

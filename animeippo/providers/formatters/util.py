@@ -1,10 +1,6 @@
 import polars as pl
 
 
-def combine_dataframes(dataframes):
-    return pl.concat(dataframes)
-
-
 def transform_to_animeippo_format(original, feature_names, keys, mapping):
     df = pl.DataFrame(schema=keys)
 

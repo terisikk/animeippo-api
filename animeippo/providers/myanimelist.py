@@ -138,6 +138,9 @@ class MyAnimeListProvider(provider.AbstractAnimeProvider):
     def get_feature_fields(self):
         return ["genres", "rating"]
 
+    def get_nsfw_tags(self):
+        return []
+
 
 class MyAnimeListConnection:
     def __init__(self, cache=None):

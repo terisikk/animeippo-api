@@ -33,16 +33,12 @@ class AnimeRecommender:
             return asyncio.run(self.databuilder(self.provider, year, season, user))
 
     def recommend_seasonal_anime(self, year, season, user=None):
-        recommendations = None
-
         dataset = self.async_get_dataset(year, season, user)
 
         if user:
-            recommendations = self.engine.fit_predict(dataset)
+            dataset.recommendations = self.engine.fit_predict(dataset)
         else:
-            recommendations = dataset.seasonal.sort("popularity", descending=True)
-
-        dataset.recommendations = recommendations
+            dataset.recommendations = dataset.seasonal.sort("popularity", descending=True)
 
         return dataset
 

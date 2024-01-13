@@ -164,21 +164,3 @@ def test_status_data_is_filled_to_dataset():
     assert seasonal.item(1, "user_status") == "watching"
     assert seasonal.item(2, "user_status") is None
     assert len(seasonal) == 3
-
-
-def test_nsfw_tags_are_recorded_if_available():
-    watchlist = pl.DataFrame(
-        {
-            "id": [110],
-            "tags": [
-                [
-                    "tag1",
-                    "tag2",
-                    "tag3",
-                ]
-            ],
-            "nsfw_tags": [["tag1"]],
-        }
-    )
-
-    assert recommender_builder.get_nswf_tags(watchlist) == ["tag1"]

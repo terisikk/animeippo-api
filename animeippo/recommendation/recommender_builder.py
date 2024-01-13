@@ -98,49 +98,13 @@ async def get_dataset(provider, user, year, season):
         user_profile.mangalist = manga_data
 
     data = dataset.RecommendationModel(user_profile, season_data)
-
-    if user_profile is not None:
-        data.nsfw_tags += get_nswf_tags(user_profile.watchlist)
-
-    data.nsfw_tags += get_nswf_tags(season_data)
+    data.nsfw_tags = provider.get_nsfw_tags()
 
     return data
-
-
-def get_nswf_tags(df):
-    if df is not None and "nsfw_tags" in df.columns:
-        return df["nsfw_tags"].explode().unique().to_list()
-
-    return []
 
 
 def fill_user_status_data_from_watchlist(seasonal, watchlist):
     return seasonal.join(watchlist.select(["id", "user_status"]), on="id", how="left")
-
-
-async def construct_anilist_data(provider, year, season, user):
-    data = await get_dataset(provider, user, year, season)
-
-    if data.seasonal is not None and data.watchlist is not None:
-        data.seasonal = fill_user_status_data_from_watchlist(data.seasonal, data.watchlist)
-        data.seasonal = (
-            data.seasonal.filter(filters.ContinuationFilter(data.watchlist))
-            if data.seasonal["continuation_to"].dtype != pl.List(pl.Null)
-            else data.seasonal
-        )
-
-    if data.seasonal is not None:
-        seasonal_filters = [
-            filters.StartSeasonFilter(
-                (year, "winter"), (year, "spring"), (year, "summer"), (year, "fall")
-            )
-            if season is None
-            else filters.StartSeasonFilter((year, season)),
-        ]
-
-        data.seasonal = data.seasonal.filter(seasonal_filters)
-
-    return data
 
 
 async def get_related_anime(indices, provider):
@@ -153,12 +117,36 @@ async def get_related_anime(indices, provider):
     return related_anime
 
 
+async def construct_anilist_data(provider, year, season, user):
+    data = await get_dataset(provider, user, year, season)
+
+    if data.seasonal is not None:
+        seasonal_filters = [
+            filters.StartSeasonFilter(
+                (year, "winter"), (year, "spring"), (year, "summer"), (year, "fall")
+            )
+            if season is None
+            else filters.StartSeasonFilter((year, season)),
+        ]
+
+        data.seasonal = data.seasonal.filter(seasonal_filters)
+
+    if data.seasonal is not None and data.watchlist is not None:
+        data.seasonal = fill_user_status_data_from_watchlist(data.seasonal, data.watchlist)
+        data.seasonal = (
+            data.seasonal.filter(filters.ContinuationFilter(data.watchlist))
+            if data.seasonal["continuation_to"].dtype != pl.List(pl.Null)
+            else data.seasonal
+        )
+
+    return data
+
+
 async def construct_myanimelist_data(provider, year, season, user):
     data = await get_dataset(provider, user, year, season)
 
     if data.seasonal is not None:
         seasonal_filters = [
-            filters.MediaTypeFilter("tv"),
             filters.RatingFilter("g", "rx", negative=True),
             filters.StartSeasonFilter(
                 (year, "winter"), (year, "spring"), (year, "summer"), (year, "fall")
@@ -200,8 +188,6 @@ class RecommenderBuilder:
         self._provider = None
         self._databuilder = None
         self._model = None
-        self._seasonal_filters = None
-        self._watchlist_filters = None
 
     def build(self):
         return AnimeRecommender(self._provider, self._model, self._databuilder)

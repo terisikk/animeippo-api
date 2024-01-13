@@ -2,10 +2,11 @@ import aiohttp
 from datetime import timedelta
 from async_lru import alru_cache
 
-from . import provider
+from . import provider, anilist_data
 from .formatters import ani_formatter
 
 import animeippo.cache as animecache
+
 
 REQUEST_TIMEOUT = 30
 ANI_API_URL = "https://graphql.anilist.co"
@@ -219,6 +220,9 @@ class AniListProvider(provider.AbstractAnimeProvider):
 
     def get_related_anime(self, id):
         pass
+
+    def get_nsfw_tags(self):
+        return anilist_data.NSFW_TAGS
 
 
 class AnilistConnection:

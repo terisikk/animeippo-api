@@ -435,6 +435,16 @@ files = [
 colorama = {version = "*", markers = "platform_system == \"Windows\""}
 
 [[package]]
+name = "cohesion"
+version = "1.1.0"
+description = "A tool for measuring Python class cohesion."
+optional = false
+python-versions = "*"
+files = [
+    {file = "cohesion-1.1.0-py2.py3-none-any.whl", hash = "sha256:2ab1534d936428c61385e973c30cbd0381796401ad1083a5bf08562a9de9fee6"},
+]
+
+[[package]]
 name = "colorama"
 version = "0.4.6"
 description = "Cross-platform colored terminal text."
@@ -2883,4 +2893,4 @@ multidict = ">=4.0"
 [metadata]
 lock-version = "2.0"
 python-versions = "^3.12"
-content-hash = "1c6d2589624b142bdb2e44a2b5d3763a84559d4ab95713c1d4e3db609db11af6"
+content-hash = "b964808887b504c9c5d26c87dbbfeb2c583dc99ef2e4ac962edeca0188eb4ecb"

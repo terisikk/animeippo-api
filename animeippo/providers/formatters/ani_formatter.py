@@ -150,16 +150,6 @@ def get_season(dataframe):
     ).to_series()
 
 
-def get_nsfw_tags(dataframe):
-    return dataframe.select(
-        pl.col("tags")
-        .list.eval(
-            pl.when(pl.element().struct.field("isAdult")).then(pl.element().struct.field("name"))
-        )
-        .list.drop_nulls()
-    ).to_series()
-
-
 def get_studios(dataframe):
     return dataframe.select(
         pl.col("studios.edges")
@@ -205,14 +195,13 @@ ANILIST_MAPPING = {
                                     .otherwise(None)
                                 ),
     Columns.TAGS:               QueryMapper(get_tags),
-    Columns.NSFW_TAGS:          QueryMapper(get_nsfw_tags),
     Columns.CONTINUATION_TO:    QueryMapper(get_continuation),
     Columns.ADAPTATION_OF:      QueryMapper(get_adaptation),
     Columns.STUDIOS:            QueryMapper(get_studios),
     Columns.USER_COMPLETE_DATE: QueryMapper(get_user_complete_date),
+    Columns.START_SEASON:       QueryMapper(get_season),
     Columns.RANKS:              SingleMapper("tags", get_ranks),
     Columns.DIRECTOR:           MultiMapper(["staff.edges", "staff.nodes"], 
                                             functools.partial(get_staff, role="Director")),
-    Columns.START_SEASON:       QueryMapper(get_season)
 }
 # fmt: on

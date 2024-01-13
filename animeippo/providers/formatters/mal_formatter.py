@@ -18,7 +18,7 @@ from animeippo.providers.formatters.schema import (
 
 
 def combine_dataframes(dataframes):
-    return util.combine_dataframes(dataframes)
+    return pl.concat(dataframes)
 
 
 def transform_watchlist_data(data, feature_names):

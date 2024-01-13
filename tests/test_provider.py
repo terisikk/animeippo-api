@@ -31,6 +31,9 @@ class AsyncProviderStub:
     def get_features(self, *args, **kwargs):
         return ["genres"]
 
+    def get_nsfw_tags(self):
+        return ["Hentai"]
+
 
 class FaultyProviderStub:
     def __init__(
@@ -53,3 +56,6 @@ class FaultyProviderStub:
 
     def get_features(self, *args, **kwargs):
         return ["genres"]
+
+    def get_nsfw_tags(self):
+        return ["Hentai"]

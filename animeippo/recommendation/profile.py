@@ -105,15 +105,9 @@ class ProfileAnalyser:
         )
 
         data = dataset.RecommendationModel(user_profile, None, all_features)
-        data.nsfw_tags = self.get_nsfw_tags(data.watchlist)
+        data.nsfw_tags = self.provider.get_nsfw_tags()
 
         return data
-
-    def get_nsfw_tags(self, df):
-        if "nsfw_tags" in df.columns:
-            return df["nsfw_tags"].explode().unique().drop_nulls().to_list()
-
-        return []
 
     def analyse(self, user):
         self.dataset = self.async_get_dataset(user)
