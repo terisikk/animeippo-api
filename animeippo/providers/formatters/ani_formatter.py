@@ -36,7 +36,8 @@ def transform_seasonal_data(data, feature_names):
         Columns.NSFW_TAGS,
         Columns.RANKS,
         Columns.STUDIOS,
-        Columns.START_SEASON,
+        Columns.SEASON_YEAR,
+        Columns.SEASON,
         Columns.DIRECTOR,
     ]
 
@@ -67,7 +68,8 @@ def transform_watchlist_data(data, feature_names):
         Columns.NSFW_TAGS,
         Columns.STUDIOS,
         Columns.USER_COMPLETE_DATE,
-        Columns.START_SEASON,
+        Columns.SEASON_YEAR,
+        Columns.SEASON,
         Columns.DIRECTOR,
     ]
 
@@ -142,14 +144,6 @@ def get_ranks(tags):
     return ranks
 
 
-def get_season(dataframe):
-    return dataframe.select(
-        pl.concat_str(
-            [pl.col("seasonYear").fill_null("?"), pl.col("season").fill_null("?")], separator="/"
-        ).str.to_lowercase()
-    ).to_series()
-
-
 def get_studios(dataframe):
     return dataframe.select(
         pl.col("studios.edges")
@@ -182,6 +176,8 @@ ANILIST_MAPPING = {
     Columns.POPULARITY:         DefaultMapper("popularity"),
     Columns.DURATION:           DefaultMapper("duration"),
     Columns.EPISODES:           DefaultMapper("episodes"),
+    Columns.SEASON_YEAR:        DefaultMapper("seasonYear"),
+    Columns.SEASON:             SelectorMapper(pl.col("season").str.to_lowercase()),
     Columns.USER_STATUS:        SelectorMapper(pl.col("status").str.to_lowercase()),
     Columns.STATUS:             SelectorMapper(pl.col("status").str.to_lowercase()),
     Columns.SCORE:              SelectorMapper(
@@ -199,7 +195,6 @@ ANILIST_MAPPING = {
     Columns.ADAPTATION_OF:      QueryMapper(get_adaptation),
     Columns.STUDIOS:            QueryMapper(get_studios),
     Columns.USER_COMPLETE_DATE: QueryMapper(get_user_complete_date),
-    Columns.START_SEASON:       QueryMapper(get_season),
     Columns.RANKS:              SingleMapper("tags", get_ranks),
     Columns.DIRECTOR:           MultiMapper(["staff.edges", "staff.nodes"], 
                                             functools.partial(get_staff, role="Director")),

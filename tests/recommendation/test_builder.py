@@ -1,5 +1,6 @@
 import pytest
 import polars as pl
+import animeippo.providers.provider_builder
 
 from animeippo.recommendation import recommender, recommender_builder
 import animeippo.providers as providers
@@ -18,11 +19,11 @@ async def test_Recommenderbuilder_with_anilist():
         recommender_builder.RecommenderBuilder()
         .provider(test_provider.AsyncProviderStub())
         .model("fake")
-        .databuilder(recommender_builder.construct_anilist_data)
+        .databuilder(animeippo.providers.provider_builder.construct_anilist_data)
     )
 
     actual = b.build()
-    data = await actual.get_dataset("2023", "winter", "test")
+    data = await actual.get_dataset(2023, "winter", "test")
 
     assert isinstance(actual, recommender.AnimeRecommender)
     assert actual.provider is not None
@@ -38,11 +39,11 @@ async def test_Recommenderbuilder_with_mal():
         recommender_builder.RecommenderBuilder()
         .provider(test_provider.AsyncProviderStub())
         .model("fake")
-        .databuilder(recommender_builder.construct_myanimelist_data)
+        .databuilder(animeippo.providers.provider_builder.construct_myanimelist_data)
     )
 
     actual = b.build()
-    data = await actual.get_dataset("2023", "winter", "test")
+    data = await actual.get_dataset(2023, "winter", "test")
 
     assert isinstance(actual, recommender.AnimeRecommender)
     assert actual.provider is not None
@@ -58,11 +59,11 @@ async def test_mal_databuilder_does_not_fail_with_missing_data():
         recommender_builder.RecommenderBuilder()
         .provider(test_provider.FaultyProviderStub())
         .model("fake")
-        .databuilder(recommender_builder.construct_myanimelist_data)
+        .databuilder(animeippo.providers.provider_builder.construct_myanimelist_data)
     )
 
     actual = b.build()
-    data = await actual.get_dataset("2023", "winter", "test")
+    data = await actual.get_dataset(2023, "winter", "test")
 
     assert data.seasonal is None
     assert data.watchlist is None
@@ -74,11 +75,11 @@ async def test_anilist_databuilder_does_not_fail_with_missing_data():
         recommender_builder.RecommenderBuilder()
         .provider(test_provider.FaultyProviderStub())
         .model("fake")
-        .databuilder(recommender_builder.construct_anilist_data)
+        .databuilder(animeippo.providers.provider_builder.construct_anilist_data)
     )
 
     actual = b.build()
-    data = await actual.get_dataset("2023", "winter", "test")
+    data = await actual.get_dataset(2023, "winter", "test")
 
     assert data.seasonal is None
     assert data.watchlist is None
@@ -90,11 +91,11 @@ async def test_databuilder_without_season():
         recommender_builder.RecommenderBuilder()
         .provider(test_provider.AsyncProviderStub())
         .model("fake")
-        .databuilder(recommender_builder.construct_anilist_data)
+        .databuilder(animeippo.providers.provider_builder.construct_anilist_data)
     )
 
     actual = b.build()
-    data = await actual.get_dataset("2023", None, "test")
+    data = await actual.get_dataset(2023, None, "test")
 
     assert isinstance(actual, recommender.AnimeRecommender)
     assert actual.provider is not None
@@ -157,7 +158,9 @@ def test_status_data_is_filled_to_dataset():
         }
     )
 
-    seasonal = recommender_builder.fill_user_status_data_from_watchlist(seasonal, watchlist)
+    seasonal = animeippo.providers.provider_builder.fill_user_status_data_from_watchlist(
+        seasonal, watchlist
+    )
 
     assert "user_status" in seasonal.columns
     assert seasonal.item(0, "user_status") == "completed"

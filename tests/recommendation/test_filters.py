@@ -53,15 +53,17 @@ def test_rating_filter():
 
 
 def test_season_filter():
-    original = pl.DataFrame({"start_season": ["2023/winter", "2023/winter", "2023/spring"]})
+    original = pl.DataFrame(
+        {"season_year": [2023, 2023, 2023], "season": ["winter", "winter", "spring"]}
+    )
 
-    filter = filters.StartSeasonFilter(("2023", "winter"))
+    filter = filters.StartSeasonFilter([2023], ["winter"])
 
-    assert original.filter(filter)["start_season"].to_list() == ["2023/winter", "2023/winter"]
+    assert original.filter(filter)["season"].to_list() == ["winter", "winter"]
 
-    filter = filters.StartSeasonFilter(("2023", "winter"), negative=True)
+    filter = filters.StartSeasonFilter([2023], ["winter"], negative=True)
 
-    assert original.filter(filter)["start_season"].to_list() == ["2023/spring"]
+    assert original.filter(filter)["season"].to_list() == ["spring"]
 
 
 def test_continuation_filter():

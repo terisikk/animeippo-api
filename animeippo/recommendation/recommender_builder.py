@@ -1,21 +1,16 @@
-import asyncio
-
-from async_lru import alru_cache
 from animeippo.clustering import model
 
 import animeippo.providers as providers
-import polars as pl
 
 from animeippo import cache
+from animeippo.providers.provider_builder import construct_anilist_data
+from animeippo.providers.provider_builder import construct_myanimelist_data
 from animeippo.recommendation.recommender import AnimeRecommender
 from animeippo.recommendation import (
     engine,
-    filters,
     scoring,
-    dataset,
     categories,
     encoding,
-    profile,
 )
 
 
@@ -65,111 +60,6 @@ def get_default_categorizers(distance_metric="jaccard"):
         categories.DiscouragingWrapper(categories.GenreCategory(6)),
         categories.BecauseYouLikedCategory(2, distance_metric),
     ]
-
-
-@alru_cache(maxsize=1)
-async def get_user_profile(provider, user):
-    if user is None:
-        return None
-
-    user_data = await provider.get_user_anime_list(user)
-    user_profile = profile.UserProfile(user, user_data)
-
-    return user_profile
-
-
-async def get_user_manga_list(provider, user):
-    if user is None:
-        return None
-
-    manga_data = await provider.get_user_manga_list(user)
-
-    return manga_data
-
-
-async def get_dataset(provider, user, year, season):
-    user_profile, manga_data, season_data = await asyncio.gather(
-        get_user_profile(provider, user),
-        get_user_manga_list(provider, user),
-        provider.get_seasonal_anime_list(year, season),
-    )
-
-    if user_profile is not None:
-        user_profile.mangalist = manga_data
-
-    data = dataset.RecommendationModel(user_profile, season_data)
-    data.nsfw_tags = provider.get_nsfw_tags()
-
-    return data
-
-
-def fill_user_status_data_from_watchlist(seasonal, watchlist):
-    return seasonal.join(watchlist.select(["id", "user_status"]), on="id", how="left")
-
-
-async def get_related_anime(indices, provider):
-    related_anime = []
-
-    for i in indices:
-        anime = await provider.get_related_anime(i)
-        related_anime.append(anime)
-
-    return related_anime
-
-
-async def construct_anilist_data(provider, year, season, user):
-    data = await get_dataset(provider, user, year, season)
-
-    if data.seasonal is not None:
-        seasonal_filters = [
-            filters.StartSeasonFilter(
-                (year, "winter"), (year, "spring"), (year, "summer"), (year, "fall")
-            )
-            if season is None
-            else filters.StartSeasonFilter((year, season)),
-        ]
-
-        data.seasonal = data.seasonal.filter(seasonal_filters)
-
-    if data.seasonal is not None and data.watchlist is not None:
-        data.seasonal = fill_user_status_data_from_watchlist(data.seasonal, data.watchlist)
-        data.seasonal = (
-            data.seasonal.filter(filters.ContinuationFilter(data.watchlist))
-            if data.seasonal["continuation_to"].dtype != pl.List(pl.Null)
-            else data.seasonal
-        )
-
-    return data
-
-
-async def construct_myanimelist_data(provider, year, season, user):
-    data = await get_dataset(provider, user, year, season)
-
-    if data.seasonal is not None:
-        seasonal_filters = [
-            filters.RatingFilter("g", "rx", negative=True),
-            filters.StartSeasonFilter(
-                (year, "winter"), (year, "spring"), (year, "summer"), (year, "fall")
-            )
-            if season is None
-            else filters.StartSeasonFilter((year, season)),
-        ]
-
-        data.seasonal = data.seasonal.filter(seasonal_filters)
-
-        indices = data.seasonal["id"].to_list()
-        related_anime = await get_related_anime(indices, provider)
-        data.seasonal.with_columns(continuation_to=related_anime)
-
-    if data.watchlist is not None and data.seasonal is not None:
-        data.seasonal = fill_user_status_data_from_watchlist(data.seasonal, data.watchlist)
-        data.seasonal = (
-            data.seasonal.filter(filters.ContinuationFilter(data.watchlist))
-            if data.seasonal["continuation_to"].dtype != pl.List(pl.Null)
-            else data.seasonal
-        )
-
-    return data
 
 
 class RecommenderBuilder:

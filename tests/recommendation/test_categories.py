@@ -288,7 +288,8 @@ def test_top_upcoming_category():
         {
             "status": ["not_yet_released", "finished", "cancelled"],
             "user_status": [None, None, None],
-            "start_season": [1, 1, 1],
+            "season_year": [1, 1, 1],
+            "season": ["a", "a", "a"],
             "title": ["Test 1", "Test 2", "Test 3"],
             "final_score": [0, 1, 2],
             "continuationscore": [0, 0, 0],
@@ -321,7 +322,8 @@ def test_because_you_liked():
             "id": [3, 4, 5],
             "title": ["Test 1", "Test 2", "Test 3"],
             "encoded": [[0, 1], [1, 0], [0, 0]],
-            "start_season": [1, 1, 1],
+            "season_year": [1, 1, 1],
+            "season": ["a", "a", "a"],
             "user_status": [None, None, None],
         }
     )
@@ -395,7 +397,8 @@ def test_simulcastscategory(mocker):
 
     recommendations = pl.DataFrame(
         {
-            "start_season": ["2022/summer", "2022/summer", "2022/winter"],
+            "season_year": [2022, 2022, 2022],
+            "season": ["summer", "summer", "winter"],
             "title": ["Test 1", "Test 2", "Test 3"],
             "final_score": [0, 1, 2],
             "continuationscore": [0, 0, 0],
@@ -404,7 +407,7 @@ def test_simulcastscategory(mocker):
 
     mocker.patch(
         "animeippo.recommendation.categories.SimulcastsCategory.get_current_season",
-        return_value="2022/summer",
+        return_value=(2022, "summer"),
     )
 
     data = dataset.RecommendationModel(None, None, None)
@@ -445,20 +448,20 @@ def test_simulcastscategory_current_season_getter(monkeypatch):
     cat = categories.SimulcastsCategory()
 
     monkeypatch.setattr(datetime, "date", FakeDateWinter)
-    assert cat.get_current_season() == "2022/winter"
+    assert cat.get_current_season() == (2022, "winter")
 
     monkeypatch.setattr(datetime, "date", FakeDateSpring)
-    assert cat.get_current_season() == "2022/spring"
+    assert cat.get_current_season() == (2022, "spring")
 
     monkeypatch.setattr(datetime, "date", FakeDateSummer)
-    assert cat.get_current_season() == "2022/summer"
+    assert cat.get_current_season() == (2022, "summer")
 
     monkeypatch.setattr(datetime, "date", FakeDateFall)
-    assert cat.get_current_season() == "2022/fall"
+    assert cat.get_current_season() == (2022, "fall")
 
     # Probably not possible but for coverage
     monkeypatch.setattr(datetime, "date", FakeDateMalformed)
-    assert cat.get_current_season() == "2022/?"
+    assert cat.get_current_season() == (2022, "?")
 
 
 def test_adapatation_category():

@@ -40,7 +40,8 @@ def transform_ani_watchlist_data(data, feature_names, mal_df):
         Columns.RANKS,
         Columns.NSFW_TAGS,
         Columns.STUDIOS,
-        Columns.START_SEASON,
+        Columns.SEASON_YEAR,
+        Columns.SEASON,
     ]
 
     df = transform_to_animeippo_format(original, feature_names, keys, ANILIST_MAPPING)
@@ -70,7 +71,8 @@ def transform_ani_seasonal_data(data, feature_names):
         Columns.NSFW_TAGS,
         Columns.RANKS,
         Columns.STUDIOS,
-        Columns.START_SEASON,
+        Columns.SEASON_YEAR,
+        Columns.SEASON,
     ]
 
     ani_df = transform_to_animeippo_format(original, feature_names, keys, ANILIST_MAPPING)

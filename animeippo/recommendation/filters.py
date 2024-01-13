@@ -48,11 +48,13 @@ def RatingFilter(*ratings, negative=False):
     return mask
 
 
-def StartSeasonFilter(*seasons, negative=False):
-    """Filters a dataframe based on start season (2023/summer for example) field."""
+def StartSeasonFilter(years, seasons=None, negative=False):
+    """Filters a dataframe based on start season (2023/summer for example) fields."""
 
-    seasons = ["/".join(season) for season in seasons]
-    mask = pl.col("start_season").is_in(seasons)
+    if seasons is None or seasons == [None]:
+        mask = pl.col("season_year").is_in(years)
+    else:
+        mask = pl.col("season_year").is_in(years) & pl.col("season").is_in(seasons)
 
     if negative:
         mask = ~mask

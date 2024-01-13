@@ -12,7 +12,7 @@ def recommendations_web_view(dataframe, categories=None):
             }
         )
 
-    fields = ["id", "title", "cover_image", "genres", "status", "start_season"]
+    fields = ["id", "title", "cover_image", "genres", "status", "season_year", "season"]
     df_json = dataframe.select(fields).to_dicts()
 
     return json.dumps(

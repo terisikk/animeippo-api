@@ -37,7 +37,8 @@ def transform_watchlist_data(data, feature_names):
         Columns.RATING,
         Columns.STUDIOS,
         Columns.USER_COMPLETE_DATE,
-        Columns.START_SEASON,
+        Columns.SEASON_YEAR,
+        Columns.SEASON,
     ]
 
     return util.transform_to_animeippo_format(original, feature_names, keys, MAL_MAPPING)
@@ -62,7 +63,8 @@ def transform_seasonal_data(data, feature_names):
         Columns.NSFW_TAGS,
         Columns.RATING,
         Columns.STUDIOS,
-        Columns.START_SEASON,
+        Columns.SEASON_YEAR,
+        Columns.SEASON,
     ]
 
     return util.transform_to_animeippo_format(original, feature_names, keys, MAL_MAPPING)
@@ -146,18 +148,6 @@ def get_status(status):
     return mapping.get(status, status)
 
 
-def get_season(dataframe):
-    return dataframe.select(
-        pl.concat_str(
-            [
-                pl.col("node.startseason.year").fill_null("?"),
-                pl.col("node.startseason.season").fill_null("?"),
-            ],
-            separator="/",
-        ).str.to_lowercase()
-    ).to_series()
-
-
 # fmt: off
 MAL_MAPPING = {
     Columns.ID:                 DefaultMapper("node.id"),
@@ -170,6 +160,8 @@ MAL_MAPPING = {
     Columns.EPISODES:           DefaultMapper("node.num_episodes"),
     Columns.RATING:             DefaultMapper("node.rating"),
     Columns.SOURCE:             DefaultMapper("node.source"),
+    Columns.SEASON:             DefaultMapper("node.start_season.season"),
+    Columns.SEASON_YEAR:        DefaultMapper("node.start_season.year"),
     Columns.USER_STATUS:        DefaultMapper("list_status.status"),
     Columns.GENRES:             SingleMapper("node.genres", split_id_name_field, []),
     Columns.STUDIOS:            SingleMapper("node.studios", split_id_name_field),
@@ -180,7 +172,6 @@ MAL_MAPPING = {
                                     .otherwise(None)
                                 ),    
     Columns.USER_COMPLETE_DATE: SingleMapper("list_status.finish_date", get_user_complete_date),
-    Columns.START_SEASON:       QueryMapper(get_season),
     Columns.CONTINUATION_TO:    MultiMapper(["relation_type", "node.id"], get_continuation),
 }
 

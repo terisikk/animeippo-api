@@ -166,7 +166,7 @@ class TopUpcomingCategory:
         ) & (pl.col("status") == "not_yet_released")
 
         return dataset.recommendations.filter(mask).sort(
-            by=["start_season", "final_score"], descending=[True, True]
+            by=["season_year", "season", "final_score"], descending=[True, True, True]
         )[0:max_items]
 
 
@@ -215,7 +215,8 @@ class SimulcastsCategory:
     description = "Top Simulcasts for You"
 
     def categorize(self, dataset, max_items=30):
-        mask = pl.col("start_season") == self.get_current_season()
+        year, season = self.get_current_season()
+        mask = (pl.col("season_year") == year) & (pl.col("season") == season)
 
         return dataset.recommendations.filter(mask).sort(by=["final_score"], descending=[True])[
             0:max_items
@@ -237,9 +238,7 @@ class SimulcastsCategory:
         else:
             season = "?"
 
-        yearseason = f"{today.year}/{season}"
-
-        return yearseason
+        return today.year, season
 
 
 class PlanningCategory:
