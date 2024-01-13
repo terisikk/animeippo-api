@@ -49,7 +49,8 @@ def fill_user_status_data_from_watchlist(seasonal, watchlist):
 
 async def fit_data(data, seasonal_filters, provider, fetch_related_anime=False):
     if data.seasonal is not None:
-        data.seasonal = data.seasonal.filter(seasonal_filters)
+        if seasonal_filters:
+            data.seasonal = data.seasonal.filter(seasonal_filters)
 
         if fetch_related_anime:
             indices = data.seasonal["id"].to_list()
@@ -70,11 +71,7 @@ async def fit_data(data, seasonal_filters, provider, fetch_related_anime=False):
 async def construct_anilist_data(provider, year, season, user):
     data = await get_dataset(provider, user, year, season)
 
-    seasonal_filters = [
-        filters.StartSeasonFilter([int(year)], [season]),
-    ]
-
-    return await fit_data(data, seasonal_filters, provider)
+    return await fit_data(data, None, provider)
 
 
 async def construct_myanimelist_data(provider, year, season, user):

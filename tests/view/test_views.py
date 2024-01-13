@@ -23,7 +23,7 @@ def test_web_view_can_render_profile_data():
     uprofile = profile.UserProfile("Janiskeisari", df)
 
     assert (
-        json.loads(views.profile_web_view(uprofile, []))["data"]["watchlist"][0]["title"]
+        json.loads(views.profile_web_view(uprofile.watchlist, []))["data"]["shows"][0]["title"]
         == df[0]["title"].item()
     )
 

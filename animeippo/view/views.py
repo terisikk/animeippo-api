@@ -25,19 +25,16 @@ def recommendations_web_view(dataframe, categories=None):
     )
 
 
-def profile_web_view(user_profile, categories):
-    dataframe = user_profile.watchlist
+def profile_web_view(watchlist, categories):
+    fields = set(["id", "title", "cover_image", "genres", "user_status"])
+    filtered_fields = list(set(watchlist.columns).intersection(fields))
 
-    fields = set(["id", "title", "cover_image", "status", "user_status"])
-    filtered_fields = list(set(dataframe.columns).intersection(fields))
-
-    df_json = dataframe[filtered_fields].to_dicts()
+    df_json = watchlist.select(filtered_fields).to_dicts()
 
     return json.dumps(
         {
             "data": {
-                "username": user_profile.user,
-                "watchlist": df_json,
+                "shows": df_json,
                 "categories": categories,
             }
         }

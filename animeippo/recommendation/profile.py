@@ -113,7 +113,7 @@ class ProfileAnalyser:
     def analyse(self, user):
         self.dataset = self.async_get_dataset(user)
 
-        return self.get_categories(self.dataset)
+        return self.get_cluster_categories(self.dataset)
 
     def get_categories(self, dataset):
         categories = []

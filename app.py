@@ -70,8 +70,8 @@ def analyze_profile():
     categories = profiler.analyse(user)
 
     return Response(
-        views.recommendations_web_view(
-            profiler.dataset.watchlist.sort_values(["title"]),
+        views.profile_web_view(
+            profiler.dataset.watchlist.sort("title"),
             sorted(categories, key=lambda item: len(item["items"]), reverse=True),
         ),
         mimetype="application/json",
