@@ -1,7 +1,8 @@
 import numpy as np
 import polars as pl
+from animeippo.clustering import model, metrics
 
-from animeippo.recommendation import encoding, clustering, analysis
+from animeippo.recommendation import encoding
 
 
 class AnimeRecommendationEngine:
@@ -11,7 +12,7 @@ class AnimeRecommendationEngine:
     def __init__(self, scorers=None, categorizers=None, clustering_model=None, encoder=None):
         self.scorers = scorers or []
         self.categorizers = categorizers or []
-        self.clustering_model = clustering_model or clustering.AnimeClustering()
+        self.clustering_model = clustering_model or model.AnimeClustering()
         self.encoder = encoder or encoding.CategoricalEncoder()
 
     def validate(self, dataset):
@@ -44,7 +45,7 @@ class AnimeRecommendationEngine:
             cluster=self.clustering_model.cluster_by_features(dataset.watchlist)
         )
 
-        dataset.similarity_matrix = analysis.categorical_similarity(
+        dataset.similarity_matrix = metrics.categorical_similarity(
             dataset.watchlist["encoded"],
             dataset.seasonal["encoded"],
             self.clustering_model.distance_metric,

@@ -20,18 +20,14 @@ class AbstractScorer(abc.ABC):
 class FeaturesSimilarityScorer(AbstractScorer):
     name = "featuresimilarityscore"
 
-    def __init__(self, weighted=False, distance_metric=None):
+    def __init__(self, weighted=False):
         self.weighted = weighted
-        self.distance_metric = distance_metric or "jaccard"
 
     def score(self, data):
-        scoring_target_df = data.seasonal
-        compare_df = data.watchlist
-
-        scores = analysis.similarity_of_anime_lists(
-            scoring_target_df["encoded"],
-            compare_df.filter(~pl.col("id").is_in(scoring_target_df["id"]))["encoded"],
-            self.distance_metric,
+        scores = (
+            data.get_similarity_matrix(filtered=True)
+            .select(pl.exclude("id"))
+            .mean_horizontal(ignore_nulls=True)
         )
 
         if self.weighted:
@@ -145,9 +141,8 @@ class StudioCorrelationScorer:
 class ClusterSimilarityScorer(AbstractScorer):
     name = "clusterscore"
 
-    def __init__(self, weighted=False, distance_metric=None):
+    def __init__(self, weighted=False):
         self.weighted = weighted
-        self.distance_metric = distance_metric or "jaccard"
 
     def score(self, data):
         compare_df = data.watchlist
@@ -176,9 +171,6 @@ class ClusterSimilarityScorer(AbstractScorer):
 
 class DirectSimilarityScorer(AbstractScorer):
     name = "directscore"
-
-    def __init__(self, distance_metric=None):
-        self.distance_metric = distance_metric or "jaccard"
 
     def score(self, data):
         compare_df = data.watchlist

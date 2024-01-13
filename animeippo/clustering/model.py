@@ -1,6 +1,7 @@
 import sklearn.cluster as skcluster
 
 import numpy as np
+import animeippo.clustering.metrics
 
 from animeippo.recommendation import analysis
 
@@ -41,9 +42,9 @@ class AnimeClustering:
 
         if self.distance_metric == "cosine":
             # Cosine is undefined for zero-vectors, need to hack (or change metric)
-            filtered_series = self.remove_rows_with_no_features(series)
+            filtered_series = self._remove_rows_with_no_features(series)
             clusters = self.model.fit_predict(filtered_series)
-            clusters = self.reinsert_rows_with_no_features_as_a_new_cluster(clusters, series)
+            clusters = self._reinsert_rows_with_no_features_as_a_new_cluster(clusters, series)
         else:
             clusters = self.model.fit_predict(series)
 
@@ -54,10 +55,10 @@ class AnimeClustering:
 
         return clusters
 
-    def remove_rows_with_no_features(self, series):
+    def _remove_rows_with_no_features(self, series):
         return np.array(series[series.sum(axis=1) > 0])
 
-    def reinsert_rows_with_no_features_as_a_new_cluster(self, clusters, series):
+    def _reinsert_rows_with_no_features_as_a_new_cluster(self, clusters, series):
         if clusters is None:
             return None
 
@@ -68,7 +69,7 @@ class AnimeClustering:
             raise RuntimeError("Cluster is not fitted yet. Please call cluster_by_features first.")
 
         if similarities is None:
-            similarities = analysis.categorical_similarity(
+            similarities = animeippo.clustering.metrics.categorical_similarity(
                 self.clustered_series["encoded"],
                 series,
                 metric=self.distance_metric,

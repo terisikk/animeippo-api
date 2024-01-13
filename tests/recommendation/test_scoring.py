@@ -40,9 +40,19 @@ def test_feature_similarity_scorer():
     scorer = scoring.FeaturesSimilarityScorer()
 
     uprofile = profile.UserProfile("Test", source_df)
-    recommendations = target_df.with_columns(
-        recommend_score=scorer.score(dataset.RecommendationModel(uprofile, target_df))
-    ).sort("recommend_score", descending=True)
+    data = dataset.RecommendationModel(uprofile, target_df)
+
+    data.similarity_matrix = pl.DataFrame(
+        {
+            "3": [0.2, 1],
+            "4": [0.2, 0.6],
+            "id": [1, 2],
+        }
+    )
+
+    recommendations = target_df.with_columns(recommend_score=scorer.score(data)).sort(
+        "recommend_score", descending=True
+    )
 
     expected = "Naruto"
     actual = recommendations["title"].item(0)
@@ -76,9 +86,19 @@ def test_feature_similarity_scorer_weighted():
     )
 
     uprofile = profile.UserProfile("Test", source_df)
-    recommendations = target_df.with_columns(
-        recommend_score=scorer.score(dataset.RecommendationModel(uprofile, target_df))
-    ).sort("recommend_score", descending=True)
+    data = dataset.RecommendationModel(uprofile, target_df)
+
+    data.similarity_matrix = pl.DataFrame(
+        {
+            "3": [1, 0.3],
+            "4": [0.3, 1],
+            "id": [1, 2],
+        }
+    )
+
+    recommendations = target_df.with_columns(recommend_score=scorer.score(data)).sort(
+        "recommend_score", descending=True
+    )
 
     expected = "Inuyasha"
     actual = recommendations["title"].item(0)

@@ -2,8 +2,9 @@ import asyncio
 from concurrent.futures import ThreadPoolExecutor
 
 import polars as pl
+from animeippo.clustering import model
 
-from animeippo.recommendation import clustering, encoding, dataset, analysis, util as pdutil
+from animeippo.recommendation import encoding, dataset, analysis, util as pdutil
 
 
 class UserProfile:
@@ -73,7 +74,7 @@ class ProfileAnalyser:
     def __init__(self, provider):
         self.provider = provider
         self.encoder = encoding.WeightedCategoricalEncoder()
-        self.clusterer = clustering.AnimeClustering(
+        self.clusterer = model.AnimeClustering(
             distance_metric="cosine", distance_threshold=0.65, linkage="average"
         )
 

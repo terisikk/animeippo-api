@@ -1,6 +1,7 @@
 import asyncio
 
 from async_lru import alru_cache
+from animeippo.clustering import model
 
 import animeippo.providers as providers
 import polars as pl
@@ -13,25 +14,24 @@ from animeippo.recommendation import (
     scoring,
     dataset,
     categories,
-    clustering,
     encoding,
     profile,
 )
 
 
-def get_default_scorers(distance_metric="jaccard"):
+def get_default_scorers():
     return [
         scoring.FeatureCorrelationScorer(),
         ## scoring.FeatureSimilarityScorer(weighted=True),
         scoring.GenreAverageScorer(),
-        scoring.ClusterSimilarityScorer(weighted=True, distance_metric=distance_metric),
+        scoring.ClusterSimilarityScorer(weighted=True),
         ## scoring.StudioCountScorer(),
         scoring.StudioCorrelationScorer(),
         scoring.PopularityScorer(),
         scoring.ContinuationScorer(),
         scoring.AdaptationScorer(),
         # scoring.SourceScorer(),
-        scoring.DirectSimilarityScorer(distance_metric=distance_metric),
+        scoring.DirectSimilarityScorer(),
         scoring.FormatScorer(),
         scoring.DirectorCorrelationScorer(),
     ]
@@ -230,9 +230,9 @@ def create_builder(providername):
                 .provider(providers.anilist.AniListProvider(rcache))
                 .model(
                     engine.AnimeRecommendationEngine(
-                        get_default_scorers(metric),
+                        get_default_scorers(),
                         get_default_categorizers(metric),
-                        clustering.AnimeClustering(
+                        model.AnimeClustering(
                             distance_metric=metric, distance_threshold=0.65, linkage="average"
                         ),
                         encoding.WeightedCategoricalEncoder(),
@@ -259,9 +259,9 @@ def create_builder(providername):
                 .provider(providers.mixed_provider.MixedProvider(rcache))
                 .model(
                     engine.AnimeRecommendationEngine(
-                        get_default_scorers(metric),
+                        get_default_scorers(),
                         get_default_categorizers(metric),
-                        clustering.AnimeClustering(
+                        model.AnimeClustering(
                             distance_metric=metric, distance_threshold=0.65, linkage="average"
                         ),
                     )
