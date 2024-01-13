@@ -6,52 +6,46 @@ from animeippo.recommendation import scoring, util
 
 class MostPopularCategory:
     description = "Most Popular for This Year"
-    requires = [scoring.PopularityScorer.name]
 
     def categorize(self, dataset, max_items=20):
-        target = dataset.recommendations
-
-        return target.sort(scoring.PopularityScorer.name, descending=True)[0:max_items]
+        return dataset.recommendations.sort(scoring.PopularityScorer.name, descending=True)[
+            0:max_items
+        ]
 
 
 class ContinueWatchingCategory:
     description = "Continue or Finish Watching"
-    requires = [scoring.ContinuationScorer.name]
 
     def categorize(self, dataset, max_items=None):
-        target = dataset.recommendations
-
         mask = (
             (pl.col(scoring.ContinuationScorer.name) > 0)
             & (pl.col("user_status").ne_missing("completed"))
         ) | (pl.col("user_status") == "paused")
 
-        return target.filter(mask).sort("final_score", descending=True)[0:max_items]
+        return dataset.recommendations.filter(mask).sort("final_score", descending=True)[
+            0:max_items
+        ]
 
 
 class AdaptationCategory:
     description = "Because You Read the Manga"
-    requires = [scoring.AdaptationScorer]
 
     def categorize(self, dataset, max_items=None):
-        target = dataset.recommendations
+        mask = (pl.col(scoring.AdaptationScorer.name) > 0) & (
+            pl.col("user_status").ne_missing("completed")
+        )
 
-        return target.filter(
-            (pl.col(scoring.AdaptationScorer.name) > 0)
-            & (pl.col("user_status").ne_missing("completed"))
-        ).sort(scoring.AdaptationScorer.name, descending=True)[0:max_items]
+        return dataset.recommendations.filter(mask).sort(
+            scoring.AdaptationScorer.name, descending=True
+        )[0:max_items]
 
 
 class SourceCategory:
     description = "Based on a"
-    requires = [scoring.SourceScorer.name]
 
     def categorize(self, dataset, max_items=20):
-        target = dataset.recommendations
-        compare = dataset.watchlist
-
         best_source = (
-            compare.group_by("source")
+            dataset.watchlist.group_by("source")
             .agg(pl.col("score").mean() * pl.col("source").count().sqrt())
             .drop_nulls("score")
             .sort("score", descending=True)
@@ -72,50 +66,45 @@ class SourceCategory:
             case _:
                 self.description = "Based on a " + str.title(best_source)
 
-        return target.filter(mask).sort("final_score", descending=True)[0:max_items]
+        return dataset.recommendations.filter(mask).sort("final_score", descending=True)[
+            0:max_items
+        ]
 
 
 class StudioCategory:
     description = "From Your Favourite Studios"
-    requires = [scoring.StudioCorrelationScorer.name, scoring.FormatScorer.name]
 
     def categorize(self, dataset, max_items=25):
-        target = dataset.recommendations
+        mask = (pl.col("user_status").is_null()) & (pl.col(scoring.FormatScorer.name) > 0.5)
 
-        target = target.filter(
-            (pl.col("user_status").is_null()) & (pl.col(scoring.FormatScorer.name) > 0.5)
-        )
-
-        return target.sort(
+        return dataset.recommendations.filter(mask).sort(
             [scoring.StudioCorrelationScorer.name, "final_score"], descending=[True, True]
         )[0:max_items]
 
 
 class ClusterCategory:
     description = "X and Y Category"
-    requires = ["cluster"]
 
     def __init__(self, nth_cluster):
         self.nth_cluster = nth_cluster
 
     def categorize(self, dataset, max_items=None):
-        target = dataset.recommendations
-        compare = dataset.watchlist
-
         gdf = dataset.watchlist_explode_cached("features")
 
         gdf = gdf.filter(~pl.col("features").is_in(dataset.nsfw_tags))
 
         descriptions = pl.from_pandas(util.extract_features(gdf["features"], gdf["cluster"], 2))
 
-        biggest_clusters = compare["cluster"].value_counts().sort("count", descending=True)
+        biggest_clusters = (
+            dataset.watchlist["cluster"].value_counts().sort("count", descending=True)
+        )
 
         if self.nth_cluster < len(biggest_clusters):
             cluster = biggest_clusters.item(self.nth_cluster, "cluster")
 
             mask = (pl.col("cluster") == cluster) & (pl.col("user_status").is_null())
 
-            relevant_shows = target.filter(mask)
+            relevant_shows = dataset.recommendations.filter(mask)
 
             if len(relevant_shows) > 0:
                 desc_list = descriptions.select(pl.concat_list(pl.col("*"))).item(0, 0).to_list()
@@ -129,68 +118,56 @@ class ClusterCategory:
 
 class GenreCategory:
     description = "Genre"
-    requires = [scoring.GenreAverageScorer.name]
 
     def __init__(self, nth_genre):
         self.nth_genre = nth_genre
 
     def categorize(self, dataset, max_items=None):
-        user_profile = dataset.user_profile
+        genre_correlations = dataset.user_profile.genre_correlations
 
-        if self.nth_genre < len(user_profile.genre_correlations):
-            genre = user_profile.genre_correlations[self.nth_genre]["name"].item()
+        if self.nth_genre < len(genre_correlations):
+            genre = genre_correlations[self.nth_genre]["name"].item()
 
             mask = (pl.col("genres").list.contains(genre)) & (
                 ~(pl.col("user_status").is_in(["completed", "dropped"]))
                 | (pl.col("user_status").is_null())
             )
 
-            relevant_shows = dataset.recommendations.filter(mask)
-
             self.description = genre
 
-            selected_shows = relevant_shows.sort("final_score", descending=True)[0:max_items]
-
-            return selected_shows
+            return dataset.recommendations.filter(mask).sort("final_score", descending=True)[
+                0:max_items
+            ]
 
         return None
 
 
 class YourTopPicksCategory:
     description = "Top New Picks for You"
-    requires = [scoring.ContinuationScorer.name]
 
     def categorize(self, dataset, max_items=25):
-        target = dataset.recommendations
-
         mask = (
             (pl.col(scoring.ContinuationScorer.name) == scoring.ContinuationScorer.DEFAULT_SCORE)
             & (pl.col("user_status").is_null())
             & (pl.col("status").is_in(["releasing", "finished"]))
         )
 
-        new_picks = target.filter(mask)
-
-        return new_picks.sort("final_score", descending=True)[0:max_items]
+        return dataset.recommendations.filter(mask).sort("final_score", descending=True)[
+            0:max_items
+        ]
 
 
 class TopUpcomingCategory:
     description = "Top New Picks from Upcoming Anime"
 
-    requires = [scoring.ContinuationScorer.name]
-
     def categorize(self, dataset, max_items=25):
-        target = dataset.recommendations
-
         mask = (
             pl.col(scoring.ContinuationScorer.name) == scoring.ContinuationScorer.DEFAULT_SCORE
         ) & (pl.col("status") == "not_yet_released")
 
-        new_picks = target.filter(mask)
-
-        return new_picks.sort(by=["start_season", "final_score"], descending=[True, True])[
-            0:max_items
-        ]
+        return dataset.recommendations.filter(mask).sort(
+            by=["start_season", "final_score"], descending=[True, True]
+        )[0:max_items]
 
 
 class BecauseYouLikedCategory:
@@ -238,12 +215,11 @@ class SimulcastsCategory:
     description = "Top Simulcasts for You"
 
     def categorize(self, dataset, max_items=30):
-        target = dataset.recommendations
-
         mask = pl.col("start_season") == self.get_current_season()
-        simulcasts = target.filter(mask)
 
-        return simulcasts.sort(by=["final_score"], descending=[True])[0:max_items]
+        return dataset.recommendations.filter(mask).sort(by=["final_score"], descending=[True])[
+            0:max_items
+        ]
 
     def get_current_season(self):
         today = datetime.date.today()
@@ -270,12 +246,11 @@ class PlanningCategory:
     description = "From Your Plan to Watch List"
 
     def categorize(self, dataset, max_items=30):
-        target = dataset.recommendations
-
         mask = pl.col("user_status") == "planning"
-        planning = target.filter(mask)
 
-        return planning.sort(by=["final_score"], descending=[True])[0:max_items]
+        return dataset.recommendations.filter(mask).sort(by=["final_score"], descending=[True])[
+            0:max_items
+        ]
 
 
 class DiscouragingWrapper:
@@ -306,6 +281,4 @@ class DebugCategory:
     description = "Debug"
 
     def categorize(self, dataset, max_items=50):
-        target = dataset.recommendations
-
-        return target.sort("final_score", descending=True)[0:max_items]
+        return dataset.recommendations.sort("final_score", descending=True)[0:max_items]
