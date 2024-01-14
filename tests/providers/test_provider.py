@@ -1,10 +1,10 @@
 import pytest
 
-from animeippo.providers import provider
+from animeippo.providers import abstract_provider
 
 
 def test_new_provider_can_be_instantiated():
-    class ConcreteAnimeProvider(provider.AbstractAnimeProvider):
+    class ConcreteAnimeProvider(abstract_provider.AbstractAnimeProvider):
         def __init__(self):
             super().__init__()
 
@@ -30,13 +30,13 @@ def test_new_provider_can_be_instantiated():
     actual.get_related_anime(None)
     actual.get_user_manga_list(None)
 
-    assert issubclass(actual.__class__, provider.AbstractAnimeProvider)
+    assert issubclass(actual.__class__, abstract_provider.AbstractAnimeProvider)
 
 
 def test_new_provider_subclassing_fails_with_missing_methods():
     with pytest.raises(TypeError):
 
-        class ConcreteAnimeProvider(provider.AbstractAnimeProvider):
+        class ConcreteAnimeProvider(abstract_provider.AbstractAnimeProvider):
             def __init__(self):
                 pass
 

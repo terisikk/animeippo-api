@@ -33,7 +33,7 @@ profile:
 # For some reason it does not read pyproject.toml, even though it should
 .PHONY: pydeps
 pydeps:
-	poetry run pydeps --only animeippo --max-bacon 0 animeippo
+	poetry run pydeps --only animeippo --cluster --max-bacon 3 animeippo
 
 .PHONY: serve
 serve:

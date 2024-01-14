@@ -1,3 +1,5 @@
-__all__ = ["myanimelist", "anilist", "mixed_provider"]
+__all__ = ["mixed", "anilist", "myanimelist"]
 
-from . import myanimelist, anilist, mixed_provider
+from .mixed import provider as mixed
+from .anilist import provider as anilist
+from .myanimelist import provider as myanimelist

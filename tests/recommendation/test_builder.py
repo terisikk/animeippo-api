@@ -117,7 +117,7 @@ def test_builder_creation_returns_correct_builders():
 
     assert (
         recommender_builder.create_builder("faulty-provider")._provider.__class__
-        == providers.mixed_provider.MixedProvider
+        == providers.mixed.MixedProvider
     )
 
 

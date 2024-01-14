@@ -2,8 +2,8 @@ import aiohttp
 from datetime import timedelta
 from async_lru import alru_cache
 
-from . import provider, anilist_data
-from .formatters import ani_formatter
+from .. import abstract_provider
+from . import data, formatter
 
 import animeippo.cache as animecache
 
@@ -12,7 +12,7 @@ REQUEST_TIMEOUT = 30
 ANI_API_URL = "https://graphql.anilist.co"
 
 
-class AniListProvider(provider.AbstractAnimeProvider):
+class AniListProvider(abstract_provider.AbstractAnimeProvider):
     def __init__(self, cache=None):
         self.cache = cache
         self.connection = AnilistConnection(cache)
@@ -76,7 +76,7 @@ class AniListProvider(provider.AbstractAnimeProvider):
             for entry in coll["entries"]:
                 anime_list["data"].append(entry)
 
-        return ani_formatter.transform_watchlist_data(anime_list, self.get_feature_fields())
+        return formatter.transform_watchlist_data(anime_list, self.get_feature_fields())
 
     # @animecache.cached_dataframe(ttl=timedelta(days=1))
     async def get_seasonal_anime_list(self, year, season):
@@ -163,7 +163,7 @@ class AniListProvider(provider.AbstractAnimeProvider):
 
         anime_list = await self.connection.request_paginated(query, variables)
 
-        return ani_formatter.transform_seasonal_data(anime_list, self.get_feature_fields())
+        return formatter.transform_seasonal_data(anime_list, self.get_feature_fields())
 
     @alru_cache(maxsize=1)
     # @animecache.cached_dataframe(ttl=timedelta(days=1))
@@ -213,7 +213,7 @@ class AniListProvider(provider.AbstractAnimeProvider):
             for entry in coll["entries"]:
                 manga_list["data"].append(entry)
 
-        return ani_formatter.transform_user_manga_list_data(manga_list, self.get_feature_fields())
+        return formatter.transform_user_manga_list_data(manga_list, self.get_feature_fields())
 
     def get_feature_fields(self):
         return ["genres", "tags"]
@@ -222,7 +222,7 @@ class AniListProvider(provider.AbstractAnimeProvider):
         pass
 
     def get_nsfw_tags(self):
-        return anilist_data.NSFW_TAGS
+        return data.NSFW_TAGS
 
 
 class AnilistConnection:

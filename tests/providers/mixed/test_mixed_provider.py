@@ -1,6 +1,6 @@
 import pytest
 
-from animeippo.providers import mixed_provider
+from animeippo.providers import mixed
 
 from tests import test_data
 
@@ -29,7 +29,7 @@ class ResponseStub:
 
 @pytest.mark.asyncio
 async def test_mixed_provider_user_anime_can_be_fetched(mocker):
-    provider = mixed_provider.MixedProvider()
+    provider = mixed.MixedProvider()
 
     mocker.patch.object(
         provider.ani_provider.connection,
@@ -50,7 +50,7 @@ async def test_mixed_provider_user_anime_can_be_fetched(mocker):
 
 @pytest.mark.asyncio
 async def test_mixed_provider_returns_None_with_empty_parameters():
-    provider = mixed_provider.MixedProvider()
+    provider = mixed.MixedProvider()
 
     seasonal_anime = await provider.get_seasonal_anime_list(None, None)
     user_anime = await provider.get_user_anime_list(None)
@@ -63,7 +63,7 @@ async def test_mixed_provider_returns_None_with_empty_parameters():
 
 @pytest.mark.asyncio
 async def test_mixed_provider_seasonal_anime_list_can_be_fetched(mocker):
-    provider = mixed_provider.MixedProvider()
+    provider = mixed.MixedProvider()
 
     year = "2023"
     season = "winter"
@@ -81,7 +81,7 @@ async def test_mixed_provider_seasonal_anime_list_can_be_fetched(mocker):
 
 @pytest.mark.asyncio
 async def test_mixed_provider_yearly_list_can_be_fetched_when_season_is_none(mocker):
-    provider = mixed_provider.MixedProvider()
+    provider = mixed.MixedProvider()
 
     year = "2023"
     season = None
@@ -98,7 +98,7 @@ async def test_mixed_provider_yearly_list_can_be_fetched_when_season_is_none(moc
 
 
 def test_mixed_provider_related_anime_returns_none():
-    provider = mixed_provider.MixedProvider()
+    provider = mixed.MixedProvider()
 
     animelist = provider.get_related_anime(0)
 

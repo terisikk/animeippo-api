@@ -1,7 +1,7 @@
 import numpy as np
 import polars as pl
 
-from animeippo.providers.formatters import util
+from animeippo.providers import util
 
 
 class StubMapper:

@@ -1,15 +1,15 @@
 from datetime import timedelta
 
-from . import provider
-from . import myanimelist as mal
-from . import anilist as ani
-from .formatters import mixed_formatter
+from .. import abstract_provider
+from ..myanimelist import provider as mal
+from ..anilist import provider as ani
+from . import formatter
 
 
 import animeippo.cache as animecache
 
 
-class MixedProvider(provider.AbstractAnimeProvider):
+class MixedProvider(abstract_provider.AbstractAnimeProvider):
     def __init__(self, cache=None):
         self.cache = cache
 
@@ -30,7 +30,7 @@ class MixedProvider(provider.AbstractAnimeProvider):
         parameters = {"nsfw": "true", "fields": ",".join(fields)}
 
         mal_list = await self.mal_provider.connection.request_anime_list(mal_query, parameters)
-        mal_df = mixed_formatter.transform_mal_watchlist_data(mal_list, [])
+        mal_df = formatter.transform_mal_watchlist_data(mal_list, [])
 
         ani_query = """
         query ($idMal_in: [Int], $page: Int) {
@@ -62,9 +62,7 @@ class MixedProvider(provider.AbstractAnimeProvider):
 
         ani_list = await self.ani_provider.connection.request_paginated(ani_query, variables)
 
-        return mixed_formatter.transform_ani_watchlist_data(
-            ani_list, self.get_feature_fields(), mal_df
-        )
+        return formatter.transform_ani_watchlist_data(ani_list, self.get_feature_fields(), mal_df)
 
     async def get_seasonal_anime_list(self, year, season):
         if year is None:
@@ -144,7 +142,7 @@ class MixedProvider(provider.AbstractAnimeProvider):
 
         anime_list = await self.ani_provider.connection.request_paginated(query, variables)
 
-        return mixed_formatter.transform_ani_seasonal_data(anime_list, self.get_feature_fields())
+        return formatter.transform_ani_seasonal_data(anime_list, self.get_feature_fields())
 
     async def get_user_manga_list(self, user_id):
         return await self.mal_provider.get_user_manga_list(user_id)

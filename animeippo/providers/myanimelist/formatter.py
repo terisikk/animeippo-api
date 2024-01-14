@@ -5,9 +5,9 @@ from datetime import datetime
 import polars as pl
 from fast_json_normalize import fast_json_normalize
 
-from . import util
+from .. import util
 
-from animeippo.providers.formatters.schema import (
+from animeippo.providers.schema import (
     DefaultMapper,
     SingleMapper,
     MultiMapper,

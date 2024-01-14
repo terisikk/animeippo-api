@@ -157,7 +157,7 @@ async def test_get_all_pages_returns_all_pages(mocker):
     response2 = ResponseStub({"data": [{"test2": "test2"}], "paging": {"next": "page3"}})
     response3 = ResponseStub({"data": [{"test3": "test3"}]})
 
-    mocker.patch("animeippo.providers.myanimelist.MAL_API_URL", "FAKE")
+    mocker.patch("animeippo.providers.myanimelist.provider.MAL_API_URL", "FAKE")
     first_page_url = "/users/kamina69/animelist"
 
     response = ResponseStub({"related_anime": []})
@@ -191,10 +191,10 @@ async def test_request_page_succesfully_exists_with_blank_page():
 
 
 @pytest.mark.asyncio
-async def test_reqest_does_not_fail_catastrophically_when_response_is_empty(mocker):
+async def test_request_does_not_fail_catastrophically_when_response_is_empty(mocker):
     response1 = ResponseStub(dict())
 
-    mocker.patch("animeippo.providers.myanimelist.MAL_API_URL", "FAKE")
+    mocker.patch("animeippo.providers.myanimelist.provider.MAL_API_URL", "FAKE")
     first_page_url = "/users/kamina69/animelist"
 
     mock_session = SessionStub({"FAKE" + first_page_url: response1})

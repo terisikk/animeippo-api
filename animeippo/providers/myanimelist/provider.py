@@ -4,8 +4,8 @@ import aiohttp
 
 from datetime import timedelta
 
-from . import provider
-from .formatters import mal_formatter
+from .. import abstract_provider
+from . import formatter
 
 import animeippo.cache as animecache
 
@@ -18,7 +18,7 @@ HEADERS = {"Authorization": f"Bearer {MAL_API_TOKEN}"}
 REQUEST_TIMEOUT = 30
 
 
-class MyAnimeListProvider(provider.AbstractAnimeProvider):
+class MyAnimeListProvider(abstract_provider.AbstractAnimeProvider):
     def __init__(self, cache=None):
         self.connection = MyAnimeListConnection(cache)
         self.cache = cache
@@ -50,7 +50,7 @@ class MyAnimeListProvider(provider.AbstractAnimeProvider):
 
         anime_list = await self.connection.request_anime_list(query, parameters)
 
-        return mal_formatter.transform_watchlist_data(anime_list, self.get_feature_fields())
+        return formatter.transform_watchlist_data(anime_list, self.get_feature_fields())
 
     @animecache.cached_dataframe(ttl=timedelta(days=1))
     async def get_seasonal_anime_list(self, year, season):
@@ -80,7 +80,7 @@ class MyAnimeListProvider(provider.AbstractAnimeProvider):
 
             anime_list = await self.connection.request_anime_list(query, parameters)
 
-            return mal_formatter.transform_seasonal_data(anime_list, self.get_feature_fields())
+            return formatter.transform_seasonal_data(anime_list, self.get_feature_fields())
         else:
             responses = []
 
@@ -89,9 +89,9 @@ class MyAnimeListProvider(provider.AbstractAnimeProvider):
                 anime_list = await self.connection.request_anime_list(query, parameters)
 
                 responses.append(
-                    mal_formatter.transform_seasonal_data(anime_list, self.get_feature_fields())
+                    formatter.transform_seasonal_data(anime_list, self.get_feature_fields())
                 )
-            return mal_formatter.combine_dataframes(responses)
+            return formatter.combine_dataframes(responses)
 
     async def get_related_anime(self, anime_id):
         if not anime_id:
@@ -107,7 +107,7 @@ class MyAnimeListProvider(provider.AbstractAnimeProvider):
 
         anime_list = await self.connection.request_related_anime(query, parameters)
 
-        return mal_formatter.transform_related_anime(anime_list, self.get_feature_fields())
+        return formatter.transform_related_anime(anime_list, self.get_feature_fields())
 
     @animecache.cached_dataframe(ttl=timedelta(days=1))
     async def get_user_manga_list(self, user_id):
@@ -133,7 +133,7 @@ class MyAnimeListProvider(provider.AbstractAnimeProvider):
 
         anime_list = await self.connection.request_anime_list(query, parameters)
 
-        return mal_formatter.transform_user_manga_list_data(anime_list, self.get_feature_fields())
+        return formatter.transform_user_manga_list_data(anime_list, self.get_feature_fields())
 
     def get_feature_fields(self):
         return ["genres", "rating"]

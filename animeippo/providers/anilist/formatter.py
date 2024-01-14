@@ -3,8 +3,8 @@ import functools
 import polars as pl
 from fast_json_normalize import fast_json_normalize
 
-from . import util
-from animeippo.providers.formatters.schema import (
+from .. import util
+from animeippo.providers.schema import (
     DefaultMapper,
     SingleMapper,
     MultiMapper,

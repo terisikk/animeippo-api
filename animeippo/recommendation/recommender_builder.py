@@ -146,7 +146,7 @@ def create_builder(providername):
             metric = "cosine"
             return (
                 RecommenderBuilder()
-                .provider(providers.mixed_provider.MixedProvider(rcache))
+                .provider(providers.mixed.MixedProvider(rcache))
                 .model(
                     engine.AnimeRecommendationEngine(
                         get_default_scorers(),

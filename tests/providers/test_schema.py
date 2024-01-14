@@ -1,7 +1,7 @@
 import math
 import polars as pl
 
-import animeippo.providers.formatters.schema as schema
+import animeippo.providers.schema as schema
 
 
 def test_default_mapper():
