@@ -1,4 +1,3 @@
-
 import polars as pl
 
 from animeippo.providers.formatters import ani_formatter
@@ -34,6 +33,6 @@ def test_dataframe_can_be_constructed_from_ani():
 def test_ranks_does_not_break_if_no_ranks():
     tags = {}
 
-    data = ani_formatter.get_ranks(tags)
+    data = ani_formatter.get_temp_ranks(tags)
 
     assert data != {}

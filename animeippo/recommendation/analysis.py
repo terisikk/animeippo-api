@@ -2,10 +2,6 @@ import polars as pl
 import numpy as np
 
 
-def mean_score_per_categorical(dataframe, column):
-    return dataframe.group_by(column, maintain_order=True).agg(pl.col("score").mean())
-
-
 def weighted_mean_for_categorical_values(dataframe, column, weights, fillna=0.0):
     if weights is None or len(weights) == 0:
         return fillna
@@ -74,6 +70,7 @@ def weight_encoded_categoricals_correlation(dataframe, column, features, against
 
 def weight_categoricals_correlation(dataframe, column, against=None):
     dataframe = dataframe.filter(pl.col(column).is_not_null())
+
     if len(dataframe) == 0:
         return pl.DataFrame({"name": [], "weight": []})
 
@@ -104,10 +101,12 @@ def weight_categoricals_correlation(dataframe, column, against=None):
 def normalize_column(df_column):
     return (df_column - df_column.min()) / (df_column.max() - df_column.min())
 
-    # return skpre.minmax_scale(df_column)
+
+def mean_score_per_categorical(dataframe, column):
+    return dataframe.group_by(column, maintain_order=True).agg(pl.col("score").mean())
 
 
-def get_mean_score(compare_df, default=0):
+def mean_score_default(compare_df, default=0):
     mean_score = compare_df.select("score").mean().item()
 
     if mean_score == 0 or mean_score is None or np.isnan(mean_score):

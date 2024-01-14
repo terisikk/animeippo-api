@@ -1,6 +1,6 @@
 import polars as pl
 
-from animeippo.recommendation import scoring, dataset, profile
+from animeippo.recommendation import model, scoring, profile
 
 
 def test_abstract_scorer_can_be_instantiated():
@@ -40,7 +40,7 @@ def test_feature_similarity_scorer():
     scorer = scoring.FeaturesSimilarityScorer()
 
     uprofile = profile.UserProfile("Test", source_df)
-    data = dataset.RecommendationModel(uprofile, target_df)
+    data = model.RecommendationModel(uprofile, target_df)
 
     data.similarity_matrix = pl.DataFrame(
         {
@@ -86,7 +86,7 @@ def test_feature_similarity_scorer_weighted():
     )
 
     uprofile = profile.UserProfile("Test", source_df)
-    data = dataset.RecommendationModel(uprofile, target_df)
+    data = model.RecommendationModel(uprofile, target_df)
 
     data.similarity_matrix = pl.DataFrame(
         {
@@ -133,7 +133,7 @@ def test_feature_correlation_scorer():
     uprofile = profile.UserProfile("Test", source_df)
     recommendations = target_df.with_columns(
         recommend_score=scorer.score(
-            dataset.RecommendationModel(
+            model.RecommendationModel(
                 uprofile,
                 target_df,
                 features=pl.Series(["Action", "Adventure", "Fantasy", "Romance", "Sci-fi"]),
@@ -172,7 +172,7 @@ def test_genre_average_scorer():
     uprofile = profile.UserProfile("Test", source_df)
     recommendations = target_df.with_columns(
         recommend_score=scorer.score(
-            dataset.RecommendationModel(
+            model.RecommendationModel(
                 uprofile,
                 target_df,
             )
@@ -208,7 +208,7 @@ def test_cluster_similarity_scorer():
     scorer = scoring.ClusterSimilarityScorer()
 
     uprofile = profile.UserProfile("Test", source_df)
-    data = dataset.RecommendationModel(
+    data = model.RecommendationModel(
         uprofile,
         target_df,
     )
@@ -253,7 +253,7 @@ def test_cluster_similarity_scorer_weighted():
     scorer = scoring.ClusterSimilarityScorer(weighted=True)
 
     uprofile = profile.UserProfile("Test", source_df)
-    data = dataset.RecommendationModel(
+    data = model.RecommendationModel(
         uprofile,
         target_df,
     )
@@ -295,7 +295,7 @@ def test_studio_count_scorer():
     uprofile = profile.UserProfile("Test", source_df)
     recommendations = target_df.with_columns(
         recommend_score=scorer.score(
-            dataset.RecommendationModel(
+            model.RecommendationModel(
                 uprofile,
                 target_df,
             )
@@ -328,7 +328,7 @@ def test_studio_count_scorer_does_not_fail_with_zero_studios():
     uprofile = profile.UserProfile("Test", source_df)
     recommendations = target_df.with_columns(
         recommend_score=scorer.score(
-            dataset.RecommendationModel(
+            model.RecommendationModel(
                 uprofile,
                 target_df,
             )
@@ -360,7 +360,7 @@ def test_studio_correlation_scorer():
     uprofile = profile.UserProfile("Test", source_df)
     recommendations = target_df.with_columns(
         recommend_score=scorer.score(
-            dataset.RecommendationModel(
+            model.RecommendationModel(
                 uprofile,
                 target_df,
             )
@@ -387,7 +387,7 @@ def test_popularity_scorer():
 
     recommendations = target_df.with_columns(
         recommend_score=scorer.score(
-            dataset.RecommendationModel(
+            model.RecommendationModel(
                 None,
                 target_df,
             )
@@ -422,7 +422,7 @@ def test_continuation_scorer():
     scorer = scoring.ContinuationScorer()
 
     uprofile = profile.UserProfile("Test", compare)
-    actual = scorer.score(dataset.RecommendationModel(uprofile, original))
+    actual = scorer.score(model.RecommendationModel(uprofile, original))
 
     assert actual.to_list() == [0.8, 0.0, 0.7, 0.0]
 
@@ -448,7 +448,7 @@ def test_continuation_scorer_scores_nan_with_zero():
     scorer = scoring.ContinuationScorer()
 
     uprofile = profile.UserProfile("Test", compare)
-    actual = scorer.score(dataset.RecommendationModel(uprofile, original))
+    actual = scorer.score(model.RecommendationModel(uprofile, original))
 
     assert actual.to_list() == [0.7, 0.0, 0.7, 0.0]
 
@@ -474,7 +474,7 @@ def test_continuation_scorer_takes_max_of_duplicate_relations():
     scorer = scoring.ContinuationScorer()
 
     uprofile = profile.UserProfile("Test", compare)
-    actual = scorer.score(dataset.RecommendationModel(uprofile, original))
+    actual = scorer.score(model.RecommendationModel(uprofile, original))
 
     assert actual.to_list() == [0.8]
 
@@ -500,7 +500,7 @@ def test_source_scorer():
     uprofile = profile.UserProfile("Test", compare)
     recommendations = target_df.with_columns(
         recommend_score=scorer.score(
-            dataset.RecommendationModel(
+            model.RecommendationModel(
                 uprofile,
                 target_df,
             )
@@ -534,7 +534,7 @@ def test_direct_similarity_scorer():
     scorer = scoring.DirectSimilarityScorer()
 
     uprofile = profile.UserProfile("Test", source_df)
-    data = dataset.RecommendationModel(
+    data = model.RecommendationModel(
         uprofile,
         target_df,
     )
@@ -577,7 +577,7 @@ def test_adaptation_scorer():
 
     scorer = scoring.AdaptationScorer()
 
-    data = dataset.RecommendationModel(None, target)
+    data = model.RecommendationModel(None, target)
 
     actual = scorer.score(data)
 
@@ -607,7 +607,7 @@ def test_format_scorer():
 
     recommendations = target.with_columns(
         recommend_score=scorer.score(
-            dataset.RecommendationModel(
+            model.RecommendationModel(
                 None,
                 target,
             )
@@ -639,7 +639,7 @@ def test_director_correlation_scorer():
     uprofile = profile.UserProfile("Test", source_df)
     recommendations = target_df.with_columns(
         recommend_score=scorer.score(
-            dataset.RecommendationModel(
+            model.RecommendationModel(
                 uprofile,
                 target_df,
             )

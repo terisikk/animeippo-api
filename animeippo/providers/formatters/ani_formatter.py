@@ -11,37 +11,18 @@ from animeippo.providers.formatters.schema import (
     SelectorMapper,
     QueryMapper,
     Columns,
+    ANI_MANGA_SCHEMA,
+    ANI_WATCHLIST_SCHEMA,
+    ANI_SEASONAL_SCHEMA,
 )
 
 
 def transform_seasonal_data(data, feature_names):
     original = pl.from_pandas(fast_json_normalize(data["data"]["media"]))
 
-    keys = [
-        Columns.ID,
-        Columns.ID_MAL,
-        Columns.TITLE,
-        Columns.FORMAT,
-        Columns.GENRES,
-        Columns.COVER_IMAGE,
-        Columns.MEAN_SCORE,
-        Columns.POPULARITY,
-        Columns.STATUS,
-        Columns.CONTINUATION_TO,
-        Columns.ADAPTATION_OF,
-        Columns.DURATION,
-        Columns.EPISODES,
-        Columns.SOURCE,
-        Columns.TAGS,
-        Columns.NSFW_TAGS,
-        Columns.RANKS,
-        Columns.STUDIOS,
-        Columns.SEASON_YEAR,
-        Columns.SEASON,
-        Columns.DIRECTOR,
-    ]
-
-    return util.transform_to_animeippo_format(original, feature_names, keys, ANILIST_MAPPING)
+    return util.transform_to_animeippo_format(
+        original, feature_names, ANI_SEASONAL_SCHEMA, ANILIST_MAPPING
+    )
 
 
 def transform_watchlist_data(data, feature_names):
@@ -50,30 +31,9 @@ def transform_watchlist_data(data, feature_names):
 
     original = pl.from_pandas(original)
 
-    keys = [
-        Columns.ID,
-        Columns.ID_MAL,
-        Columns.TITLE,
-        Columns.FORMAT,
-        Columns.GENRES,
-        Columns.COVER_IMAGE,
-        Columns.USER_STATUS,
-        Columns.MEAN_SCORE,
-        Columns.SCORE,
-        Columns.DURATION,
-        Columns.EPISODES,
-        Columns.SOURCE,
-        Columns.TAGS,
-        Columns.RANKS,
-        Columns.NSFW_TAGS,
-        Columns.STUDIOS,
-        Columns.USER_COMPLETE_DATE,
-        Columns.SEASON_YEAR,
-        Columns.SEASON,
-        Columns.DIRECTOR,
-    ]
-
-    return util.transform_to_animeippo_format(original, feature_names, keys, ANILIST_MAPPING)
+    return util.transform_to_animeippo_format(
+        original, feature_names, ANI_WATCHLIST_SCHEMA, ANILIST_MAPPING
+    )
 
 
 def transform_user_manga_list_data(data, feature_names):
@@ -82,20 +42,9 @@ def transform_user_manga_list_data(data, feature_names):
 
     original = pl.from_pandas(original)
 
-    keys = [
-        Columns.ID,
-        Columns.ID_MAL,
-        Columns.TITLE,
-        Columns.GENRES,
-        Columns.TAGS,
-        Columns.USER_STATUS,
-        Columns.STATUS,
-        Columns.MEAN_SCORE,
-        Columns.SCORE,
-        Columns.USER_COMPLETE_DATE,
-    ]
-
-    return util.transform_to_animeippo_format(original, feature_names, keys, ANILIST_MAPPING)
+    return util.transform_to_animeippo_format(
+        original, feature_names, ANI_MANGA_SCHEMA, ANILIST_MAPPING
+    )
 
 
 def filter_relations(dataframe, meaningful_relations):
@@ -132,7 +81,7 @@ def get_user_complete_date(dataframe):
     ).to_series()
 
 
-def get_ranks(tags):
+def get_temp_ranks(tags):
     ranks = {}
 
     for tag in tags:
@@ -195,7 +144,7 @@ ANILIST_MAPPING = {
     Columns.ADAPTATION_OF:      QueryMapper(get_adaptation),
     Columns.STUDIOS:            QueryMapper(get_studios),
     Columns.USER_COMPLETE_DATE: QueryMapper(get_user_complete_date),
-    Columns.RANKS:              SingleMapper("tags", get_ranks),
+    Columns.TEMP_RANKS:         SingleMapper("tags", get_temp_ranks),
     Columns.DIRECTOR:           MultiMapper(["staff.edges", "staff.nodes"], 
                                             functools.partial(get_staff, role="Director")),
 }

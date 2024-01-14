@@ -1,7 +1,7 @@
 import asyncio
 
 from async_lru import alru_cache
-from animeippo.recommendation import dataset, filters, profile
+from animeippo.recommendation import filters, model, profile
 
 import polars as pl
 
@@ -37,7 +37,7 @@ async def get_dataset(provider, user, year, season):
     if user_profile is not None:
         user_profile.mangalist = manga_data
 
-    data = dataset.RecommendationModel(user_profile, season_data)
+    data = model.RecommendationModel(user_profile, season_data)
     data.nsfw_tags = provider.get_nsfw_tags()
 
     return data

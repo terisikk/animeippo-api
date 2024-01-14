@@ -85,15 +85,11 @@ class AnimeRecommendationEngine:
         scoring_target_df = dataset.seasonal
 
         if len(self.scorers) > 0:
-            names = []
+            scoring_target_df = scoring_target_df.with_columns(
+                **{scorer.name: scorer.score(dataset).fill_nan(0.0) for scorer in self.scorers}
+            )
 
-            for scorer in self.scorers:
-                scoring = scorer.score(dataset)
-                scoring_target_df = scoring_target_df.with_columns(
-                    **{scorer.name: scoring.fill_nan(0.0)}
-                )
-                names.append(scorer.name)
-
+            names = [scorer.name for scorer in self.scorers]
             mean_score = scoring_target_df.select(names).mean_horizontal()
 
             scoring_target_df = scoring_target_df.with_columns(

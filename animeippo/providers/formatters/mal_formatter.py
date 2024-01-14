@@ -59,7 +59,6 @@ def transform_seasonal_data(data, feature_names):
         Columns.EPISODES,
         Columns.SOURCE,
         Columns.TAGS,
-        Columns.NSFW_TAGS,
         Columns.RATING,
         Columns.STUDIOS,
         Columns.SEASON_YEAR,

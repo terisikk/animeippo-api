@@ -1,8 +1,8 @@
 import polars as pl
 
 
-def transform_to_animeippo_format(original, feature_names, keys, mapping):
-    df = pl.DataFrame(schema=keys)
+def transform_to_animeippo_format(original, feature_names, schema, mapping):
+    df = pl.DataFrame(schema=schema)
 
     if len(original) == 0:
         return df
@@ -17,8 +17,10 @@ def transform_to_animeippo_format(original, feature_names, keys, mapping):
     if len(existing_feature_columns) > 0:
         df = df.with_columns(features=get_features(df, existing_feature_columns))
 
-    if "ranks" in df.columns:
-        df = df.with_columns(ranks=df.select(["ranks", "features"]).map_rows(get_ranks).to_series())
+    if "temp_ranks" in df.columns:
+        df = df.with_columns(
+            ranks=df.select(["temp_ranks", "features"]).map_rows(get_ranks).to_series()
+        )
 
     return df
 

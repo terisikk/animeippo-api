@@ -1,4 +1,4 @@
-from animeippo.recommendation import engine, scoring, dataset, categories, profile
+from animeippo.recommendation import engine, model, scoring, categories, profile
 import polars as pl
 import pytest
 
@@ -31,7 +31,7 @@ class ProviderStub:
 
 def test_recommend_seasonal_anime_for_user_by_genre():
     provider = ProviderStub()
-    data = dataset.RecommendationModel(
+    data = model.RecommendationModel(
         profile.UserProfile("Test", provider.get_user_anime_list()),
         provider.get_seasonal_anime_list(),
     )
@@ -51,7 +51,7 @@ def test_recommend_seasonal_anime_for_user_by_genre():
 
 def test_multiple_scorers_can_be_added():
     provider = ProviderStub()
-    data = dataset.RecommendationModel(
+    data = model.RecommendationModel(
         profile.UserProfile("Test", provider.get_user_anime_list()),
         provider.get_seasonal_anime_list(),
     )
@@ -74,7 +74,7 @@ def test_multiple_scorers_can_be_added():
 def test_runtime_error_is_raised_when_dataset_is_empty():
     recengine = engine.AnimeRecommendationEngine()
 
-    data = dataset.RecommendationModel(None, None)
+    data = model.RecommendationModel(None, None)
 
     with pytest.raises(RuntimeError):
         recengine.fit_predict(data)
@@ -84,7 +84,7 @@ def test_runtime_error_is_raised_when_no_scorers_exist():
     recengine = engine.AnimeRecommendationEngine()
 
     with pytest.raises(RuntimeError):
-        recengine.score_anime(dataset.RecommendationModel(None, None))
+        recengine.score_anime(model.RecommendationModel(None, None))
 
 
 def test_categorize():
@@ -93,7 +93,7 @@ def test_categorize():
     recengine.add_categorizer(categories.StudioCategory())
     recengine.add_categorizer(categories.GenreCategory(100))
 
-    data = dataset.RecommendationModel(
+    data = model.RecommendationModel(
         profile.UserProfile("Test", pl.DataFrame(test_data.FORMATTED_MAL_USER_LIST)), None, None
     )
 

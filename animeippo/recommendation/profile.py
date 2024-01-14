@@ -4,7 +4,7 @@ from concurrent.futures import ThreadPoolExecutor
 import polars as pl
 from animeippo.clustering import model
 
-from animeippo.recommendation import encoding, dataset, analysis, util as pdutil
+from animeippo.recommendation import encoding, analysis, model as rmodel, util as pdutil
 
 
 class UserProfile:
@@ -105,7 +105,7 @@ class ProfileAnalyser:
             cluster=self.clusterer.cluster_by_features(user_profile.watchlist)
         )
 
-        data = dataset.RecommendationModel(user_profile, None, all_features)
+        data = rmodel.RecommendationModel(user_profile, None, all_features)
         data.nsfw_tags = self.provider.get_nsfw_tags()
 
         return data

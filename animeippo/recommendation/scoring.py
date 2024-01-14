@@ -226,7 +226,7 @@ class ContinuationScorer(AbstractScorer):
         scoring_target_df = data.seasonal
         compare_df = data.watchlist
 
-        mean_score = analysis.get_mean_score(compare_df, self.DEFAULT_MEAN_SCORE)
+        mean_score = analysis.mean_score_default(compare_df, self.DEFAULT_MEAN_SCORE)
 
         rdf = scoring_target_df.explode("continuation_to")
 
@@ -265,7 +265,7 @@ class AdaptationScorer(AbstractScorer):
         if compare_df is None:
             return None
 
-        mean_score = analysis.get_mean_score(compare_df, self.DEFAULT_MEAN_SCORE)
+        mean_score = analysis.mean_score_default(compare_df, self.DEFAULT_MEAN_SCORE)
 
         rdf = scoring_target_df.explode("adaptation_of")
 

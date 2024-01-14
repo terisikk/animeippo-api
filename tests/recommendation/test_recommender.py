@@ -1,7 +1,7 @@
 import polars as pl
 import pytest
 
-from animeippo.recommendation import recommender, dataset, profile
+from animeippo.recommendation import model, recommender, profile
 from tests.recommendation.test_engine import ProviderStub
 from tests import test_data
 
@@ -17,7 +17,7 @@ class EngineStub:
 
 
 async def databuilder_stub(h, i, j, k, watchlist=None, seasonal=None):
-    return dataset.RecommendationModel(profile.UserProfile("Test", watchlist), seasonal)
+    return model.RecommendationModel(profile.UserProfile("Test", watchlist), seasonal)
 
 
 def test_recommender_can_return_plain_seasonal_data():

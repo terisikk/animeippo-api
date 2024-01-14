@@ -1,7 +1,7 @@
 import polars as pl
 import pytest
 
-from animeippo.recommendation import profile, encoding, dataset
+from animeippo.recommendation import model, profile, encoding
 
 from tests import test_provider, test_data
 
@@ -50,7 +50,7 @@ def test_user_top_genres_and_tags_can_be_categorized(mocker):
     data = data.with_columns(score=pl.Series([10.0, 8.0]))
 
     uprofile = profile.UserProfile("Test", data)
-    dset = dataset.RecommendationModel(uprofile, None)
+    dset = model.RecommendationModel(uprofile, None)
 
     profiler = profile.ProfileAnalyser(None)
 
@@ -62,7 +62,7 @@ def test_user_top_genres_and_tags_can_be_categorized(mocker):
     uprofile.genre_correlations = pl.DataFrame(
         {"weight": [1, 1], "name": ["Absurd", "Nonexisting"]}
     )
-    dset = dataset.RecommendationModel(uprofile, None)
+    dset = model.RecommendationModel(uprofile, None)
 
     mocker.patch(
         "animeippo.recommendation.analysis.weight_categoricals_correlation",
@@ -75,7 +75,7 @@ def test_user_top_genres_and_tags_can_be_categorized(mocker):
     data = data.drop("genres")
     uprofile = profile.UserProfile("Test", data)
 
-    dset = dataset.RecommendationModel(uprofile, None)
+    dset = model.RecommendationModel(uprofile, None)
 
     categories = profiler.get_categories(dset)
     assert len(categories) > 0
@@ -86,7 +86,7 @@ def test_clusters_can_be_categorized():
     data = data.with_columns(cluster=pl.Series([0, 1]))
 
     uprofile = profile.UserProfile("Test", data)
-    dset = dataset.RecommendationModel(uprofile, None)
+    dset = model.RecommendationModel(uprofile, None)
 
     profiler = profile.ProfileAnalyser(None)
 

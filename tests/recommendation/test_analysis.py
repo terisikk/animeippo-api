@@ -85,4 +85,4 @@ def test_weighted_functions_return_default_if_no_weights():
 def test_get_mean_uses_default():
     df = pl.DataFrame({"score": [None, None, None]})
 
-    assert analysis.get_mean_score(df, 5) == 5
+    assert analysis.mean_score_default(df, 5) == 5
