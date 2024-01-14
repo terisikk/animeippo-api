@@ -25,9 +25,8 @@ def test_recommender_can_return_plain_seasonal_data():
 
     provider = ProviderStub()
     engine = None
-    databuilder = partial(databuilder_stub, watchlist=None, seasonal=seasonal)
 
-    rec = recommender.AnimeRecommender(provider, engine, databuilder)
+    rec = recommender.AnimeRecommender(provider, engine)
     data = rec.recommend_seasonal_anime("2013", "winter")
 
     assert seasonal.item(0, "title") in data.recommendations["title"].to_list()
@@ -35,27 +34,21 @@ def test_recommender_can_return_plain_seasonal_data():
 
 def test_recommender_can_recommend_seasonal_data_for_user():
     seasonal = pl.DataFrame(test_data.FORMATTED_MAL_SEASONAL_LIST)
-    watchlist = pl.DataFrame(test_data.FORMATTED_MAL_USER_LIST)
 
     provider = ProviderStub()
     engine = EngineStub()
-    databuilder = partial(databuilder_stub, watchlist=watchlist, seasonal=seasonal)
 
-    rec = recommender.AnimeRecommender(provider, engine, databuilder)
+    rec = recommender.AnimeRecommender(provider, engine)
     data = rec.recommend_seasonal_anime("2013", "winter", "Janiskeisari")
 
     assert seasonal.item(0, "title") in data.recommendations["title"].to_list()
 
 
 def test_recommender_categories():
-    seasonal = pl.DataFrame(test_data.FORMATTED_MAL_SEASONAL_LIST)
-    watchlist = pl.DataFrame(test_data.FORMATTED_MAL_USER_LIST)
-
     provider = ProviderStub()
     engine = EngineStub()
-    databuilder = partial(databuilder_stub, watchlist=watchlist, seasonal=seasonal)
 
-    rec = recommender.AnimeRecommender(provider, engine, databuilder)
+    rec = recommender.AnimeRecommender(provider, engine)
     data = rec.recommend_seasonal_anime("2013", "winter", "Janiskeisari")
     categories = rec.get_categories(data)
 
@@ -70,9 +63,8 @@ async def test_recommender_can_get_data_when_async_loop_is_already_running():
 
     provider = ProviderStub()
     engine = EngineStub()
-    databuilder = partial(databuilder_stub, watchlist=watchlist, seasonal=seasonal)
 
-    rec = recommender.AnimeRecommender(provider, engine, databuilder)
+    rec = recommender.AnimeRecommender(provider, engine)
     data = rec.recommend_seasonal_anime("2013", "winter", "Janiskeisari")
 
     assert seasonal.item(0, "title") in data.recommendations["title"].to_list()

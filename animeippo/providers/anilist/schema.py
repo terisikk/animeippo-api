@@ -46,7 +46,6 @@ ANI_SEASONAL_SCHEMA = {
     Columns.SEASON_YEAR: pl.Int64,
     Columns.SEASON: pl.Utf8,
     Columns.DIRECTOR: pl.List,
-    Columns.USER_STATUS: pl.Utf8,
     Columns.USER_COMPLETE_DATE: pl.Date,
 }
 ANI_MANGA_SCHEMA = {

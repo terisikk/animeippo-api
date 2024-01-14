@@ -24,7 +24,7 @@ async def test_mal_user_anime_list_can_be_fetched(mocker):
 async def test_mal_seasonal_anime_list_can_be_fetched(mocker):
     provider = myanimelist.MyAnimeListProvider()
 
-    year = "2023"
+    year = 2023
     season = "winter"
 
     response = ResponseStub(test_data.MAL_SEASONAL_LIST)

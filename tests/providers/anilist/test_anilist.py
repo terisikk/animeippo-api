@@ -1,4 +1,5 @@
 from animeippo.providers import anilist
+import animeippo.providers.anilist.connection
 from tests import test_data
 
 import pytest
@@ -97,7 +98,7 @@ async def test_get_single_returns_succesfully(mocker):
     response = ResponseStub(response_json)
     mocker.patch("aiohttp.ClientSession.post", return_value=response)
 
-    page = await anilist.AnilistConnection().request_single("test", {})
+    page = await animeippo.providers.anilist.AnilistConnection().request_single("test", {})
 
     assert page == await response.json()
 
@@ -134,7 +135,12 @@ async def test_get_all_pages_returns_all_pages(mocker):
         side_effect=[ResponseStub(response1), ResponseStub(response2), ResponseStub(response3)],
     )
 
-    final_pages = list([page async for page in anilist.AnilistConnection().get_all_pages("", {})])
+    final_pages = list(
+        [
+            page
+            async for page in animeippo.providers.anilist.AnilistConnection().get_all_pages("", {})
+        ]
+    )
 
     assert len(final_pages) == 3
     assert final_pages[0] == response1["data"]["Page"]
@@ -148,7 +154,12 @@ async def test_request_does_not_fail_catastrophically_when_response_is_empty(moc
     response = ResponseStub({})
     mocker.patch("aiohttp.ClientSession.post", return_value=response)
 
-    all_pages = list([page async for page in anilist.AnilistConnection().get_all_pages("", {})])
+    all_pages = list(
+        [
+            page
+            async for page in animeippo.providers.anilist.AnilistConnection().get_all_pages("", {})
+        ]
+    )
 
     assert len(all_pages) == 1
     assert all_pages[0] is None

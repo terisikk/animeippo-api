@@ -3,8 +3,6 @@ from animeippo.clustering import model
 import animeippo.providers as providers
 
 from animeippo import cache
-from animeippo.providers.provider_builder import construct_anilist_data
-from animeippo.providers.provider_builder import construct_myanimelist_data
 from animeippo.recommendation.recommender import AnimeRecommender
 from animeippo.recommendation import (
     engine,
@@ -76,22 +74,23 @@ class RecommenderBuilder:
 
     def __init__(self):
         self._provider = None
-        self._databuilder = None
         self._model = None
+        self._seasonal_filters = None
+        self._fetch_related_anime = False
 
     def build(self):
-        return AnimeRecommender(self._provider, self._model, self._databuilder)
+        return AnimeRecommender(self._provider, self._model, self._fetch_related_anime)
 
     def provider(self, provider):
         self._provider = provider
         return self
 
-    def databuilder(self, databuilder):
-        self._databuilder = databuilder
-        return self
-
     def model(self, model):
         self._model = model
+        return self
+
+    def fetch_related_anime(self, fetch_related_anime):
+        self._fetch_related_anime = fetch_related_anime
         return self
 
 
@@ -128,7 +127,6 @@ def create_builder(providername):
                         encoding.WeightedCategoricalEncoder(),
                     )
                 )
-                .databuilder(construct_anilist_data)
             )
         case "myanimelist":
             return (
@@ -140,7 +138,7 @@ def create_builder(providername):
                         get_default_categorizers(),
                     )
                 )
-                .databuilder(construct_myanimelist_data)
+                .fetch_related_anime(True)
             )
         case _:
             metric = "cosine"
@@ -156,5 +154,4 @@ def create_builder(providername):
                         ),
                     )
                 )
-                .databuilder(construct_anilist_data)
             )

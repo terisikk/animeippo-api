@@ -8,10 +8,10 @@ from animeippo.recommendation import encoding, analysis, model as rmodel, util a
 
 
 class UserProfile:
-    def __init__(self, user, watchlist):
+    def __init__(self, user, watchlist, mangalist=None):
         self.user = user
         self.watchlist = watchlist
-        self.mangalist = None
+        self.mangalist = mangalist
         self.last_liked = None
         self.genre_correlations = None
         self.director_correlations = None

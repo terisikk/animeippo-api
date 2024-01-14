@@ -16,24 +16,31 @@ class ProviderStub:
         self.user = user
         self.cache = cache
 
-    def get_seasonal_anime_list(self, *args, **kwargs):
+    async def get_seasonal_anime_list(self, *args, **kwargs):
         return pl.DataFrame(self.seasonal)
 
-    def get_user_anime_list(self, *args, **kwargs):
+    async def get_user_anime_list(self, *args, **kwargs):
         return pl.DataFrame(self.user)
 
-    def get_related_anime(self, *args, **kwargs):
+    async def get_related_anime(self, *args, **kwargs):
         return pl.DataFrame()
 
-    def get_feature_names(self, *args, **kwargs):
+    async def get_feature_names(self, *args, **kwargs):
         return ["genres"]
 
+    async def get_user_manga_list(self, *args, **kwargs):
+        return pl.DataFrame()
 
-def test_recommend_seasonal_anime_for_user_by_genre():
+    def get_nsfw_tags(self, *args, **kwargs):
+        return []
+
+
+@pytest.mark.asyncio
+async def test_recommend_seasonal_anime_for_user_by_genre():
     provider = ProviderStub()
     data = model.RecommendationModel(
-        profile.UserProfile("Test", provider.get_user_anime_list()),
-        provider.get_seasonal_anime_list(),
+        profile.UserProfile("Test", await provider.get_user_anime_list()),
+        await provider.get_seasonal_anime_list(),
     )
 
     scorer = scoring.FeaturesSimilarityScorer()
@@ -49,11 +56,12 @@ def test_recommend_seasonal_anime_for_user_by_genre():
     ]
 
 
-def test_multiple_scorers_can_be_added():
+@pytest.mark.asyncio
+async def test_multiple_scorers_can_be_added():
     provider = ProviderStub()
     data = model.RecommendationModel(
-        profile.UserProfile("Test", provider.get_user_anime_list()),
-        provider.get_seasonal_anime_list(),
+        profile.UserProfile("Test", await provider.get_user_anime_list()),
+        await provider.get_seasonal_anime_list(),
     )
 
     scorer = scoring.FeaturesSimilarityScorer()

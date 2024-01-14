@@ -1,7 +1,7 @@
 from functools import lru_cache
 import polars as pl
 
-from animeippo.clustering import metrics
+from ..clustering import metrics
 
 
 class RecommendationModel:
@@ -39,8 +39,33 @@ class RecommendationModel:
         self.watchlist = self.watchlist.with_columns(encoded=encoder.encode(self.watchlist))
         self.seasonal = self.seasonal.with_columns(encoded=encoder.encode(self.seasonal))
 
+    def fill_user_status_data_from_watchlist(self):
+        self.seasonal = self.seasonal.join(
+            self.watchlist.select(["id", "user_status"]), on="id", how="left"
+        )
+
+    def filter_continuation(self):
+        if (
+            self.seasonal is not None
+            and self.watchlist is not None
+            and self.seasonal["continuation_to"].dtype != pl.List(pl.Null)
+        ):
+            completed = self.watchlist.filter(pl.col("user_status") == "completed")["id"]
+
+            mask = (pl.col("continuation_to").list.set_intersection(completed.to_list()) != []) | (
+                pl.col("continuation_to") == []
+            )
+
+            self.seasonal = self.seasonal.filter(mask)
+
+        return
+
     def fit(self, encoder, clustering_model):
         self.validate()
+
+        self.fill_user_status_data_from_watchlist()
+        self.filter_continuation()
+
         self.encode(encoder)
 
         self.watchlist = self.watchlist.with_columns(
