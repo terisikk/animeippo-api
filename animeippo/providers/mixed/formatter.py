@@ -1,11 +1,13 @@
 import polars as pl
 from fast_json_normalize import fast_json_normalize
 
+from animeippo.providers.mappers import SingleMapper
+
 
 from ..myanimelist.formatter import MAL_MAPPING
 from ..anilist.formatter import ANILIST_MAPPING
 from ..util import transform_to_animeippo_format
-from animeippo.providers.schema import SingleMapper, Columns
+from animeippo.providers.columns import Columns
 
 
 def transform_mal_watchlist_data(data, feature_names):

@@ -2,18 +2,23 @@ import functools
 
 import polars as pl
 from fast_json_normalize import fast_json_normalize
+from animeippo.providers.anilist.schema import (
+    ANI_MANGA_SCHEMA,
+    ANI_SEASONAL_SCHEMA,
+    ANI_WATCHLIST_SCHEMA,
+)
+
+from animeippo.providers.mappers import (
+    DefaultMapper,
+    MultiMapper,
+    QueryMapper,
+    SelectorMapper,
+    SingleMapper,
+)
 
 from .. import util
-from animeippo.providers.schema import (
-    DefaultMapper,
-    SingleMapper,
-    MultiMapper,
-    SelectorMapper,
-    QueryMapper,
+from animeippo.providers.columns import (
     Columns,
-    ANI_MANGA_SCHEMA,
-    ANI_WATCHLIST_SCHEMA,
-    ANI_SEASONAL_SCHEMA,
 )
 
 

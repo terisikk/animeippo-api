@@ -5,14 +5,12 @@ from datetime import datetime
 import polars as pl
 from fast_json_normalize import fast_json_normalize
 
+from animeippo.providers.mappers import DefaultMapper, MultiMapper, SelectorMapper, SingleMapper
+
 from .. import util
 
-from animeippo.providers.schema import (
-    DefaultMapper,
-    SingleMapper,
-    MultiMapper,
+from animeippo.providers.columns import (
     Columns,
-    SelectorMapper,
 )
 
 
