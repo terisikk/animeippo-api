@@ -1,4 +1,5 @@
-from animeippo.recommendation import engine, model, scoring, categories, profile
+from animeippo.recommendation import engine, model, scoring, categories, profile, encoding
+from animeippo.clustering import model as clustering
 import polars as pl
 import pytest
 
@@ -44,7 +45,9 @@ async def test_recommend_seasonal_anime_for_user_by_genre():
     )
 
     scorer = scoring.FeaturesSimilarityScorer()
-    recengine = engine.AnimeRecommendationEngine()
+    recengine = engine.AnimeRecommendationEngine(
+        clustering.AnimeClustering(), encoding.CategoricalEncoder()
+    )
 
     recengine.add_scorer(scorer)
 
@@ -66,7 +69,9 @@ async def test_multiple_scorers_can_be_added():
 
     scorer = scoring.FeaturesSimilarityScorer()
     scorer2 = scoring.StudioCountScorer()
-    recengine = engine.AnimeRecommendationEngine()
+    recengine = engine.AnimeRecommendationEngine(
+        clustering.AnimeClustering(), encoding.CategoricalEncoder()
+    )
 
     recengine.add_scorer(scorer)
     recengine.add_scorer(scorer2)
@@ -80,7 +85,9 @@ async def test_multiple_scorers_can_be_added():
 
 
 def test_runtime_error_is_raised_when_dataset_is_empty():
-    recengine = engine.AnimeRecommendationEngine()
+    recengine = engine.AnimeRecommendationEngine(
+        clustering.AnimeClustering(), encoding.CategoricalEncoder()
+    )
 
     data = model.RecommendationModel(None, None)
 
@@ -89,14 +96,18 @@ def test_runtime_error_is_raised_when_dataset_is_empty():
 
 
 def test_runtime_error_is_raised_when_no_scorers_exist():
-    recengine = engine.AnimeRecommendationEngine()
+    recengine = engine.AnimeRecommendationEngine(
+        clustering.AnimeClustering(), encoding.CategoricalEncoder()
+    )
 
     with pytest.raises(RuntimeError):
         recengine.score_anime(model.RecommendationModel(None, None))
 
 
 def test_categorize():
-    recengine = engine.AnimeRecommendationEngine()
+    recengine = engine.AnimeRecommendationEngine(
+        clustering.AnimeClustering(), encoding.CategoricalEncoder()
+    )
     recengine.add_categorizer(categories.ContinueWatchingCategory())
     recengine.add_categorizer(categories.StudioCategory())
     recengine.add_categorizer(categories.GenreCategory(100))

@@ -1,18 +1,12 @@
-import polars as pl
-from animeippo.clustering import model, metrics
-
-from animeippo.recommendation import encoding
-
-
 class AnimeRecommendationEngine:
     """Generates recommendations based on given scorers and categorizers. Optionally accepts
     a custom clustering model and feature encoder."""
 
-    def __init__(self, scorers=None, categorizers=None, clustering_model=None, encoder=None):
+    def __init__(self, clustering_model, encoder, scorers=None, categorizers=None):
+        self.clustering_model = clustering_model
+        self.encoder = encoder
         self.scorers = scorers or []
         self.categorizers = categorizers or []
-        self.clustering_model = clustering_model or model.AnimeClustering()
-        self.encoder = encoder or encoding.CategoricalEncoder()
 
     def fit_predict(self, dataset):
         dataset.fit(self.encoder, self.clustering_model)

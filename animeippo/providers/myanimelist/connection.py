@@ -3,7 +3,7 @@ from datetime import timedelta
 
 import aiohttp
 
-import animeippo.cache as animecache
+from .. import caching as animecache
 
 
 MAL_API_URL = "https://api.myanimelist.net/v2"

@@ -1,4 +1,4 @@
-import animeippo.cache as animecache
+from .. import caching as animecache
 
 import aiohttp
 

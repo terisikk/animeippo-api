@@ -1,5 +1,5 @@
 import pytest
-import polars as pl
+
 from animeippo.recommendation import recommender, recommender_builder
 import animeippo.providers as providers
 

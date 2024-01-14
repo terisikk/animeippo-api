@@ -5,8 +5,6 @@ from animeippo.recommendation import model, recommender, profile
 from tests.recommendation.test_engine import ProviderStub
 from tests import test_data
 
-from functools import partial
-
 
 class EngineStub:
     def fit_predict(self, dataset):
@@ -59,7 +57,6 @@ def test_recommender_categories():
 @pytest.mark.asyncio
 async def test_recommender_can_get_data_when_async_loop_is_already_running():
     seasonal = pl.DataFrame(test_data.FORMATTED_MAL_SEASONAL_LIST)
-    watchlist = pl.DataFrame(test_data.FORMATTED_MAL_USER_LIST)
 
     provider = ProviderStub()
     engine = EngineStub()

@@ -1,12 +1,9 @@
 from datetime import timedelta
 
-from .. import abstract_provider
+from .. import abstract_provider, caching as animecache
 from ..myanimelist import provider as mal
 from ..anilist import provider as ani
 from . import formatter
-
-
-import animeippo.cache as animecache
 
 
 class MixedProvider(abstract_provider.AbstractAnimeProvider):
@@ -64,6 +61,7 @@ class MixedProvider(abstract_provider.AbstractAnimeProvider):
 
         return formatter.transform_ani_watchlist_data(ani_list, self.get_feature_fields(), mal_df)
 
+    @animecache.cached_dataframe(ttl=timedelta(days=1))
     async def get_seasonal_anime_list(self, year, season):
         if year is None:
             return None

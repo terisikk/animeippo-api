@@ -74,7 +74,12 @@ class RecommenderBuilder:
 
     def __init__(self):
         self._provider = None
-        self._model = None
+        self._model = engine.AnimeRecommendationEngine(
+            get_default_scorers(),
+            get_default_categorizers(),
+            model.AnimeClustering(),
+            encoding.CategoricalEncoder(),
+        )
         self._seasonal_filters = None
         self._fetch_related_anime = False
 
@@ -119,12 +124,12 @@ def create_builder(providername):
                 .provider(providers.anilist.AniListProvider(rcache))
                 .model(
                     engine.AnimeRecommendationEngine(
-                        get_default_scorers(),
-                        get_default_categorizers(metric),
                         model.AnimeClustering(
                             distance_metric=metric, distance_threshold=0.65, linkage="average"
                         ),
                         encoding.WeightedCategoricalEncoder(),
+                        get_default_scorers(),
+                        get_default_categorizers(metric),
                     )
                 )
             )
@@ -134,6 +139,8 @@ def create_builder(providername):
                 .provider(providers.myanimelist.MyAnimeListProvider(rcache))
                 .model(
                     engine.AnimeRecommendationEngine(
+                        model.AnimeClustering(),
+                        encoding.CategoricalEncoder(),
                         get_default_scorers(),
                         get_default_categorizers(),
                     )
@@ -147,11 +154,12 @@ def create_builder(providername):
                 .provider(providers.mixed.MixedProvider(rcache))
                 .model(
                     engine.AnimeRecommendationEngine(
-                        get_default_scorers(),
-                        get_default_categorizers(metric),
                         model.AnimeClustering(
                             distance_metric=metric, distance_threshold=0.65, linkage="average"
                         ),
+                        encoding.WeightedCategoricalEncoder(),
+                        get_default_scorers(),
+                        get_default_categorizers(metric),
                     )
                 )
             )

@@ -2,10 +2,9 @@ from async_lru import alru_cache
 
 from animeippo.providers.anilist.connection import AnilistConnection
 
-from .. import abstract_provider
+from .. import abstract_provider, caching as animecache
 from . import data, formatter
 
-import animeippo.cache as animecache
 from datetime import timedelta
 
 

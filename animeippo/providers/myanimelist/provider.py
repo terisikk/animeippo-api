@@ -4,10 +4,8 @@ import polars as pl
 
 from animeippo.providers.myanimelist.connection import MyAnimeListConnection
 
-from .. import abstract_provider
+from .. import abstract_provider, caching as animecache
 from . import formatter
-
-import animeippo.cache as animecache
 
 
 class MyAnimeListProvider(abstract_provider.AbstractAnimeProvider):
