@@ -47,7 +47,3 @@ def get_ranks(row):
             all_ranks.append(rank_mapping.get(feature, 100))
 
     return (all_ranks,)
-
-
-def get_score(score):
-    return score if score != 0 else None

@@ -1,4 +1,4 @@
-import animeippo.recommendation.filters as filters
+import animeippo.providers.filters as filters
 import polars as pl
 
 

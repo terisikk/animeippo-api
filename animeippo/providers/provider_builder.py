@@ -1,7 +1,8 @@
 import asyncio
 
 from async_lru import alru_cache
-from animeippo.recommendation import filters, model, profile
+from animeippo.providers import filters
+from animeippo.recommendation import model, profile
 
 import polars as pl
 

@@ -17,20 +17,6 @@ def test_get_features():
     assert features[0].to_list() == ["1", "test"]
 
 
-def test_user_score_cannot_be_zero():
-    original = 0
-
-    actual = util.get_score(original)
-
-    assert actual is None
-
-
-def test_user_score_extraction_does_not_fail_with_invalid_data():
-    util.get_score(1.0)
-    util.get_score(None)
-    util.get_score(np.nan)
-
-
 def test_mapping_skips_keys_not_in_dataframe():
     dataframe = pl.DataFrame({"test1": [1], "test2": [2]})
     mapping = {"test1": StubMapper(), "test3": StubMapper()}
