@@ -14,62 +14,8 @@ class AnimeRecommendationEngine:
         self.clustering_model = clustering_model or model.AnimeClustering()
         self.encoder = encoder or encoding.CategoricalEncoder()
 
-    def validate(self, dataset):
-        is_missing_seasonal = dataset.seasonal is None
-        is_missing_watchlist = dataset.watchlist is None
-
-        if is_missing_seasonal or is_missing_watchlist:
-            error_desc = (
-                f"Watchlist invalid?: {is_missing_watchlist}. "
-                + f"Seasonal invalid?: {is_missing_seasonal}"
-            )
-
-            raise RuntimeError("Trying to recommend anime without proper data. " + error_desc)
-
-    def fit(self, dataset):
-        self.validate(dataset)
-
-        dataset.all_features = self.extract_features(dataset)
-
-        self.encoder.fit(dataset.all_features)
-
-        dataset.watchlist = dataset.watchlist.with_columns(
-            encoded=self.encoder.encode(dataset.watchlist)
-        )
-        dataset.seasonal = dataset.seasonal.with_columns(
-            encoded=self.encoder.encode(dataset.seasonal)
-        )
-
-        dataset.watchlist = dataset.watchlist.with_columns(
-            cluster=self.clustering_model.cluster_by_features(dataset.watchlist)
-        )
-
-        dataset.similarity_matrix = metrics.categorical_similarity(
-            dataset.watchlist["encoded"],
-            dataset.seasonal["encoded"],
-            self.clustering_model.distance_metric,
-            dataset.seasonal["id"].cast(pl.Utf8),
-        ).with_columns(id=dataset.watchlist["id"])
-        # Categories could use unfiltered watchlist, but scoring needs to filter it
-
-        # Rechunk to maximize performance, not sure if it has any real effect
-        dataset.seasonal = dataset.seasonal.rechunk()
-        dataset.watchlist = dataset.watchlist.rechunk()
-
-        return dataset
-
-    def extract_features(self, dataset):
-        all_features = pl.concat([dataset.seasonal["features"], dataset.watchlist["features"]])
-        all_features = (
-            pl.concat([all_features, dataset.all_features])
-            if dataset.all_features is not None
-            else all_features
-        )
-
-        return all_features.explode().unique().drop_nulls()
-
     def fit_predict(self, dataset):
-        dataset = self.fit(dataset)
+        dataset.fit(self.encoder, self.clustering_model)
 
         recommendations = self.score_anime(dataset)
 
