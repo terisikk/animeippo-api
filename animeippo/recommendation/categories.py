@@ -1,7 +1,7 @@
 import polars as pl
 import datetime
 
-from animeippo.recommendation import scoring, util
+from . import scoring
 
 
 class MostPopularCategory:
@@ -80,40 +80,6 @@ class StudioCategory:
         return dataset.recommendations.filter(mask).sort(
             [scoring.StudioCorrelationScorer.name, "final_score"], descending=[True, True]
         )[0:max_items]
-
-
-class ClusterCategory:
-    description = "X and Y Category"
-
-    def __init__(self, nth_cluster):
-        self.nth_cluster = nth_cluster
-
-    def categorize(self, dataset, max_items=None):
-        gdf = dataset.watchlist_explode_cached("features")
-
-        gdf = gdf.filter(~pl.col("features").is_in(dataset.nsfw_tags))
-
-        descriptions = pl.from_pandas(util.extract_features(gdf["features"], gdf["cluster"], 2))
-
-        biggest_clusters = (
-            dataset.watchlist["cluster"].value_counts().sort("count", descending=True)
-        )
-
-        if self.nth_cluster < len(biggest_clusters):
-            cluster = biggest_clusters.item(self.nth_cluster, "cluster")
-
-            mask = (pl.col("cluster") == cluster) & (pl.col("user_status").is_null())
-
-            relevant_shows = dataset.recommendations.filter(mask)
-
-            if len(relevant_shows) > 0:
-                desc_list = descriptions.select(pl.concat_list(pl.col("*"))).item(0, 0).to_list()
-
-                self.description = " ".join(desc_list)
-
-            return relevant_shows.sort("final_score", descending=True)[0:max_items]
-
-        return None
 
 
 class GenreCategory:

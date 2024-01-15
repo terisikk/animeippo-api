@@ -3,7 +3,7 @@ import json
 
 from animeippo.view import views
 
-from animeippo.recommendation import profile
+from animeippo.profiling import model
 
 from tests import test_data
 
@@ -20,7 +20,7 @@ def test_web_view_can_render_seasonal_data():
 def test_web_view_can_render_profile_data():
     df = pl.DataFrame(test_data.FORMATTED_MAL_USER_LIST)
 
-    uprofile = profile.UserProfile("Janiskeisari", df)
+    uprofile = model.UserProfile("Janiskeisari", df)
 
     assert (
         json.loads(views.profile_web_view(uprofile.watchlist, []))["data"]["shows"][0]["title"]

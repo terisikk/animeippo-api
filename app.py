@@ -2,7 +2,8 @@ from flask import Flask, Response, request
 from flask_cors import CORS
 
 from animeippo.view import views
-from animeippo.recommendation import recommender_builder, profile
+from animeippo.profiling import analyser
+from animeippo.recommendation import recommender_builder
 
 from aiohttp.client_exceptions import ClientError
 
@@ -11,7 +12,7 @@ app.config["JSON_AS_ASCII"] = False
 cors = CORS(app, origins="http://localhost:3000")
 
 recommender = recommender_builder.create_builder("anilist").build()
-profiler = profile.ProfileAnalyser(recommender.provider)
+profiler = analyser.ProfileAnalyser(recommender.provider)
 
 
 @app.route("/seasonal")

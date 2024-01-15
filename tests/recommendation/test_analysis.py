@@ -1,4 +1,4 @@
-import animeippo.recommendation.analysis as analysis
+import animeippo.analysis.statistics as statistics
 import numpy as np
 import polars as pl
 
@@ -16,7 +16,7 @@ def test_genre_average_scores():
         }
     )
 
-    avg = analysis.mean_score_per_categorical(original.explode("genres"), "genres")
+    avg = statistics.mean_score_per_categorical(original.explode("genres"), "genres")
 
     assert avg.sort("genres")["score"].to_list() == [9.0, 8.5, 7.0]
 
@@ -32,7 +32,7 @@ def test_weighted_mean_for_categoricals():
         }
     )
 
-    weights = analysis.weighted_mean_for_categorical_values(
+    weights = statistics.weighted_mean_for_categorical_values(
         original.explode("genres"), "genres", genre_averages
     )
 
@@ -50,7 +50,7 @@ def test_weighted_mean_uses_zero_to_subsitute_nan():
         }
     )
 
-    weights = analysis.weighted_mean_for_categorical_values(
+    weights = statistics.weighted_mean_for_categorical_values(
         original.explode("genres"), "genres", genre_averages
     )
 
@@ -68,7 +68,7 @@ def test_weighted_mean_scores_genre_list_containing_only_unseen_genres_as_zero()
         }
     )
 
-    weights = analysis.weighted_mean_for_categorical_values(
+    weights = statistics.weighted_mean_for_categorical_values(
         original.explode("genres"), "genres", genre_averages
     )
 
@@ -76,13 +76,13 @@ def test_weighted_mean_scores_genre_list_containing_only_unseen_genres_as_zero()
 
 
 def test_weighted_functions_return_default_if_no_weights():
-    assert analysis.weighted_mean_for_categorical_values(None, None, None) == 0.0
-    assert analysis.weighted_sum_for_categorical_values(None, None, None) == 0.0
+    assert statistics.weighted_mean_for_categorical_values(None, None, None) == 0.0
+    assert statistics.weighted_sum_for_categorical_values(None, None, None) == 0.0
 
-    assert len(analysis.weight_categoricals_correlation(pl.DataFrame({"test": []}), "test")) == 0
+    assert len(statistics.weight_categoricals_correlation(pl.DataFrame({"test": []}), "test")) == 0
 
 
 def test_get_mean_uses_default():
     df = pl.DataFrame({"score": [None, None, None]})
 
-    assert analysis.mean_score_default(df, 5) == 5
+    assert statistics.mean_score_default(df, 5) == 5

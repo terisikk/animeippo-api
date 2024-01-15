@@ -1,13 +1,12 @@
 import polars as pl
-
-from animeippo.clustering import metrics
+import animeippo.analysis.similarity
 
 
 def test_jaccard_similarity():
     x_orig = [[True, True, False], [True, False, True]]
     y_orig = [[True, True, False], [True, False, True]]
 
-    distances = metrics.similarity(x_orig, y_orig)
+    distances = animeippo.analysis.similarity.similarity(x_orig, y_orig)
 
     expected0 = "1.0"
     actual0 = "{:.1f}".format(distances[0][0])
@@ -24,6 +23,8 @@ def test_categorical_uses_columns_if_given():
 
     original2 = pl.Series([[2, 3, 4], [1, 2, 3]])
 
-    similarity = metrics.categorical_similarity(original1, original2, columns=["1a", "2b"])
+    similarity = animeippo.analysis.similarity.categorical_similarity(
+        original1, original2, columns=["1a", "2b"]
+    )
 
     assert similarity.columns == ["1a", "2b"]

@@ -1,7 +1,7 @@
 from functools import lru_cache
 import polars as pl
 
-from ..clustering import metrics
+from ..analysis import similarity
 
 
 class RecommendationModel:
@@ -72,7 +72,7 @@ class RecommendationModel:
             cluster=clustering_model.cluster_by_features(self.watchlist)
         )
 
-        self.similarity_matrix = metrics.categorical_similarity(
+        self.similarity_matrix = similarity.categorical_similarity(
             self.watchlist["encoded"],
             self.seasonal["encoded"],
             clustering_model.distance_metric,

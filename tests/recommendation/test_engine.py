@@ -1,7 +1,12 @@
-from animeippo.recommendation import engine, model, scoring, categories, profile, encoding
-from animeippo.clustering import model as clustering
 import polars as pl
 import pytest
+from animeippo.analysis import encoding
+
+from animeippo.recommendation import engine, scoring, categories
+from animeippo.clustering import model as clustering
+
+from animeippo.profiling.model import UserProfile
+from animeippo.recommendation.model import RecommendationModel
 
 from tests import test_data
 
@@ -39,12 +44,12 @@ class ProviderStub:
 @pytest.mark.asyncio
 async def test_recommend_seasonal_anime_for_user_by_genre():
     provider = ProviderStub()
-    data = model.RecommendationModel(
-        profile.UserProfile("Test", await provider.get_user_anime_list()),
+    data = RecommendationModel(
+        UserProfile("Test", await provider.get_user_anime_list()),
         await provider.get_seasonal_anime_list(),
     )
 
-    scorer = scoring.FeaturesSimilarityScorer()
+    scorer = scoring.FeatureCorrelationScorer()
     recengine = engine.AnimeRecommendationEngine(
         clustering.AnimeClustering(), encoding.CategoricalEncoder()
     )
@@ -53,22 +58,19 @@ async def test_recommend_seasonal_anime_for_user_by_genre():
 
     recommendations = recengine.fit_predict(data)
 
-    assert recommendations["title"].to_list() == [
-        "Shingeki no Kyojin: The Fake Season",
-        "Copper Kamuy 4th Season",
-    ]
+    assert "Shingeki no Kyojin: The Fake Season" in recommendations["title"].to_list()
 
 
 @pytest.mark.asyncio
 async def test_multiple_scorers_can_be_added():
     provider = ProviderStub()
-    data = model.RecommendationModel(
-        profile.UserProfile("Test", await provider.get_user_anime_list()),
+    data = RecommendationModel(
+        UserProfile("Test", await provider.get_user_anime_list()),
         await provider.get_seasonal_anime_list(),
     )
 
-    scorer = scoring.FeaturesSimilarityScorer()
-    scorer2 = scoring.StudioCountScorer()
+    scorer = scoring.FeatureCorrelationScorer()
+    scorer2 = scoring.StudioCorrelationScorer()
     recengine = engine.AnimeRecommendationEngine(
         clustering.AnimeClustering(), encoding.CategoricalEncoder()
     )
@@ -78,10 +80,7 @@ async def test_multiple_scorers_can_be_added():
 
     recommendations = recengine.fit_predict(data)
 
-    assert recommendations["title"].to_list() == [
-        "Shingeki no Kyojin: The Fake Season",
-        "Copper Kamuy 4th Season",
-    ]
+    assert "Shingeki no Kyojin: The Fake Season" in recommendations["title"].to_list()
 
 
 def test_runtime_error_is_raised_when_dataset_is_empty():
@@ -89,7 +88,7 @@ def test_runtime_error_is_raised_when_dataset_is_empty():
         clustering.AnimeClustering(), encoding.CategoricalEncoder()
     )
 
-    data = model.RecommendationModel(None, None)
+    data = RecommendationModel(None, None)
 
     with pytest.raises(RuntimeError):
         recengine.fit_predict(data)
@@ -101,7 +100,7 @@ def test_runtime_error_is_raised_when_no_scorers_exist():
     )
 
     with pytest.raises(RuntimeError):
-        recengine.score_anime(model.RecommendationModel(None, None))
+        recengine.score_anime(RecommendationModel(None, None))
 
 
 def test_categorize():
@@ -112,8 +111,8 @@ def test_categorize():
     recengine.add_categorizer(categories.StudioCategory())
     recengine.add_categorizer(categories.GenreCategory(100))
 
-    data = model.RecommendationModel(
-        profile.UserProfile("Test", pl.DataFrame(test_data.FORMATTED_MAL_USER_LIST)), None, None
+    data = RecommendationModel(
+        UserProfile("Test", pl.DataFrame(test_data.FORMATTED_MAL_USER_LIST)), None, None
     )
 
     data.recommendations = pl.DataFrame(

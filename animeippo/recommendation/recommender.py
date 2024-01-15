@@ -3,19 +3,27 @@ from concurrent.futures import ThreadPoolExecutor
 
 import polars as pl
 
-from . import model, profile
-
 
 class AnimeRecommender:
     """Recommends new anime to a user if provided,
     or returns a filtered list of seasonal anime
     not tailored to a specific user."""
 
-    def __init__(self, provider, engine, fetch_related_anime=False):
+    def __init__(
+        self,
+        *,
+        provider=None,
+        engine=None,
+        recommendation_model_cls=None,
+        profile_model_cls=None,
+        fetch_related_anime=False
+    ):
         self.provider = provider
         self.engine = engine
         self.dataset = None
         self.fetch_related_anime = fetch_related_anime
+        self.recommendation_model_cls = recommendation_model_cls
+        self.profile_model_cls = profile_model_cls
 
     async def databuilder(self, year, season, user):
         user_profile = None
@@ -27,7 +35,7 @@ class AnimeRecommender:
                 self.provider.get_user_manga_list(user),
             )
 
-            user_profile = profile.UserProfile(user, user_data, manga_data)
+            user_profile = self.profile_model_cls(user, user_data, manga_data)
         else:
             season_data = await self.provider.get_seasonal_anime_list(year, season)
 
@@ -36,7 +44,7 @@ class AnimeRecommender:
             related_anime = [await self.provider.get_related_anime(index) for index in indices]
             season_data = season_data.with_columns(continuation_to=pl.Series(related_anime))
 
-        data = model.RecommendationModel(user_profile, season_data)
+        data = self.recommendation_model_cls(user_profile, season_data)
         data.nsfw_tags = self.provider.get_nsfw_tags()
 
         return data

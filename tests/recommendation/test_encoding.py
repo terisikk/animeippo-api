@@ -1,6 +1,6 @@
 import polars as pl
 
-from animeippo.recommendation.encoding import CategoricalEncoder, WeightedCategoricalEncoder
+from animeippo.analysis.encoding import CategoricalEncoder, WeightedCategoricalEncoder
 
 
 def test_categorical_encoder():

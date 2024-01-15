@@ -1,13 +1,17 @@
 import polars as pl
 import pytest
 
-from animeippo.recommendation import model, profile, encoding
+from animeippo.profiling import analyser
+from animeippo.analysis import encoding
+
+from animeippo.profiling.model import UserProfile
+from animeippo.recommendation.model import RecommendationModel
 
 from tests import test_provider, test_data
 
 
 def test_profile_analyser_can_run():
-    profiler = profile.ProfileAnalyser(test_provider.AsyncProviderStub())
+    profiler = analyser.ProfileAnalyser(test_provider.AsyncProviderStub())
     profiler.encoder = encoding.CategoricalEncoder()
 
     categories = profiler.analyse("Janiskeisari")
@@ -17,7 +21,7 @@ def test_profile_analyser_can_run():
 
 @pytest.mark.asyncio
 async def test_profile_analyser_can_run_when_async_loop_is_already_running():
-    profiler = profile.ProfileAnalyser(test_provider.AsyncProviderStub())
+    profiler = analyser.ProfileAnalyser(test_provider.AsyncProviderStub())
     profiler.encoder = encoding.CategoricalEncoder()
 
     categories = profiler.analyse("Janiskeisari")
@@ -28,7 +32,7 @@ async def test_profile_analyser_can_run_when_async_loop_is_already_running():
 def test_user_profile_can_be_constructred():
     watchlist = pl.DataFrame(test_data.FORMATTED_MAL_USER_LIST)
 
-    user_profile = profile.UserProfile("Test", watchlist)
+    user_profile = UserProfile("Test", watchlist)
 
     assert user_profile.watchlist is not None
     assert user_profile.genre_correlations is not None
@@ -37,7 +41,7 @@ def test_user_profile_can_be_constructred():
 
 
 def test_user_profile_can_be_constructred_with_no_watchlist():
-    user_profile = profile.UserProfile("Test", None)
+    user_profile = UserProfile("Test", None)
 
     assert user_profile.watchlist is None
     assert user_profile.genre_correlations is None
@@ -49,23 +53,23 @@ def test_user_top_genres_and_tags_can_be_categorized(mocker):
     data = pl.DataFrame(test_data.FORMATTED_ANI_SEASONAL_LIST)
     data = data.with_columns(score=pl.Series([10.0, 8.0]))
 
-    uprofile = profile.UserProfile("Test", data)
-    dset = model.RecommendationModel(uprofile, None)
+    uprofile = UserProfile("Test", data)
+    dset = RecommendationModel(uprofile, None)
 
-    profiler = profile.ProfileAnalyser(None)
+    profiler = analyser.ProfileAnalyser(None)
 
     categories = profiler.get_categories(dset)
 
     assert len(categories) > 0
 
-    uprofile = profile.UserProfile("Test", data)
+    uprofile = UserProfile("Test", data)
     uprofile.genre_correlations = pl.DataFrame(
         {"weight": [1, 1], "name": ["Absurd", "Nonexisting"]}
     )
-    dset = model.RecommendationModel(uprofile, None)
+    dset = RecommendationModel(uprofile, None)
 
     mocker.patch(
-        "animeippo.recommendation.analysis.weight_categoricals_correlation",
+        "animeippo.analysis.statistics.weight_categoricals_correlation",
         return_value=pl.DataFrame({"weight": [1, 1], "name": ["Absurd", "Nonexisting"]}),
     )
 
@@ -73,22 +77,26 @@ def test_user_top_genres_and_tags_can_be_categorized(mocker):
     assert len(categories) > 0
 
     data = data.drop("genres")
-    uprofile = profile.UserProfile("Test", data)
+    uprofile = UserProfile("Test", data)
 
-    dset = model.RecommendationModel(uprofile, None)
+    dset = RecommendationModel(uprofile, None)
 
     categories = profiler.get_categories(dset)
     assert len(categories) > 0
 
 
 def test_clusters_can_be_categorized():
+    class ProviderStub:
+        def get_nsfw_tags(self):
+            return []
+
     data = pl.DataFrame(test_data.FORMATTED_ANI_SEASONAL_LIST)
     data = data.with_columns(cluster=pl.Series([0, 1]))
 
-    uprofile = profile.UserProfile("Test", data)
-    dset = model.RecommendationModel(uprofile, None)
+    uprofile = UserProfile("Test", data)
+    dset = RecommendationModel(uprofile, None)
 
-    profiler = profile.ProfileAnalyser(None)
+    profiler = analyser.ProfileAnalyser(ProviderStub())
 
     categories = profiler.get_cluster_categories(dset)
 
@@ -99,7 +107,7 @@ def test_correlations_are_consistent():
     data = pl.DataFrame(test_data.FORMATTED_ANI_SEASONAL_LIST)
     data = data.with_columns(score=pl.Series([10.0, 8.0]))
 
-    uprofile = profile.UserProfile("Test", data)
+    uprofile = UserProfile("Test", data)
 
     previous = uprofile.get_director_correlations()
 

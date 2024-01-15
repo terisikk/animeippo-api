@@ -1,9 +1,9 @@
 import sklearn.cluster as skcluster
 
 import numpy as np
-import animeippo.clustering.metrics
 
-from animeippo.recommendation import analysis
+from ..analysis import similarity
+from animeippo.analysis import statistics
 
 
 class AnimeClustering:
@@ -69,14 +69,14 @@ class AnimeClustering:
             raise RuntimeError("Cluster is not fitted yet. Please call cluster_by_features first.")
 
         if similarities is None:
-            similarities = animeippo.clustering.metrics.categorical_similarity(
+            similarities = similarity.categorical_similarity(
                 self.clustered_series["encoded"],
                 series,
                 metric=self.distance_metric,
             )
             similarities = similarities.with_columns(id=self.clustered_series["id"])
 
-        idymax = analysis.idymax(similarities)
+        idymax = statistics.idymax(similarities)
 
         return idymax.join(
             self.clustered_series.select("id", "cluster"),

@@ -16,7 +16,7 @@ async def test_Recommenderbuilder_with_anilist():
     b = (
         recommender_builder.RecommenderBuilder()
         .provider(test_provider.AsyncProviderStub())
-        .model("fake")
+        .engine("fake")
     )
 
     actual = b.build()
@@ -35,7 +35,7 @@ async def test_Recommenderbuilder_with_mal():
     b = (
         recommender_builder.RecommenderBuilder()
         .provider(test_provider.AsyncProviderStub())
-        .model("fake")
+        .engine("fake")
     )
 
     actual = b.build()
@@ -54,7 +54,7 @@ async def test_mal_databuilder_does_not_fail_with_missing_data():
     b = (
         recommender_builder.RecommenderBuilder()
         .provider(test_provider.FaultyProviderStub())
-        .model("fake")
+        .engine("fake")
     )
 
     actual = b.build()
@@ -69,7 +69,7 @@ async def test_anilist_databuilder_does_not_fail_with_missing_data():
     b = (
         recommender_builder.RecommenderBuilder()
         .provider(test_provider.FaultyProviderStub())
-        .model("fake")
+        .engine("fake")
     )
 
     actual = b.build()
@@ -84,7 +84,7 @@ async def test_databuilder_without_season():
     b = (
         recommender_builder.RecommenderBuilder()
         .provider(test_provider.AsyncProviderStub())
-        .model("fake")
+        .engine("fake")
     )
 
     actual = b.build()
