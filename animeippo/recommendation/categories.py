@@ -1,5 +1,6 @@
-import polars as pl
 import datetime
+
+import polars as pl
 
 from . import scoring
 

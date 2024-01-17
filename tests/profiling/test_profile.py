@@ -1,13 +1,11 @@
 import polars as pl
 import pytest
 
-from animeippo.profiling import analyser
 from animeippo.analysis import encoding
-
+from animeippo.profiling import analyser
 from animeippo.profiling.model import UserProfile
 from animeippo.recommendation.model import RecommendationModel
-
-from tests import test_provider, test_data
+from tests import test_data, test_provider
 
 
 def test_profile_analyser_can_run():
@@ -111,7 +109,7 @@ def test_correlations_are_consistent():
 
     previous = uprofile.get_director_correlations()
 
-    for i in range(0, 10):
+    for _ in range(0, 10):
         actual = uprofile.get_director_correlations()
         assert actual.item(0, "weight") == previous.item(0, "weight")
         assert actual.item(0, "name") == previous.item(0, "name")

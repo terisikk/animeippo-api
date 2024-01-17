@@ -1,8 +1,9 @@
 import json
-import requests
-import secrets
 import os
+import secrets
+
 import dotenv
+import requests
 
 dotenv.load_dotenv("conf/prod.env")
 

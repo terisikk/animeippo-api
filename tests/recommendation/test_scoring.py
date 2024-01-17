@@ -1,23 +1,23 @@
 import polars as pl
 
-from animeippo.recommendation import scoring
 from animeippo.profiling.model import UserProfile
+from animeippo.recommendation import scoring
 from animeippo.recommendation.model import RecommendationModel
 
 
 def test_abstract_scorer_can_be_instantiated():
     class ConcreteScorer(scoring.AbstractScorer):
         def name(self):
-            super().name
+            return super().name
 
         def score(self, scoring_target_df, compare_df):
             return super().score(scoring_target_df, compare_df)
 
-    filter = ConcreteScorer()
-    filter.score(None, None)
-    filter.name()
+    f = ConcreteScorer()
+    f.score(None, None)
+    f.name()
 
-    assert issubclass(filter.__class__, scoring.AbstractScorer)
+    assert issubclass(f.__class__, scoring.AbstractScorer)
 
 
 def test_feature_correlation_scorer():

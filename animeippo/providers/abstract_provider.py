@@ -2,9 +2,6 @@ import abc
 
 
 class AbstractAnimeProvider(abc.ABC):
-    def __init__(self):
-        pass
-
     @abc.abstractmethod
     def get_user_anime_list(self, user_id):
         pass
@@ -22,5 +19,5 @@ class AbstractAnimeProvider(abc.ABC):
         pass
 
     @abc.abstractmethod
-    def get_related_anime(self, id):
+    def get_related_anime(self, related_id):
         pass

@@ -1,7 +1,6 @@
+import numpy as np
 import pandas as pd
 import polars as pl
-import numpy as np
-
 import scipy.stats as scstats
 
 
@@ -119,14 +118,10 @@ def mean_score_default(compare_df, default=0):
 
 
 def idymax(dataframe):
-    return pl.DataFrame(
-        {
-            "idymax": dataframe.select(
-                pl.concat_list(pl.col("id").gather(pl.exclude("id").arg_max())),
-            ).item(),
-            "max": dataframe.select(pl.concat_list(pl.exclude("id").max())).item(),
-        }
-    )
+    return dataframe.select(
+        pl.concat_list(pl.col("id").gather(pl.exclude("id").arg_max())),
+        pl.concat_list(pl.exclude("id").max()).alias("max"),
+    ).explode(["id", "max"])
 
 
 def calculate_residuals(contingency_table, expected):

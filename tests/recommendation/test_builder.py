@@ -1,8 +1,7 @@
 import pytest
 
-from animeippo.recommendation import recommender, recommender_builder
 import animeippo.providers as providers
-
+from animeippo.recommendation import recommender, recommender_builder
 from tests import test_provider
 
 

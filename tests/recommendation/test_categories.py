@@ -1,11 +1,11 @@
-import polars as pl
 import datetime
-
 from collections import namedtuple
 
+import polars as pl
+
+from animeippo.profiling.model import UserProfile
 from animeippo.recommendation import categories
 from animeippo.recommendation.model import RecommendationModel
-from animeippo.profiling.model import UserProfile
 
 
 def test_most_popular_category():

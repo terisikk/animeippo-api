@@ -1,13 +1,11 @@
-from animeippo.analysis import encoding, statistics
-from animeippo.clustering import model
-from animeippo.profiling.model import UserProfile
-
+import asyncio
+from concurrent.futures import ThreadPoolExecutor
 
 import polars as pl
 
-
-import asyncio
-from concurrent.futures import ThreadPoolExecutor
+from animeippo.analysis import encoding, statistics
+from animeippo.clustering import model
+from animeippo.profiling.model import UserProfile
 
 
 class ProfileAnalyser:

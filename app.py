@@ -1,11 +1,10 @@
+from aiohttp.client_exceptions import ClientError
 from flask import Flask, Response, request
 from flask_cors import CORS
 
-from animeippo.view import views
 from animeippo.profiling import analyser
 from animeippo.recommendation import recommender_builder
-
-from aiohttp.client_exceptions import ClientError
+from animeippo.view import views
 
 app = Flask(__name__)
 app.config["JSON_AS_ASCII"] = False

@@ -1,8 +1,8 @@
-import redis as redis
 import hashlib
-import polars as pl
-
 from datetime import timedelta
+
+import polars as pl
+import redis as redis
 
 
 class RedisCache:

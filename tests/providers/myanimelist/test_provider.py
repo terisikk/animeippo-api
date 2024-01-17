@@ -1,8 +1,7 @@
-from animeippo.providers import myanimelist
-from tests import test_data
-
 import pytest
 
+from animeippo.providers import myanimelist
+from tests import test_data
 from tests.providers.myanimelist.stubs import ResponseStub
 
 

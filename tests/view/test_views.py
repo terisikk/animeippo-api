@@ -1,10 +1,9 @@
-import polars as pl
 import json
 
-from animeippo.view import views
+import polars as pl
 
 from animeippo.profiling import model
-
+from animeippo.view import views
 from tests import test_data
 
 

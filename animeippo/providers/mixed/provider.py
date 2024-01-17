@@ -1,8 +1,9 @@
 from datetime import timedelta
 
-from .. import abstract_provider, caching as animecache
-from ..myanimelist import provider as mal
+from .. import abstract_provider
+from .. import caching as animecache
 from ..anilist import provider as ani
+from ..myanimelist import provider as mal
 from . import formatter
 
 
@@ -148,5 +149,5 @@ class MixedProvider(abstract_provider.AbstractAnimeProvider):
     def get_feature_fields(self):
         return self.ani_provider.get_feature_fields()
 
-    def get_related_anime(self, id):
+    def get_related_anime(self, related_id):
         pass

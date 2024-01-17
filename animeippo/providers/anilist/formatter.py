@@ -2,12 +2,15 @@ import functools
 
 import polars as pl
 from fast_json_normalize import fast_json_normalize
+
 from animeippo.providers.anilist.schema import (
     ANI_MANGA_SCHEMA,
     ANI_SEASONAL_SCHEMA,
     ANI_WATCHLIST_SCHEMA,
 )
-
+from animeippo.providers.columns import (
+    Columns,
+)
 from animeippo.providers.mappers import (
     DefaultMapper,
     MultiMapper,
@@ -17,12 +20,11 @@ from animeippo.providers.mappers import (
 )
 
 from .. import util
-from animeippo.providers.columns import (
-    Columns,
-)
 
 
 def transform_seasonal_data(data, feature_names):
+    # Believe me, with polars 0.20 this is way faster than
+    # pl.DataFrame(fast_json_normalize(data["data"]["media"], to_pandas=False))
     original = pl.from_pandas(fast_json_normalize(data["data"]["media"]))
 
     return util.transform_to_animeippo_format(

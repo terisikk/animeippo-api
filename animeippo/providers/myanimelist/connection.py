@@ -5,7 +5,6 @@ import aiohttp
 
 from .. import caching as animecache
 
-
 MAL_API_URL = "https://api.myanimelist.net/v2"
 MAL_API_TOKEN = os.environ.get("MAL_API_TOKEN", None)
 HEADERS = {"Authorization": f"Bearer {MAL_API_TOKEN}"}
@@ -47,7 +46,7 @@ class MyAnimeListConnection:
     async def requests_get_next_page(self, session, page):
         if page:
             next_page = None
-            next_page_url = page.get("paging", dict()).get("next", None)
+            next_page_url = page.get("paging", {}).get("next", None)
 
             if next_page_url:
                 async with session.get(

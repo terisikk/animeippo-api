@@ -1,7 +1,6 @@
-from animeippo.analysis import statistics
-
-
 import polars as pl
+
+from animeippo.analysis import statistics
 
 
 class UserProfile:

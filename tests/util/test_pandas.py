@@ -1,6 +1,7 @@
-import animeippo.analysis.statistics
-import polars as pl
 import numpy as np
+import polars as pl
+
+import animeippo.analysis.statistics
 
 
 def test_calculate_residuals():

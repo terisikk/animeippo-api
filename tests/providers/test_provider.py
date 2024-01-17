@@ -20,8 +20,8 @@ def test_new_provider_can_be_instantiated():
         def get_feature_fields(self):
             super().get_feature_fields()
 
-        def get_related_anime(self, id):
-            super().get_related_anime(id)
+        def get_related_anime(self, rid):
+            super().get_related_anime(rid)
 
     actual = ConcreteAnimeProvider()
     actual.get_user_anime_list(None)

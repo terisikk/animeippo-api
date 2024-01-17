@@ -1,8 +1,6 @@
-from animeippo.providers.columns import Columns
-
-
 import polars as pl
 
+from animeippo.providers.columns import Columns
 
 ANI_WATCHLIST_SCHEMA = {
     Columns.ID: pl.Int64,

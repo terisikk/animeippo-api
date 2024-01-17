@@ -1,12 +1,10 @@
-import animeippo.providers.myanimelist as mal
 import polars as pl
-
-from animeippo import cache
-from tests import test_data
-
+import pytest
 import redis
 
-import pytest
+import animeippo.providers.myanimelist as mal
+from animeippo import cache
+from tests import test_data
 
 
 class ResponseStub:
@@ -107,13 +105,13 @@ async def test_mal_related_anime_can_use_cache(mocker):
 
     provider = mal.MyAnimeListProvider(rcache)
 
-    id = "30"
+    rid = "30"
     rcache.set_json("fake", {"data": test_data.MAL_RELATED_ANIME["related_anime"]})
 
     response = ResponseStub(None)
     mocker.patch("aiohttp.ClientSession.get", return_value=response)
 
-    related_anime = await provider.get_related_anime(id)
+    related_anime = await provider.get_related_anime(rid)
 
     assert related_anime == [31]
 
@@ -147,14 +145,14 @@ async def test_mal_related_anime_can_be_stored_to_cache(mocker):
 
     provider = mal.MyAnimeListProvider(rcache)
 
-    id = "30"
+    rid = "30"
 
     response = ResponseStub(test_data.MAL_RELATED_ANIME)
     mocker.patch("aiohttp.ClientSession.get", side_effect=[response, None])
 
-    first_hit = await provider.get_related_anime(id)
+    first_hit = await provider.get_related_anime(rid)
 
-    second_hit = await provider.get_related_anime(id)
+    second_hit = await provider.get_related_anime(rid)
     assert len(first_hit) != 0
     assert first_hit == second_hit
 

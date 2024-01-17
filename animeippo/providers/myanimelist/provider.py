@@ -4,7 +4,8 @@ import polars as pl
 
 from animeippo.providers.myanimelist.connection import MyAnimeListConnection
 
-from .. import abstract_provider, caching as animecache
+from .. import abstract_provider
+from .. import caching as animecache
 from . import formatter
 
 
@@ -94,11 +95,11 @@ class MyAnimeListProvider(abstract_provider.AbstractAnimeProvider):
                 (~pl.col("rating").is_in(["g", "rx"])) & (pl.col("season_year") == int(year))
             )
 
-    async def get_related_anime(self, anime_id):
-        if not anime_id:
+    async def get_related_anime(self, related_id):
+        if not related_id:
             return None
 
-        query = f"/anime/{anime_id}"
+        query = f"/anime/{related_id}"
 
         fields = [
             "id",

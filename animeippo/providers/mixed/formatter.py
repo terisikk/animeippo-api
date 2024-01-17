@@ -1,13 +1,12 @@
 import polars as pl
 from fast_json_normalize import fast_json_normalize
 
+from animeippo.providers.columns import Columns
 from animeippo.providers.mappers import SingleMapper
 
-
-from ..myanimelist.formatter import MAL_MAPPING
 from ..anilist.formatter import ANILIST_MAPPING
+from ..myanimelist.formatter import MAL_MAPPING
 from ..util import transform_to_animeippo_format
-from animeippo.providers.columns import Columns
 
 
 def transform_mal_watchlist_data(data, feature_names):
@@ -92,9 +91,9 @@ def get_adaptation(field):
     for item in field:
         relationType = item.get("relationType", "")
         node = item.get("node", {})
-        id = node.get("idMal", None)
+        mal_id = node.get("idMal", None)
 
         if relationType == "ADAPTATION" and id is not None:
-            relations.append(id)
+            relations.append(mal_id)
 
     return relations

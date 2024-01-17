@@ -1,17 +1,15 @@
-import numpy as np
-
 from datetime import datetime
 
+import numpy as np
 import polars as pl
 from fast_json_normalize import fast_json_normalize
-
-from animeippo.providers.mappers import DefaultMapper, MultiMapper, SelectorMapper, SingleMapper
-
-from .. import util
 
 from animeippo.providers.columns import (
     Columns,
 )
+from animeippo.providers.mappers import DefaultMapper, MultiMapper, SelectorMapper, SingleMapper
+
+from .. import util
 
 
 def combine_dataframes(dataframes):
@@ -107,14 +105,14 @@ def split_id_name_field(field):
     return names
 
 
-def filter_relations(relation, id, meaningful_relations):
+def filter_relations(relation, related_id, meaningful_relations):
     if relation in meaningful_relations and id is not None:
-        return id
+        return related_id
 
     return None
 
 
-def get_continuation(relation, id):
+def get_continuation(relation, related_id):
     meaningful_relations = ["parent_story", "prequel"]
 
     return (filter_relations(relation, id, meaningful_relations),)

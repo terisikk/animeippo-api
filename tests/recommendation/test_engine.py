@@ -1,13 +1,11 @@
 import polars as pl
 import pytest
+
 from animeippo.analysis import encoding
-
-from animeippo.recommendation import engine, scoring, categories
 from animeippo.clustering import model as clustering
-
 from animeippo.profiling.model import UserProfile
+from animeippo.recommendation import categories, engine, scoring
 from animeippo.recommendation.model import RecommendationModel
-
 from tests import test_data
 
 

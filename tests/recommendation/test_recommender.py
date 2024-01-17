@@ -1,12 +1,11 @@
 import polars as pl
 import pytest
 
-from animeippo.recommendation import recommender
 from animeippo.profiling.model import UserProfile
+from animeippo.recommendation import recommender
 from animeippo.recommendation.model import RecommendationModel
-
-from tests.recommendation.test_engine import ProviderStub
 from tests import test_data
+from tests.recommendation.test_engine import ProviderStub
 
 
 class EngineStub:

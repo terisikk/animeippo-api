@@ -1,4 +1,5 @@
 import json
+
 import polars as pl
 
 
@@ -26,7 +27,7 @@ def recommendations_web_view(dataframe, categories=None):
 
 
 def profile_web_view(watchlist, categories):
-    fields = set(["id", "title", "cover_image", "genres", "user_status"])
+    fields = {"id", "title", "cover_image", "genres", "user_status"}
     filtered_fields = list(set(watchlist.columns).intersection(fields))
 
     df_json = watchlist.select(filtered_fields).to_dicts()

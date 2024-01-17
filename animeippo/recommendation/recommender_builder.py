@@ -1,14 +1,11 @@
 from animeippo.profiling.model import UserProfile
 from animeippo.recommendation.model import RecommendationModel
-from . import engine, scoring, categories
 
-from .recommender import AnimeRecommender
-
-from .. import providers
-from .. import cache
-
+from .. import cache, providers
 from ..analysis import encoding
 from ..clustering import model
+from . import categories, engine, scoring
+from .recommender import AnimeRecommender
 
 
 def get_default_scorers():

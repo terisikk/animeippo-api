@@ -1,7 +1,6 @@
 import pytest
 
 from animeippo.providers import mixed
-
 from tests import test_data
 
 

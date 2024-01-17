@@ -19,8 +19,8 @@ def get_recs():
 if __name__ == "__main__":
     import dotenv
 
-    from animeippo.view import views
     from animeippo.recommendation import recommender_builder
+    from animeippo.view import views
 
     dotenv.load_dotenv("conf/prod.env")
 

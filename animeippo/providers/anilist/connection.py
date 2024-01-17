@@ -1,8 +1,8 @@
-from .. import caching as animecache
+from datetime import timedelta
 
 import aiohttp
 
-from datetime import timedelta
+from .. import caching as animecache
 
 REQUEST_TIMEOUT = 30
 ANI_API_URL = "https://graphql.anilist.co"

@@ -1,6 +1,6 @@
+import asyncio
 import functools
 import threading
-import asyncio
 
 
 def cached_query(ttl):

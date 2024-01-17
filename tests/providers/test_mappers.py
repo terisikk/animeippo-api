@@ -1,5 +1,7 @@
 import math
+
 import polars as pl
+
 import animeippo.providers.mappers
 
 

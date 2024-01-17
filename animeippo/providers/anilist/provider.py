@@ -1,11 +1,12 @@
+from datetime import timedelta
+
 from async_lru import alru_cache
 
 from animeippo.providers.anilist.connection import AnilistConnection
 
-from .. import abstract_provider, caching as animecache
+from .. import abstract_provider
+from .. import caching as animecache
 from . import data, formatter
-
-from datetime import timedelta
 
 
 class AniListProvider(abstract_provider.AbstractAnimeProvider):
@@ -214,7 +215,7 @@ class AniListProvider(abstract_provider.AbstractAnimeProvider):
     def get_feature_fields(self):
         return ["genres", "tags"]
 
-    def get_related_anime(self, id):
+    def get_related_anime(self, related_id):
         pass
 
     def get_nsfw_tags(self):

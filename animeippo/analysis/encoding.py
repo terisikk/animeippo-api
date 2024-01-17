@@ -1,5 +1,5 @@
-import sklearn.preprocessing as skpre
 import numpy as np
+import sklearn.preprocessing as skpre
 
 
 class CategoricalEncoder:

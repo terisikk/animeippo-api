@@ -66,13 +66,13 @@ def test_columns_are_named_properly():
 
 def test_get_continuation():
     relation = "prequel"
-    id = 123
+    cid = 123
 
-    assert formatter.get_continuation(relation, id) == (123,)
+    assert formatter.get_continuation(relation, cid) == (123,)
 
     relation = "irrelevant"
 
-    assert formatter.get_continuation(relation, id) == (None,)
+    assert formatter.get_continuation(relation, cid) == (None,)
 
 
 def test_get_image_url():

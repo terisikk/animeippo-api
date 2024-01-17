@@ -1,4 +1,5 @@
 from functools import lru_cache
+
 import polars as pl
 
 from ..analysis import similarity
@@ -94,21 +95,27 @@ class RecommendationModel:
 
         return all_features.explode().unique().drop_nulls()
 
-    @lru_cache(maxsize=10)
     def watchlist_explode_cached(self, column):
-        return self.watchlist.explode(column)
+        return dataframe_explode_cached(self.watchlist, column)
 
-    @lru_cache(maxsize=10)
     def recommendations_explode_cached(self, column):
-        return self.recommendations.explode(column)
+        return dataframe_explode_cached(self.recommendations, column)
 
-    @lru_cache(maxsize=10)
     def seasonal_explode_cached(self, column):
-        return self.seasonal.explode(column)
+        return dataframe_explode_cached(self.seasonal, column)
 
-    @lru_cache(maxsize=10)
     def get_similarity_matrix(self, filtered=False):
-        if filtered:
-            return self.similarity_matrix.filter(~pl.col("id").is_in(self.seasonal["id"]))
+        return get_similarity_matrix(self, filtered)
 
-        return self.similarity_matrix
+
+@lru_cache(maxsize=20)
+def dataframe_explode_cached(self, column):
+    return self.watchlist.explode(column)
+
+
+@lru_cache(maxsize=10)
+def get_similarity_matrix(self, filtered=False):
+    if filtered:
+        return self.similarity_matrix.filter(~pl.col("id").is_in(self.seasonal["id"]))
+
+    return self.similarity_matrix

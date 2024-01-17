@@ -1,4 +1,5 @@
 import pytest
+
 import animeippo.providers.myanimelist.connection
 
 from .stubs import ResponseStub, SessionStub
@@ -44,14 +45,14 @@ async def test_get_all_pages_returns_all_pages(mocker):
         {"FAKE" + first_page_url: response1, "page2": response2, "page3": response3}
     )
 
-    final_pages = list(
-        [
-            page
-            async for page in animeippo.providers.myanimelist.MyAnimeListConnection().requests_get_all_pages(
+    final_pages = [
+        page
+        async for page in (
+            animeippo.providers.myanimelist.MyAnimeListConnection().requests_get_all_pages(
                 mock_session, first_page_url, None
             )
-        ]
-    )
+        )
+    ]
 
     assert len(final_pages) == 3
     assert final_pages[0] == await response1.json()
@@ -71,20 +72,20 @@ async def test_request_page_succesfully_exists_with_blank_page():
 
 @pytest.mark.asyncio
 async def test_request_does_not_fail_catastrophically_when_response_is_empty(mocker):
-    response1 = ResponseStub(dict())
+    response1 = ResponseStub({})
 
     mocker.patch("animeippo.providers.myanimelist.connection.MAL_API_URL", "FAKE")
     first_page_url = "/users/kamina69/animelist"
 
     mock_session = SessionStub({"FAKE" + first_page_url: response1})
 
-    pages = list(
-        [
-            page
-            async for page in animeippo.providers.myanimelist.MyAnimeListConnection().requests_get_all_pages(
+    pages = [
+        page
+        async for page in (
+            animeippo.providers.myanimelist.MyAnimeListConnection().requests_get_all_pages(
                 mock_session, first_page_url, None
             )
-        ]
-    )
+        )
+    ]
 
     assert len(pages) == 0

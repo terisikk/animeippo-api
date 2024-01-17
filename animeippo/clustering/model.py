@@ -1,9 +1,9 @@
+import numpy as np
 import sklearn.cluster as skcluster
 
-import numpy as np
+from animeippo.analysis import statistics
 
 from ..analysis import similarity
-from animeippo.analysis import statistics
 
 
 class AnimeClustering:
