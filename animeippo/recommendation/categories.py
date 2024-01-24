@@ -156,7 +156,8 @@ class BecauseYouLikedCategory:
 
             try:
                 similarity = dataset.get_similarity_matrix(filtered=False, transposed=True).select(
-                    str(liked_item["id"].item())
+                    pl.col("id").cast(pl.Int64),
+                    pl.col(str(liked_item["id"].item())).alias("gscore"),
                 )
             except pl.ColumnNotFoundError:
                 similarity = []
@@ -165,7 +166,7 @@ class BecauseYouLikedCategory:
                 self.description = f"Because You Liked {liked_item['title'].item()}"
 
                 return (
-                    dataset.recommendations.with_columns(gscore=similarity.to_series())
+                    dataset.recommendations.join(similarity, how="left", on="id")
                     .filter(pl.col("user_status").is_null() & pl.col("gscore").is_not_nan())
                     .sort(pl.col("gscore"), descending=True)
                 )[0:max_items]
