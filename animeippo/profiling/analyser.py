@@ -101,7 +101,7 @@ class ProfileAnalyser:
 
         descriptions = statistics.extract_features(gdf["features"], gdf["cluster"], 2)
 
-        clustergroups = target.sort("title").group_by("cluster")
+        clustergroups = target.sort("title").group_by(["cluster"])
 
         return [
             {
