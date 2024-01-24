@@ -50,6 +50,22 @@ def test_recommender_can_recommend_seasonal_data_for_user():
     assert seasonal.item(0, "title") in data.recommendations["title"].to_list()
 
 
+def test_recommender_can_fetch_related_anime_when_needed():
+    provider = ProviderStub()
+    engine = EngineStub()
+
+    rec = recommender.AnimeRecommender(
+        provider=provider,
+        engine=engine,
+        recommendation_model_cls=RecommendationModel,
+        profile_model_cls=UserProfile,
+        fetch_related_anime=True,
+    )
+    data = rec.recommend_seasonal_anime("2013", "winter", "Janiskeisari")
+
+    assert data.seasonal["continuation_to"].to_list()[0] == [1]
+
+
 def test_recommender_categories():
     provider = ProviderStub()
     engine = EngineStub()

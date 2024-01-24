@@ -82,6 +82,14 @@ def test_user_top_genres_and_tags_can_be_categorized(mocker):
     categories = profiler.get_categories(dset)
     assert len(categories) > 0
 
+    data = data.drop("tags")
+    uprofile = UserProfile("Test", data)
+
+    dset = RecommendationModel(uprofile, None)
+
+    categories = profiler.get_categories(dset)
+    assert len(categories) == 0
+
 
 def test_clusters_can_be_categorized():
     class ProviderStub:

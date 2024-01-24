@@ -1,7 +1,9 @@
 import pytest
 
 import animeippo.providers as providers
+from animeippo.profiling.model import UserProfile
 from animeippo.recommendation import recommender, recommender_builder
+from animeippo.recommendation.model import RecommendationModel
 from tests import test_provider
 
 
@@ -16,6 +18,8 @@ async def test_Recommenderbuilder_with_anilist():
         recommender_builder.RecommenderBuilder()
         .provider(test_provider.AsyncProviderStub())
         .engine("fake")
+        .profile_model_class(UserProfile)
+        .recommendation_model_class(RecommendationModel)
     )
 
     actual = b.build()

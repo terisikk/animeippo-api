@@ -1,5 +1,3 @@
-import functools
-
 import polars as pl
 from fast_json_normalize import fast_json_normalize
 
@@ -13,10 +11,8 @@ from animeippo.providers.columns import (
 )
 from animeippo.providers.mappers import (
     DefaultMapper,
-    MultiMapper,
     QueryMapper,
     SelectorMapper,
-    SingleMapper,
 )
 
 from .. import util
@@ -88,18 +84,6 @@ def get_user_complete_date(dataframe):
     ).to_series()
 
 
-def get_temp_ranks(tags):
-    ranks = {}
-
-    for tag in tags:
-        ranks[tag["name"]] = tag["rank"]
-
-    if not ranks:
-        return {"fake": None}  # Some pyarrow shenanigans, need a non-empty dict
-
-    return ranks
-
-
 def get_studios(dataframe):
     return dataframe.select(
         pl.col("studios.edges")
@@ -112,11 +96,22 @@ def get_studios(dataframe):
     ).to_series()
 
 
-def get_staff(staffs, nodes, role):
-    roles = [edge["role"] for edge in staffs]
-    staff_ids = [node["id"] for node in nodes]
-
-    return ([int(staff_ids[i]) for i, r in enumerate(roles) if r == role],)
+def get_staff(dataframe):
+    return dataframe.join(
+        dataframe.select("id", "staff.edges", "staff.nodes")
+        .explode(["staff.edges", "staff.nodes"])
+        .select(
+            "id",
+            pl.when(pl.col("staff.edges").struct.field("role") == "Director").then(
+                pl.col("staff.nodes").struct.field("id").alias("director")
+            ),
+        )
+        .drop_nulls()
+        .group_by(pl.col("id"))
+        .agg(pl.col("director")),
+        how="left",
+        on="id",
+    )["director"].fill_null(pl.lit([]))
 
 
 # fmt: off
@@ -151,8 +146,9 @@ ANILIST_MAPPING = {
     Columns.ADAPTATION_OF:      QueryMapper(get_adaptation),
     Columns.STUDIOS:            QueryMapper(get_studios),
     Columns.USER_COMPLETE_DATE: QueryMapper(get_user_complete_date),
-    Columns.TEMP_RANKS:         SingleMapper("tags", get_temp_ranks),
-    Columns.DIRECTOR:           MultiMapper(["staff.edges", "staff.nodes"], 
-                                            functools.partial(get_staff, role="Director")),
+    Columns.TEMP_RANKS:         DefaultMapper("tags"),
+    # Columns.DIRECTOR:           MultiMapper(["staff.edges", "staff.nodes"], 
+    #                                        functools.partial(get_staff, role="Director")),
+    Columns.DIRECTOR:           QueryMapper(get_staff),
 }
 # fmt: on

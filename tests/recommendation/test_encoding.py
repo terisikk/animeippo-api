@@ -21,8 +21,10 @@ def test_weighted_encoder():
     encoder = WeightedCategoricalEncoder()
     encoder.fit(classes)
 
-    original = pl.DataFrame({"features": [["Test 3", "Test 2"]], "ranks": [[0.85, 0.5]]})
-    expected = [0, 0.5, 0.85]
+    original = pl.DataFrame(
+        {"features": [["Test 3", "Test 2"]], "ranks": [{"Test 3": 85, "Test 2": 50}]}
+    )
+    expected = [0, 50, 85]
 
     actual = encoder.encode(original)
 

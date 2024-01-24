@@ -33,7 +33,7 @@ class RecommendationModel:
             raise RuntimeError("Trying to recommend anime without proper data. " + error_desc)
 
     def encode(self, encoder):
-        self.all_features = self.extract_features(self)
+        self.all_features = self.extract_features()
 
         encoder.fit(self.all_features)
 
@@ -85,37 +85,59 @@ class RecommendationModel:
         self.seasonal = self.seasonal.rechunk()
         self.watchlist = self.watchlist.rechunk()
 
-    def extract_features(self, dataset):
-        all_features = pl.concat([dataset.seasonal["features"], dataset.watchlist["features"]])
-        all_features = (
-            pl.concat([all_features, dataset.all_features])
-            if dataset.all_features is not None
-            else all_features
-        )
-
-        return all_features.explode().unique().drop_nulls()
+    def extract_features(self):
+        if "ranks" in self.seasonal.columns and "ranks" in self.watchlist.columns:
+            return {field.name for field in self.seasonal["ranks"].dtype.fields}.union(
+                field.name for field in self.watchlist["ranks"].dtype.fields
+            )
+        else:
+            all_features = pl.concat([self.seasonal["features"], self.watchlist["features"]])
+            return all_features.explode().unique().drop_nulls()
 
     def watchlist_explode_cached(self, column):
-        return dataframe_explode_cached(self.watchlist, column)
+        return watchlist_explode_cached(self, column)
 
     def recommendations_explode_cached(self, column):
-        return dataframe_explode_cached(self.recommendations, column)
+        return recommendations_explode_cached(self, column)
 
     def seasonal_explode_cached(self, column):
-        return dataframe_explode_cached(self.seasonal, column)
+        return seasonal_explode_cached(self, column)
 
-    def get_similarity_matrix(self, filtered=False):
-        return get_similarity_matrix(self, filtered)
+    def get_similarity_matrix(self, filtered=False, transposed=False):
+        return get_similarity_matrix(self, filtered, transposed)
+
+
+# These are here to avoid memory leaks with lru_cached methods,
+# so model methods call these inside the class.
+# Not sure if this actually really works as I think though
 
 
 @lru_cache(maxsize=20)
-def dataframe_explode_cached(self, column):
+def watchlist_explode_cached(self, column):
     return self.watchlist.explode(column)
 
 
-@lru_cache(maxsize=10)
-def get_similarity_matrix(self, filtered=False):
-    if filtered:
-        return self.similarity_matrix.filter(~pl.col("id").is_in(self.seasonal["id"]))
+@lru_cache(maxsize=20)
+def recommendations_explode_cached(self, column):
+    return self.recommendations.explode(column)
 
-    return self.similarity_matrix
+
+@lru_cache(maxsize=20)
+def seasonal_explode_cached(self, column):
+    return self.seasonal.explode(column)
+
+
+@lru_cache(maxsize=10)
+def get_similarity_matrix(self, filtered=False, transposed=False):
+    ret = self.similarity_matrix
+
+    if filtered:
+        ret = ret.filter(~pl.col("id").is_in(self.seasonal["id"]))
+
+    if transposed:
+        column_names = ret["id"].cast(pl.Utf8).to_list()
+        ret = ret.select(pl.exclude("id")).transpose(
+            include_header=True, header_name="id", column_names=column_names
+        )
+
+    return ret

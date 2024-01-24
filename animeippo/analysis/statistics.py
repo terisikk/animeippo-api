@@ -55,19 +55,17 @@ def weight_categoricals(dataframe, column):
 
 
 def weight_encoded_categoricals_correlation(dataframe, column, features, against="score"):
-    """
-    Weights running-length encoded categorical features by their correlation with the score.
-    Assumes that the encoding is done with features sorted alphabetically.
-    """
-
-    df_non_na = dataframe.filter(pl.col(against).is_not_null())
-
-    values = np.stack(df_non_na[column])
-    scores = np.array(df_non_na[against])
-
-    correlations = np.corrcoef(np.hstack((values, scores.reshape(-1, 1))), rowvar=False)[:-1, -1]
-
-    return pl.DataFrame({"name": sorted(features), "weight": correlations}).fill_nan(0.0)
+    return (
+        dataframe.filter(pl.col(against).is_not_null())
+        .select(
+            pl.col(column).list.to_struct(fields=sorted(features)),
+            pl.col(against).alias("score"),
+        )
+        .unnest(column)
+        .select(pl.corr(pl.exclude("score"), pl.col("score")))
+        .transpose(include_header=True, header_name="name", column_names=["weight"])
+        .fill_nan(0.0)
+    )
 
 
 def weight_categoricals_correlation(dataframe, column, against=None):
@@ -119,9 +117,9 @@ def mean_score_default(compare_df, default=0):
 
 def idymax(dataframe):
     return dataframe.select(
-        pl.concat_list(pl.col("id").gather(pl.exclude("id").arg_max())),
+        pl.concat_list(pl.col("id").gather(pl.exclude("id").arg_max())).alias("idymax"),
         pl.concat_list(pl.exclude("id").max()).alias("max"),
-    ).explode(["id", "max"])
+    ).explode(["idymax", "max"])
 
 
 def calculate_residuals(contingency_table, expected):

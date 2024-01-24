@@ -179,3 +179,13 @@ async def test_anilist_returns_None_with_empty_parameters():
     assert seasonal_anime is None
     assert user_anime is None
     assert user_manga is None
+
+
+def test_anilist_nsfw_tags_function_returns_nsfw_tags():
+    provider = anilist.AniListProvider()
+
+    tags = provider.get_nsfw_tags()
+
+    assert tags is not None
+    assert "Mystery" not in tags
+    assert "Bondage" in tags

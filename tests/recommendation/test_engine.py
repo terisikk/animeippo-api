@@ -27,7 +27,7 @@ class ProviderStub:
         return pl.DataFrame(self.user)
 
     async def get_related_anime(self, *args, **kwargs):
-        return pl.DataFrame()
+        return [1]
 
     async def get_feature_names(self, *args, **kwargs):
         return ["genres"]

@@ -152,25 +152,20 @@ class BecauseYouLikedCategory:
             and len(last_liked) > self.nth_liked
             and dataset.similarity_matrix is not None
         ):
-            # We need a row, not an object
             liked_item = last_liked[self.nth_liked]
 
-            similarity = dataset.get_similarity_matrix(filtered=False).filter(
-                pl.col("id") == liked_item["id"]
-            )
+            try:
+                similarity = dataset.get_similarity_matrix(filtered=False, transposed=True).select(
+                    str(liked_item["id"].item())
+                )
+            except pl.ColumnNotFoundError:
+                similarity = []
 
             if len(similarity) > 0:
                 self.description = f"Because You Liked {liked_item['title'].item()}"
 
                 return (
-                    dataset.recommendations.join(
-                        similarity.select(pl.exclude("id")).transpose(
-                            include_header=True, header_name="id", column_names=["gscore"]
-                        ),
-                        left_on=pl.col("id"),
-                        right_on=pl.col("id").cast(pl.Int64),
-                        how="left",
-                    )
+                    dataset.recommendations.with_columns(gscore=similarity.to_series())
                     .filter(pl.col("user_status").is_null() & pl.col("gscore").is_not_nan())
                     .sort(pl.col("gscore"), descending=True)
                 )[0:max_items]

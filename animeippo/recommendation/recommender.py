@@ -16,7 +16,7 @@ class AnimeRecommender:
         engine=None,
         recommendation_model_cls=None,
         profile_model_cls=None,
-        fetch_related_anime=False
+        fetch_related_anime=False,
     ):
         self.provider = provider
         self.engine = engine

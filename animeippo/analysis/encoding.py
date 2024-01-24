@@ -1,4 +1,4 @@
-import numpy as np
+import polars as pl
 import sklearn.preprocessing as skpre
 
 
@@ -26,19 +26,9 @@ class WeightedCategoricalEncoder:
         self.class_field = class_field
         self.weight_field = weight_field
         self.classes = sorted(classes)
-        self.initial_encoding = dict.fromkeys(self.classes, 0)
+        self.dtype = pl.Struct(dict.fromkeys(self.classes, pl.Int32))
 
     def encode(self, dataframe):
-        return (
-            dataframe.select([self.class_field, self.weight_field])
-            .map_rows(self.get_weights)
-            .to_series()
+        return pl.Series(
+            dataframe.select(pl.col("ranks").cast(self.dtype)).unnest("ranks").fill_null(0).rows()
         )
-
-    def get_weights(self, row):
-        weights = dict(zip(row[0], row[1]))
-
-        encoding = self.initial_encoding.copy()
-        encoding.update(weights)
-
-        return (np.fromiter(encoding.values(), dtype=float),)

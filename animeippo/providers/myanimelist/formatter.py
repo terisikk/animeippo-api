@@ -115,7 +115,7 @@ def filter_relations(relation, related_id, meaningful_relations):
 def get_continuation(relation, related_id):
     meaningful_relations = ["parent_story", "prequel"]
 
-    return (filter_relations(relation, id, meaningful_relations),)
+    return (filter_relations(relation, related_id, meaningful_relations),)
 
 
 def get_image_url(field):

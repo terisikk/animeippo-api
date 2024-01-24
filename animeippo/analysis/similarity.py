@@ -35,9 +35,3 @@ def categorical_similarity(features1, features2, metric="jaccard", columns=None)
         similarities.columns = columns
 
     return similarities
-
-
-def similarity_of_anime_lists(features1, features2, metric="jaccard"):
-    similarities = categorical_similarity(features1, features2, metric=metric)
-
-    return similarities.mean_horizontal(ignore_nulls=True)

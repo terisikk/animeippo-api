@@ -114,3 +114,9 @@ async def test_mal_returns_None_with_empty_parameters():
     assert seasonal_anime is None
     assert user_anime is None
     assert user_manga is None
+
+
+def test_nsfw_tags_function_is_implemented_for_mal():
+    provider = myanimelist.MyAnimeListProvider()
+
+    assert provider.get_nsfw_tags() is not None

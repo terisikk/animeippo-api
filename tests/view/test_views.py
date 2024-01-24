@@ -35,3 +35,9 @@ def test_console_view_prints_stuff(capfd):
     out, _ = capfd.readouterr()
 
     assert df.item(0, "title") in out
+
+
+def test_recommendations_returns_categories_even_when_no_recommendations():
+    assert json.loads(views.recommendations_web_view(None, ["Action"]))["data"]["categories"] == [
+        "Action"
+    ]
