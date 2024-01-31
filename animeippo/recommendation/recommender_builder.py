@@ -129,7 +129,7 @@ def create_builder(providername):
                 .engine(
                     engine.AnimeRecommendationEngine(
                         model.AnimeClustering(
-                            distance_metric=metric, distance_threshold=0.65, linkage="average"
+                            distance_metric="cosine", distance_threshold=0.78, linkage="complete"
                         ),
                         encoding.WeightedCategoricalEncoder(),
                         get_default_scorers(),

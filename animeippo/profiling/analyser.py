@@ -15,7 +15,7 @@ class ProfileAnalyser:
         self.provider = provider
         self.encoder = encoding.WeightedCategoricalEncoder()
         self.clusterer = model.AnimeClustering(
-            distance_metric="cosine", distance_threshold=0.65, linkage="average"
+            distance_metric="cosine", distance_threshold=0.78, linkage="complete"
         )
 
     def async_get_profile(self, user):
@@ -95,7 +95,7 @@ class ProfileAnalyser:
     def get_cluster_categories(self, profile):
         target = profile.watchlist
 
-        gdf = profile.watchlist.explode("features")
+        gdf = target.explode("features")
 
         gdf = gdf.filter(~pl.col("features").is_in(self.provider.get_nsfw_tags()))
 

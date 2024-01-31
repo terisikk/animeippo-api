@@ -71,7 +71,7 @@ def analyze_profile():
 
     return Response(
         views.profile_web_view(
-            profiler.dataset.watchlist.sort("title"),
+            profiler.profile.watchlist.sort("title"),
             sorted(categories, key=lambda item: len(item["items"]), reverse=True),
         ),
         mimetype="application/json",
