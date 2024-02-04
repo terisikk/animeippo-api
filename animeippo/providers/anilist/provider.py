@@ -220,3 +220,6 @@ class AniListProvider(abstract_provider.AbstractAnimeProvider):
 
     def get_nsfw_tags(self):
         return data.NSFW_TAGS
+
+    def get_genres(self):
+        return data.ALL_GENRES

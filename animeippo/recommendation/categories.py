@@ -1,7 +1,6 @@
-import datetime
-
 import polars as pl
 
+from ..meta import meta
 from . import scoring
 
 
@@ -178,30 +177,12 @@ class SimulcastsCategory:
     description = "Top Simulcasts for You"
 
     def categorize(self, dataset, max_items=30):
-        year, season = self.get_current_season()
+        year, season = meta.get_current_anime_season()
         mask = (pl.col("season_year") == year) & (pl.col("season") == season)
 
         return dataset.recommendations.filter(mask).sort(by=["final_score"], descending=[True])[
             0:max_items
         ]
-
-    def get_current_season(self):
-        today = datetime.date.today()
-
-        season = ""
-
-        if today.month in [1, 2, 3]:
-            season = "winter"
-        elif today.month in [4, 5, 6]:
-            season = "spring"
-        elif today.month in [7, 8, 9]:
-            season = "summer"
-        elif today.month in [10, 11, 12]:
-            season = "fall"
-        else:
-            season = "?"
-
-        return today.year, season
 
 
 class PlanningCategory:

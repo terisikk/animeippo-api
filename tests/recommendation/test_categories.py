@@ -1,6 +1,3 @@
-import datetime
-from collections import namedtuple
-
 import polars as pl
 
 from animeippo.profiling.model import UserProfile
@@ -294,7 +291,7 @@ def test_simulcastscategory(mocker):
     )
 
     mocker.patch(
-        "animeippo.recommendation.categories.SimulcastsCategory.get_current_season",
+        "animeippo.meta.meta.get_current_anime_season",
         return_value=(2022, "summer"),
     )
 
@@ -304,52 +301,6 @@ def test_simulcastscategory(mocker):
     actual = cat.categorize(data)
 
     assert actual["title"].to_list() == ["Test 2", "Test 1"]
-
-
-def test_simulcastscategory_current_season_getter(monkeypatch):
-    class FakeDateWinter:
-        @classmethod
-        def today(cls):
-            return datetime.datetime(2022, 2, 2)
-
-    class FakeDateSpring:
-        @classmethod
-        def today(cls):
-            return datetime.datetime(2022, 5, 2)
-
-    class FakeDateSummer:
-        @classmethod
-        def today(cls):
-            return datetime.datetime(2022, 9, 2)
-
-    class FakeDateFall:
-        @classmethod
-        def today(cls):
-            return datetime.datetime(2022, 12, 2)
-
-    class FakeDateMalformed:
-        @classmethod
-        def today(cls):
-            FakeToday = namedtuple("fakedate", ["year", "month"])
-            return FakeToday(2022, 15)
-
-    cat = categories.SimulcastsCategory()
-
-    monkeypatch.setattr(datetime, "date", FakeDateWinter)
-    assert cat.get_current_season() == (2022, "winter")
-
-    monkeypatch.setattr(datetime, "date", FakeDateSpring)
-    assert cat.get_current_season() == (2022, "spring")
-
-    monkeypatch.setattr(datetime, "date", FakeDateSummer)
-    assert cat.get_current_season() == (2022, "summer")
-
-    monkeypatch.setattr(datetime, "date", FakeDateFall)
-    assert cat.get_current_season() == (2022, "fall")
-
-    # Probably not possible but for coverage
-    monkeypatch.setattr(datetime, "date", FakeDateMalformed)
-    assert cat.get_current_season() == (2022, "?")
 
 
 def test_adapatation_category():

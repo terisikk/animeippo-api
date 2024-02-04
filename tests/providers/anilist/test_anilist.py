@@ -189,3 +189,12 @@ def test_anilist_nsfw_tags_function_returns_nsfw_tags():
     assert tags is not None
     assert "Mystery" not in tags
     assert "Bondage" in tags
+
+
+def test_anilist_get_genres_returns_genres():
+    provider = anilist.AniListProvider()
+
+    genres = provider.get_genres()
+
+    assert genres is not None
+    assert "Action" in genres

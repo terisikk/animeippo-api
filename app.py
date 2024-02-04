@@ -76,3 +76,25 @@ def analyze_profile():
         ),
         mimetype="application/json",
     )
+
+
+@app.route("/profile")
+def profile_characteristics():
+    """Analyses an Anilist user profile and gets several statistics
+    about what kind of anime hobbyist the user is.
+    Returns a json-representation."""
+    user = request.args.get("user", None)
+
+    if user is None:
+        return "Validation error", 400
+
+    profiler.analyse(user)
+
+    print(profiler.profile.characteristics.genre_variance)
+
+    return Response(
+        views.profile_characteristics_web_view(
+            profiler.profile,
+        ),
+        mimetype="application/json",
+    )

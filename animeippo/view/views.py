@@ -26,7 +26,7 @@ def recommendations_web_view(dataframe, categories=None):
     )
 
 
-def profile_web_view(watchlist, categories):
+def profile_cluster_web_view(watchlist, categories):
     fields = {"id", "title", "cover_image", "genres", "user_status"}
     filtered_fields = list(set(watchlist.columns).intersection(fields))
 
@@ -37,6 +37,19 @@ def profile_web_view(watchlist, categories):
             "data": {
                 "shows": df_json,
                 "categories": categories,
+            }
+        }
+    )
+
+
+def profile_characteristics_web_view(profile):
+    return json.dumps(
+        {
+            "data": {
+                "user": profile.user,
+                "characteristics": {
+                    "Variance": profile.characteristics.genre_variance,
+                },
             }
         }
     )

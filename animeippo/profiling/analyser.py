@@ -5,6 +5,7 @@ import polars as pl
 
 from animeippo.analysis import encoding, statistics
 from animeippo.clustering import model
+from animeippo.profiling import characteristics
 from animeippo.profiling.model import UserProfile
 
 
@@ -49,6 +50,10 @@ class ProfileAnalyser:
 
     def analyse(self, user):
         self.profile = self.async_get_profile(user)
+
+        self.profile.characteristics = characteristics.Characteristics(
+            self.profile.watchlist, self.provider.get_genres()
+        )
 
         return self.get_cluster_categories(self.profile)
 

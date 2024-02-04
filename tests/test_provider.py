@@ -34,6 +34,28 @@ class AsyncProviderStub:
     def get_nsfw_tags(self):
         return ["Hentai"]
 
+    def get_genres(self):
+        return [
+            "Action",
+            "Adventure",
+            "Comedy",
+            "Drama",
+            "Ecchi",
+            "Fantasy",
+            "Harem",
+            "Horror",
+            "Mecha",
+            "Music",
+            "Mystery",
+            "Romance",
+            "Sci-Fi",
+            "Shounen",
+            "Slice of Life",
+            "Sports",
+            "Supernatural",
+            "Thriller",
+        ]
+
 
 class FaultyProviderStub:
     def __init__(
