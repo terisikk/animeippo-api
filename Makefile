@@ -1,6 +1,6 @@
 .PHONY: install
 install:
-	pipx install poetry==1.4.0
+	pipx install poetry==1.7.1
 	poetry install && poetry build
 
 .PHONY: lint
