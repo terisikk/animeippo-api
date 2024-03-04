@@ -90,6 +90,8 @@ select = [
   "C",
   "B",
   "A",
+  "RUF",
+  "PL",
 ]
 
 exclude = [
