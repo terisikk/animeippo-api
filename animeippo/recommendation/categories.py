@@ -74,8 +74,12 @@ class SourceCategory:
 class StudioCategory:
     description = "From Your Favourite Studios"
 
+    FORMAT_THRESHOLD = 0.5
+
     def categorize(self, dataset, max_items=25):
-        mask = (pl.col("user_status").is_null()) & (pl.col(scoring.FormatScorer.name) > 0.5)
+        mask = (pl.col("user_status").is_null()) & (
+            pl.col(scoring.FormatScorer.name) > self.FORMAT_THRESHOLD
+        )
 
         return dataset.recommendations.filter(mask).sort(
             [scoring.StudioCorrelationScorer.name, "final_score"], descending=[True, True]

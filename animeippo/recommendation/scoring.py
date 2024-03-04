@@ -242,24 +242,24 @@ class AdaptationScorer(AbstractScorer):
 class FormatScorer(AbstractScorer):
     name = "formatscore"
 
-    FORMAT_MAPPING = {
-        "TV": 1,
-        "TV_SHORT": 0.8,
-        "MOVIE": 1,
-        "SPECIAL": 0.8,
-        "OVA": 1,
-        "ONA": 1,
-        "MUSIC": 0.2,
-        "MANGA": 1,
-        "NOVEL": 1,
-        "ONE_SHOT": 0.2,
-    }
-
     def score(self, data):
         scoring_target_df = data.seasonal
 
+        FORMAT_MAPPING = {
+            "TV": 1,
+            "TV_SHORT": 0.8,
+            "MOVIE": 1,
+            "SPECIAL": 0.8,
+            "OVA": 1,
+            "ONA": 1,
+            "MUSIC": 0.2,
+            "MANGA": 1,
+            "NOVEL": 1,
+            "ONE_SHOT": 0.2,
+        }
+
         scores = scoring_target_df.with_columns(
-            formatscore=pl.col("format").replace(self.FORMAT_MAPPING, default=1)
+            formatscore=pl.col("format").replace(FORMAT_MAPPING, default=1)
         )
 
         scores = scores.with_columns(

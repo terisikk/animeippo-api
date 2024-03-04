@@ -5,8 +5,6 @@ from tests import test_data
 
 
 class ResponseStub:
-    dictionary = {}
-
     def __init__(self, dictionary):
         self.dictionary = dictionary
 

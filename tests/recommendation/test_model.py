@@ -1,7 +1,7 @@
 import polars as pl
 
-import tests.test_data as test_data
 from animeippo.recommendation import model
+from tests import test_data
 
 
 def test_recommendations_can_be_cached_to_lru_cache():

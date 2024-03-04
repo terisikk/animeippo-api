@@ -1,6 +1,6 @@
 import pytest
 
-import animeippo.providers as providers
+from animeippo import providers
 from animeippo.profiling.model import UserProfile
 from animeippo.recommendation import recommender, recommender_builder
 from animeippo.recommendation.model import RecommendationModel

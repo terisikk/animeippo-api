@@ -2,7 +2,7 @@ import hashlib
 from datetime import timedelta
 
 import polars as pl
-import redis as redis
+import redis
 
 
 class RedisCache:

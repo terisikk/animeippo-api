@@ -1,7 +1,7 @@
 import numpy as np
 import polars as pl
 
-import animeippo.analysis.statistics as statistics
+from animeippo.analysis import statistics
 
 
 class EncoderStub:

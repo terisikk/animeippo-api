@@ -9,7 +9,7 @@ class AnimeRecommender:
     or returns a filtered list of seasonal anime
     not tailored to a specific user."""
 
-    def __init__(
+    def __init__(  # noqa: PLR0913
         self,
         *,
         provider=None,

@@ -1,6 +1,4 @@
 class ResponseStub:
-    dictionary = {}
-
     def __init__(self, dictionary):
         self.dictionary = dictionary
 
@@ -21,8 +19,6 @@ class ResponseStub:
 
 
 class SessionStub:
-    dictionary = {}
-
     def __init__(self, dictionary):
         self.dictionary = dictionary
 

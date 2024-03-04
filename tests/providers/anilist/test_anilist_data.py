@@ -1,4 +1,4 @@
-import animeippo.providers.anilist.data as data
+from animeippo.providers.anilist import data
 
 
 def test_data_is_unique():

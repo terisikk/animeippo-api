@@ -59,8 +59,6 @@ class RecommendationModel:
 
             self.seasonal = self.seasonal.filter(mask)
 
-        return
-
     def fit(self, encoder, clustering_model):
         self.validate()
 
