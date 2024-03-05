@@ -258,16 +258,22 @@ class FormatScorer(AbstractScorer):
             "ONE_SHOT": 0.2,
         }
 
+        CUTOFF = 0.75
+
         scores = scoring_target_df.with_columns(
             formatscore=pl.col("format").replace(FORMAT_MAPPING, default=1)
         )
 
+        episodes_median = scoring_target_df["episodes"].median()
+        episodes_median = episodes_median if episodes_median is not None else 12
+
+        duration_median = scoring_target_df["duration"].median()
+        duration_median = duration_median if duration_median is not None else 24
+
         scores = scores.with_columns(
-            formatscore=pl.when(
-                (pl.col("episodes") < (0.75 * scoring_target_df["episodes"].median()))
-            )
+            formatscore=pl.when((pl.col("episodes") < (CUTOFF * episodes_median)))
             .then(pl.col("formatscore") * 0.5)
-            .when(pl.col("duration") < (0.76 * scoring_target_df["duration"].median()))
+            .when(pl.col("duration") < (CUTOFF * duration_median))
             .then(pl.col("formatscore") * 0.5)
             .otherwise(pl.col("formatscore"))
         )["formatscore"]
