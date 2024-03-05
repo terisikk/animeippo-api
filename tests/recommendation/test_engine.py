@@ -60,6 +60,31 @@ async def test_recommend_seasonal_anime_for_user_by_genre():
 
 
 @pytest.mark.asyncio
+async def test_scorer_does_not_crash_the_program_when_failing():
+    provider = ProviderStub()
+    data = RecommendationModel(
+        UserProfile("Test", await provider.get_user_anime_list()),
+        await provider.get_seasonal_anime_list(),
+    )
+
+    class FakeScorer:
+        name = "fake"
+
+        def score(self, data):
+            raise Exception("Fake exception")
+
+    recengine = engine.AnimeRecommendationEngine(
+        clustering.AnimeClustering(), encoding.CategoricalEncoder()
+    )
+
+    recengine.add_scorer(FakeScorer())
+
+    recommendations = recengine.fit_predict(data)
+
+    assert "Shingeki no Kyojin: The Fake Season" in recommendations["title"].to_list()
+
+
+@pytest.mark.asyncio
 async def test_multiple_scorers_can_be_added():
     provider = ProviderStub()
     data = RecommendationModel(

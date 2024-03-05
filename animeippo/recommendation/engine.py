@@ -26,7 +26,7 @@ class AnimeRecommendationEngine:
 
         if len(self.scorers) > 0:
             scoring_target_df = scoring_target_df.with_columns(
-                **{scorer.name: scorer.score(dataset).fill_nan(0.0) for scorer in self.scorers}
+                **{scorer.name: self.run_scorer(scorer, dataset) for scorer in self.scorers}
             )
 
             names = [scorer.name for scorer in self.scorers]
@@ -42,6 +42,13 @@ class AnimeRecommendationEngine:
             raise RuntimeError("No scorers added for engine. Please add at least one.")
 
         return scoring_target_df
+
+    def run_scorer(self, scorer, dataset):
+        try:
+            return scorer.score(dataset).fill_nan(0.0)
+        except Exception as e:
+            print(f"Error in scorer {scorer.name}: {e}")
+            return 0.0
 
     def categorize_anime(self, data):
         cats = []
