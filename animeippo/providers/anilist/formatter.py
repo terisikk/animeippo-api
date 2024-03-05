@@ -128,7 +128,12 @@ ANILIST_MAPPING = {
     Columns.DURATION:           DefaultMapper("duration"),
     Columns.EPISODES:           DefaultMapper("episodes"),
     Columns.SEASON_YEAR:        DefaultMapper("seasonYear"),
-    Columns.SEASON:             SelectorMapper(pl.col("season").str.to_lowercase()),
+    Columns.SEASON:             SelectorMapper(
+                                    pl.col("season").str.to_lowercase()
+                                    .cast(
+                                        pl.Enum(["winter", "spring", "summer", "fall"])
+                                    )
+                                ),
     Columns.USER_STATUS:        SelectorMapper(pl.col("status").str.to_lowercase()),
     Columns.STATUS:             SelectorMapper(pl.col("status").str.to_lowercase()),
     Columns.SCORE:              SelectorMapper(

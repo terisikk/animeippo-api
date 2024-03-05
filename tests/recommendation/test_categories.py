@@ -166,15 +166,21 @@ def test_your_top_picks_category():
     assert actual["title"].to_list() == ["Test 2", "Test 1"]
 
 
-def test_top_upcoming_category():
+def test_top_upcoming_category(mocker):
     cat = categories.TopUpcomingCategory()
+
+    # patch get_current_anime_season
+    mocker.patch(
+        "animeippo.meta.meta.get_current_anime_season",
+        return_value=(2022, "spring"),
+    )
 
     recommendations = pl.DataFrame(
         {
             "status": ["not_yet_released", "finished", "cancelled"],
             "user_status": [None, None, None],
             "season_year": [1, 1, 1],
-            "season": ["a", "a", "a"],
+            "season": ["summer", "winter", "summer"],
             "title": ["Test 1", "Test 2", "Test 3"],
             "final_score": [0, 1, 2],
             "continuationscore": [0, 0, 0],

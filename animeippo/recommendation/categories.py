@@ -132,11 +132,13 @@ class TopUpcomingCategory:
 
     def categorize(self, dataset, max_items=25):
         mask = (
-            pl.col(scoring.ContinuationScorer.name) == scoring.ContinuationScorer.DEFAULT_SCORE
-        ) & (pl.col("status") == "not_yet_released")
+            (pl.col(scoring.ContinuationScorer.name) == scoring.ContinuationScorer.DEFAULT_SCORE)
+            & (pl.col("status") == "not_yet_released")
+            & (pl.col("season") > meta.get_current_anime_season()[1])
+        )
 
         return dataset.recommendations.filter(mask).sort(
-            by=["season_year", "season", "final_score"], descending=[True, True, True]
+            by=["season_year", "season", "final_score"], descending=[False, False, True]
         )[0:max_items]
 
 
