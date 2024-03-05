@@ -128,13 +128,11 @@ class YourTopPicksCategory:
 
 
 class TopUpcomingCategory:
-    description = "Top New Picks from Upcoming Anime"
+    description = "Top Picks from Upcoming Anime"
 
     def categorize(self, dataset, max_items=25):
-        mask = (
-            (pl.col(scoring.ContinuationScorer.name) == scoring.ContinuationScorer.DEFAULT_SCORE)
-            & (pl.col("status") == "not_yet_released")
-            & (pl.col("season") > meta.get_current_anime_season()[1])
+        mask = (pl.col("status") == "not_yet_released") & (
+            pl.col("season") > meta.get_current_anime_season()[1]
         )
 
         return dataset.recommendations.filter(mask).sort(
