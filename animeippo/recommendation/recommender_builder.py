@@ -48,62 +48,7 @@ def get_default_categorizers(distance_metric="jaccard"):
     ]
 
 
-class RecommenderBuilder:
-    """Helps building a new anime recommender from several
-    parts by returning self for each new part added, allowing
-    chaining together different parts.
-
-    Currently only uses one kind of recommender, so questionable
-    if this class is really needed in between. In theory though
-    this allows abstracting away different recommenders and
-    also deferring building until build method is explicitly
-    called.
-    """
-
-    def __init__(self):
-        self._provider = None
-        self._engine = engine.AnimeRecommendationEngine(
-            get_default_scorers(),
-            get_default_categorizers(),
-            model.AnimeClustering(),
-            encoding.CategoricalEncoder(),
-        )
-        self._fetch_related_anime = False
-        self._recommendation_model_cls = RecommendationModel
-        self._profile_model_cls = UserProfile
-
-    def build(self):
-        return AnimeRecommender(
-            provider=self._provider,
-            engine=self._engine,
-            recommendation_model_cls=self._recommendation_model_cls,
-            profile_model_cls=self._profile_model_cls,
-            fetch_related_anime=self._fetch_related_anime,
-        )
-
-    def provider(self, provider):
-        self._provider = provider
-        return self
-
-    def engine(self, engine):
-        self._engine = engine
-        return self
-
-    def fetch_related_anime(self, fetch_related_anime):
-        self._fetch_related_anime = fetch_related_anime
-        return self
-
-    def recommendation_model_class(self, cls):
-        self._recommendation_model_cls = cls
-
-        return self
-
-    def profile_model_class(self, cls):
-        self._profile_model_cls = cls
-        return self
-
-
-def create_builder(providername):
+def build_recommender(providername):
     """
     Creates a recommender builder based on a third party data provider name.
 
@@ -114,6 +59,9 @@ def create_builder(providername):
 
     Final recommender is created when builder.build() is called.
     """
+    default_recommendation_model_cls = RecommendationModel
+    default_profile_model_cls = UserProfile
+
     rcache = cache.RedisCache()
 
     if not rcache.is_available():
@@ -123,47 +71,49 @@ def create_builder(providername):
         case "anilist":
             # Cosine seems to work better for anilist than jaccard.
             metric = "cosine"
-            return (
-                RecommenderBuilder()
-                .provider(providers.anilist.AniListProvider(rcache))
-                .engine(
-                    engine.AnimeRecommendationEngine(
-                        model.AnimeClustering(
-                            distance_metric="cosine", distance_threshold=0.78, linkage="complete"
-                        ),
-                        encoding.WeightedCategoricalEncoder(),
-                        get_default_scorers(),
-                        get_default_categorizers(metric),
-                    )
-                )
+
+            return AnimeRecommender(
+                provider=providers.anilist.AniListProvider(rcache),
+                engine=engine.AnimeRecommendationEngine(
+                    model.AnimeClustering(
+                        distance_metric=metric, distance_threshold=0.78, linkage="complete"
+                    ),
+                    encoding.WeightedCategoricalEncoder(),
+                    get_default_scorers(),
+                    get_default_categorizers(metric),
+                ),
+                recommendation_model_cls=default_recommendation_model_cls,
+                profile_model_cls=default_profile_model_cls,
+                fetch_related_anime=False,
             )
+
         case "myanimelist":
-            return (
-                RecommenderBuilder()
-                .provider(providers.myanimelist.MyAnimeListProvider(rcache))
-                .engine(
-                    engine.AnimeRecommendationEngine(
-                        model.AnimeClustering(),
-                        encoding.CategoricalEncoder(),
-                        get_default_scorers(),
-                        get_default_categorizers(),
-                    )
-                )
-                .fetch_related_anime(True)
+            return AnimeRecommender(
+                provider=providers.myanimelist.MyAnimeListProvider(rcache),
+                engine=engine.AnimeRecommendationEngine(
+                    model.AnimeClustering(),
+                    encoding.CategoricalEncoder(),
+                    get_default_scorers(),
+                    get_default_categorizers(),
+                ),
+                recommendation_model_cls=default_recommendation_model_cls,
+                profile_model_cls=default_profile_model_cls,
+                fetch_related_anime=True,
             )
+
         case _:
             metric = "cosine"
-            return (
-                RecommenderBuilder()
-                .provider(providers.mixed.MixedProvider(rcache))
-                .engine(
-                    engine.AnimeRecommendationEngine(
-                        model.AnimeClustering(
-                            distance_metric=metric, distance_threshold=0.65, linkage="average"
-                        ),
-                        encoding.WeightedCategoricalEncoder(),
-                        get_default_scorers(),
-                        get_default_categorizers(metric),
-                    )
-                )
+            return AnimeRecommender(
+                provider=providers.mixed.MixedProvider(rcache),
+                engine=engine.AnimeRecommendationEngine(
+                    model.AnimeClustering(
+                        distance_metric=metric, distance_threshold=0.65, linkage="average"
+                    ),
+                    encoding.WeightedCategoricalEncoder(),
+                    get_default_scorers(),
+                    get_default_categorizers(metric),
+                ),
+                recommendation_model_cls=default_recommendation_model_cls,
+                profile_model_cls=default_profile_model_cls,
+                fetch_related_anime=False,
             )

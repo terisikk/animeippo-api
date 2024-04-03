@@ -49,9 +49,6 @@ class AnimeRecommender:
 
         return data
 
-    def get_dataset(self, year, season, user=None):
-        return self.databuilder(year, season, user)
-
     def async_get_dataset(self, year, season, user=None):
         # If we run from jupyter, loop is already running and we need
         # to act differently. If the loop is not running,

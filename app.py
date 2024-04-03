@@ -10,7 +10,7 @@ app = Flask(__name__)
 app.config["JSON_AS_ASCII"] = False
 cors = CORS(app, origins="http://localhost:3000")
 
-recommender = recommender_builder.create_builder("anilist").build()
+recommender = recommender_builder.build_recommender("anilist")
 profiler = analyser.ProfileAnalyser(recommender.provider)
 
 
