@@ -26,7 +26,7 @@ class WeightedCategoricalEncoder:
         self.class_field = class_field
         self.weight_field = weight_field
         self.classes = sorted(classes)
-        self.dtype = pl.Struct(dict.fromkeys(self.classes, pl.Int32))
+        self.dtype = pl.Struct(dict.fromkeys(self.classes, pl.Int8))
 
     def encode(self, dataframe):
         return pl.Series(
