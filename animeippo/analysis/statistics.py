@@ -68,13 +68,11 @@ def weight_encoded_categoricals_correlation(dataframe, column, features, against
     )
 
 
-def weight_categoricals_correlation(dataframe, column, against=None):
-    dataframe = dataframe.filter(pl.col(column).is_not_null())
+def weight_categoricals_correlation(dataframe, column):
+    dataframe = dataframe.filter(pl.col(column).is_not_null() & pl.col("score").is_not_null())
 
     if len(dataframe) == 0:
         return pl.DataFrame({"name": [], "weight": []})
-
-    against = against if against is not None else dataframe["score"]
 
     weights = (
         dataframe[column]
@@ -83,27 +81,23 @@ def weight_categoricals_correlation(dataframe, column, against=None):
         .select(column, pl.col("count").sqrt().alias("weight"))  # Lessen the effect of outliers
     )
 
-    correlations = (
-        dataframe.select(column)
-        .to_dummies()  # Convert to marker variables so that we can correlate with 1 and 0
-        .with_columns(score=against)  # Score or other variable to correlate with
-        .filter(pl.col("score").is_not_null())  # Remove nulls, not scored items are not interesting
+    return (
+        dataframe.select(column, "score")
+        .to_dummies(column)  # Convert to marker variables so that we can correlate with 1 and 0
         .select(pl.corr(pl.exclude("score"), pl.col("score")))  # Correlate with score
-        .transpose()  # Transpose to get correlations as rows
-        .select(pl.col("column_0").mul(weights["weight"]).alias("weight"))  # Multiply with weights
+        .transpose(column_names=["weight"])  # Transpose to get correlations as rows
+        .select(pl.col("weight").mul(weights["weight"]))  # Multiply with weights
         .fill_nan(0.0)
-        .with_columns(name=weights[column])  # Add categorical names
+        .with_columns(name=weights[column])
     )
 
-    return correlations
 
-
-def normalize_column(df_column):
-    return (df_column - df_column.min()) / (df_column.max() - df_column.min())
+def normalize_series(series):
+    return (series - series.min()) / (series.max() - series.min())
 
 
 def mean_score_per_categorical(dataframe, column):
-    return dataframe.group_by(column, maintain_order=True).agg(pl.col("score").mean())
+    return dataframe.group_by(column).agg(pl.col("score").mean())
 
 
 def mean_score_default(compare_df, default=0):

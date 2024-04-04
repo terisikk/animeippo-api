@@ -47,7 +47,7 @@ class FeatureCorrelationScorer(AbstractScorer):
             statistics.weighted_mean_for_categorical_values(fdf, "features", drop_correlations)
         )
 
-        return statistics.normalize_column(scores)
+        return statistics.normalize_series(scores)
 
 
 class GenreAverageScorer(AbstractScorer):
@@ -68,7 +68,7 @@ class GenreAverageScorer(AbstractScorer):
             / scoring_target_df["genres"].list.len().sqrt()
         )
 
-        return statistics.normalize_column(scores)
+        return statistics.normalize_series(scores)
 
 
 class StudioCorrelationScorer:
@@ -83,7 +83,7 @@ class StudioCorrelationScorer:
             data.seasonal_explode_cached("studios"), "studios", weights, median
         )
 
-        return statistics.normalize_column(scores)
+        return statistics.normalize_series(scores)
 
 
 class ClusterSimilarityScorer(AbstractScorer):
@@ -114,7 +114,7 @@ class ClusterSimilarityScorer(AbstractScorer):
             .to_series()
         )
 
-        return statistics.normalize_column(scores)
+        return statistics.normalize_series(scores)
 
 
 class DirectSimilarityScorer(AbstractScorer):
@@ -148,7 +148,7 @@ class DirectSimilarityScorer(AbstractScorer):
             compare_df.select("id", "directscore"), left_on="idymax", right_on="id", how="left"
         )
 
-        return statistics.normalize_column(
+        return statistics.normalize_series(
             scores.select(pl.col("directscore") * pl.col("max"))["directscore"]
         )
 
@@ -161,7 +161,7 @@ class PopularityScorer(AbstractScorer):
 
         scores = scoring_target_df["popularity"]
 
-        return statistics.normalize_column(scores.rank())
+        return statistics.normalize_series(scores.rank())
 
 
 class ContinuationScorer(AbstractScorer):
@@ -278,7 +278,7 @@ class FormatScorer(AbstractScorer):
             .otherwise(pl.col("formatscore"))
         )["formatscore"]
 
-        return statistics.normalize_column(scores)
+        return statistics.normalize_series(scores)
 
 
 class DirectorCorrelationScorer:
@@ -293,4 +293,4 @@ class DirectorCorrelationScorer:
             data.seasonal_explode_cached("directors"), "directors", weights, median
         )
 
-        return statistics.normalize_column(scores)
+        return statistics.normalize_series(scores)

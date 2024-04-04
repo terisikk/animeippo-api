@@ -22,9 +22,6 @@ def categorical_similarity(features1, features2, metric="jaccard", columns=None)
     that contains vector-encoded representation of features."""
     similarities = pl.DataFrame(
         similarity(
-            # Polars seems to have a bug where to_numpy gets a cached value
-            # instead of the actual conversion, thus np.array(x.to_list()),
-            # not to_numpy().
             np.stack(features1.to_list()),
             np.stack(features2.to_list()),
             metric=metric,
