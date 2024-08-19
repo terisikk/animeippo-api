@@ -157,15 +157,20 @@ MAL_MAPPING = {
     Columns.SEASON:             DefaultMapper("node.start_season.season"),
     Columns.SEASON_YEAR:        DefaultMapper("node.start_season.year"),
     Columns.USER_STATUS:        DefaultMapper("list_status.status"),
-    Columns.GENRES:             SingleMapper("node.genres", split_id_name_field, []),
-    Columns.STUDIOS:            SingleMapper("node.studios", split_id_name_field),
+    Columns.GENRES:             SingleMapper("node.genres", split_id_name_field, [], pl.List),
+    Columns.STUDIOS:            SingleMapper("node.studios", split_id_name_field, [], pl.List),
     Columns.STATUS:             SingleMapper("node.status", get_status),
     Columns.SCORE:              SelectorMapper(
                                     pl.when(pl.col("list_status.score") > 0)
                                     .then(pl.col("list_status.score"))
                                     .otherwise(None)
                                 ),    
-    Columns.USER_COMPLETE_DATE: SingleMapper("list_status.finish_date", get_user_complete_date),
+    Columns.USER_COMPLETE_DATE: SingleMapper(
+                                    "list_status.finish_date", 
+                                    get_user_complete_date,
+                                    None,
+                                    datetime
+                                ),
     Columns.CONTINUATION_TO:    MultiMapper(["relation_type", "node.id"], get_continuation),
 }
 

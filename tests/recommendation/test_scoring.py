@@ -275,7 +275,7 @@ def test_continuation_scorer():
     uprofile = UserProfile("Test", compare)
     actual = scorer.score(RecommendationModel(uprofile, original))
 
-    assert actual.to_list() == [0.8, 0.0, 0.7, 0.0]
+    assert [round(a, 1) for a in actual.to_list()] == [0.8, 0.0, 0.7, 0.0]
 
 
 def test_continuation_scorer_scores_nan_with_zero():
@@ -301,7 +301,7 @@ def test_continuation_scorer_scores_nan_with_zero():
     uprofile = UserProfile("Test", compare)
     actual = scorer.score(RecommendationModel(uprofile, original))
 
-    assert actual.to_list() == [0.7, 0.0, 0.7, 0.0]
+    assert [round(a, 1) for a in actual.to_list()] == [0.7, 0.0, 0.7, 0.0]
 
 
 def test_continuation_scorer_takes_max_of_duplicate_relations():

@@ -9,8 +9,8 @@ from .. import abstract_provider
 from .. import caching as animecache
 from . import data, formatter
 
-USER_DATA_TTL_DAYS = os.environ.get("USER_DATA_TTL_DAYS", 1)
-SEASONAL_DATA_TTL_DAYS = os.environ.get("SEASONAL_DATA_TTL_DAYS", 7)
+USER_DATA_TTL_DAYS = int(os.environ.get("USER_DATA_TTL_DAYS", 1))
+SEASONAL_DATA_TTL_DAYS = int(os.environ.get("SEASONAL_DATA_TTL_DAYS", 7))
 
 
 class AniListProvider(abstract_provider.AbstractAnimeProvider):

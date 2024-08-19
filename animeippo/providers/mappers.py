@@ -33,16 +33,17 @@ class QueryMapper:
 
 
 class SingleMapper:
-    def __init__(self, name, func, default=None):
+    def __init__(self, name, func, default=None, dtype=pl.String):
         self.name = name
         self.func = func
         self.default = default
+        self.dtype = dtype
 
     def map(self, dataframe):
         if self.name not in dataframe.columns and len(dataframe) > 0:
             return pl.lit(self.default)
 
-        return dataframe[self.name].map_elements(self.row_wrapper)
+        return dataframe[self.name].map_elements(self.row_wrapper, return_dtype=self.dtype)
 
     def row_wrapper(self, row):
         try:

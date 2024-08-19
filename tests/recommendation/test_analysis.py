@@ -80,7 +80,14 @@ def test_weighted_functions_return_default_if_no_weights():
     assert statistics.weighted_mean_for_categorical_values(None, None, None) == 0.0
     assert statistics.weighted_sum_for_categorical_values(None, None, None) == 0.0
 
-    assert len(statistics.weight_categoricals_correlation(pl.DataFrame({"test": []}), "test")) == 0
+    assert (
+        len(
+            statistics.weight_categoricals_correlation(
+                pl.DataFrame({"test": [], "score": []}), "test"
+            )
+        )
+        == 0
+    )
 
 
 def test_get_mean_uses_default():
