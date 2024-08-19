@@ -1,3 +1,4 @@
+import os
 from datetime import timedelta
 
 from async_lru import alru_cache
@@ -8,6 +9,9 @@ from .. import abstract_provider
 from .. import caching as animecache
 from . import data, formatter
 
+USER_DATA_TTL_DAYS = os.environ.get("USER_DATA_TTL_DAYS", 1)
+SEASONAL_DATA_TTL_DAYS = os.environ.get("SEASONAL_DATA_TTL_DAYS", 7)
+
 
 class AniListProvider(abstract_provider.AbstractAnimeProvider):
     def __init__(self, cache=None):
@@ -15,7 +19,7 @@ class AniListProvider(abstract_provider.AbstractAnimeProvider):
         self.connection = AnilistConnection(cache)
 
     @alru_cache(maxsize=1)
-    @animecache.cached_dataframe(ttl=timedelta(days=1))
+    @animecache.cached_dataframe(ttl=timedelta(days=USER_DATA_TTL_DAYS))
     async def get_user_anime_list(self, user_id):
         if user_id is None:
             return None
@@ -75,7 +79,7 @@ class AniListProvider(abstract_provider.AbstractAnimeProvider):
 
         return formatter.transform_watchlist_data(anime_list, self.get_feature_fields())
 
-    @animecache.cached_dataframe(ttl=timedelta(days=1))
+    @animecache.cached_dataframe(ttl=timedelta(days=SEASONAL_DATA_TTL_DAYS))
     async def get_seasonal_anime_list(self, year, season):
         if year is None:
             return None
@@ -163,7 +167,7 @@ class AniListProvider(abstract_provider.AbstractAnimeProvider):
         return formatter.transform_seasonal_data(anime_list, self.get_feature_fields())
 
     @alru_cache(maxsize=1)
-    @animecache.cached_dataframe(ttl=timedelta(days=1))
+    @animecache.cached_dataframe(ttl=timedelta(days=USER_DATA_TTL_DAYS))
     async def get_user_manga_list(self, user_id):
         if user_id is None:
             return None
