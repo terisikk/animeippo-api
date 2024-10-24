@@ -23,8 +23,9 @@ def test_genre_average_scores():
 
 
 def test_weighted_mean_for_categoricals():
-    genre_averages = pl.DataFrame([("Action", 9.0), ("Horror", 8.0), ("Romance", 7.0)])
-    genre_averages.columns = ["name", "weight"]
+    genre_averages = pl.DataFrame(
+        {"name": ["Action", "Horror", "Romance"], "weight": [9.0, 8.0, 7.0]}
+    )
 
     original = pl.DataFrame(
         {
@@ -41,8 +42,7 @@ def test_weighted_mean_for_categoricals():
 
 
 def test_weighted_mean_uses_zero_to_subsitute_nan():
-    genre_averages = pl.DataFrame([("Action", 9.0)])
-    genre_averages.columns = ["name", "weight"]
+    genre_averages = pl.DataFrame({"name": ["Action"], "weight": [9.0]})
 
     original = pl.DataFrame(
         {
@@ -59,8 +59,12 @@ def test_weighted_mean_uses_zero_to_subsitute_nan():
 
 
 def test_weighted_mean_scores_genre_list_containing_only_unseen_genres_as_zero():
-    genre_averages = pl.DataFrame([("Romance", 9.0)])
-    genre_averages.columns = ["name", "weight"]
+    genre_averages = pl.DataFrame(
+        {
+            "name": ["Romance"],
+            "weight": [9.0],
+        }
+    )
 
     original = pl.DataFrame(
         {

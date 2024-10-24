@@ -129,7 +129,7 @@ def test_cluster_similarity_scorer():
     data.similarity_matrix = pl.DataFrame(
         {
             "3": [0, 0],
-            "4": [1, 0.5],
+            "4": [1.0, 0.5],
             "id": [1, 2],
         }
     )
@@ -172,8 +172,8 @@ def test_cluster_similarity_scorer_weighted():
     )
     data.similarity_matrix = pl.DataFrame(
         {
-            "3": [0.5, 1],
-            "4": [1, 0.5],
+            "3": [0.5, 1.0],
+            "4": [1.0, 0.5],
             "id": [1, 2],
         }
     )
@@ -358,7 +358,7 @@ def test_direct_similarity_scorer():
     data.similarity_matrix = pl.DataFrame(
         {
             "3": [0, 0],
-            "4": [1, 0.5],
+            "4": [1.0, 0.5],
             "id": [1, 2],
         }
     )

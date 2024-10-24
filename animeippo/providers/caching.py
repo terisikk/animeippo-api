@@ -1,6 +1,7 @@
 import asyncio
 import functools
 import threading
+from concurrent.futures import ThreadPoolExecutor
 
 
 def cached_query(ttl):
@@ -67,14 +68,14 @@ def cached_dataframe(ttl):
 
                 if cache_available:
                     print(f"Cache save for {cachekey}")
-                    threading.Thread(
-                        target=self.cache.set_dataframe,
-                        args=(
+
+                    with ThreadPoolExecutor() as executor:
+                        executor.submit(
+                            self.cache.set_dataframe,
                             cachekey,
                             data,
                             ttl,
-                        ),
-                    ).start()
+                        )
 
             return data
 

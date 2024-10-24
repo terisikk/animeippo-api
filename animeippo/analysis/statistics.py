@@ -11,7 +11,7 @@ def weighted_mean_for_categorical_values(dataframe, column, weights, fillna=0.0)
     return (
         dataframe.select(
             pl.col("id"),
-            pl.col(column).replace(
+            pl.col(column).replace_strict(
                 old=weights["name"],
                 new=weights["weight"],
                 default=fillna,
@@ -29,7 +29,7 @@ def weighted_sum_for_categorical_values(dataframe, column, weights, fillna=0.0):
     return (
         dataframe.select(
             pl.col("id"),
-            pl.col(column).replace(
+            pl.col(column).replace_strict(
                 old=weights["name"],
                 new=weights["weight"],
                 default=fillna,

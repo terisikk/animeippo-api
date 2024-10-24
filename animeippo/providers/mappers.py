@@ -17,7 +17,7 @@ class SelectorMapper:
     def map(self, dataframe):
         try:
             return dataframe.select(self.selector).to_series()
-        except pl.ColumnNotFoundError:
+        except pl.exceptions.ColumnNotFoundError:
             return pl.lit(None)
 
 
@@ -28,7 +28,7 @@ class QueryMapper:
     def map(self, dataframe):
         try:
             return self.query(dataframe)
-        except pl.ColumnNotFoundError:
+        except pl.exceptions.ColumnNotFoundError:
             return pl.lit(None)
 
 

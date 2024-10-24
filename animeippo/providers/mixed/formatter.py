@@ -46,7 +46,12 @@ def transform_ani_watchlist_data(data, feature_names, mal_df):
 
     df = transform_to_animeippo_format(original, feature_names, keys, ANILIST_MAPPING)
 
-    return df.join(mal_df.drop(Columns.FEATURES), left_on=Columns.ID_MAL, right_on="id", how="left")
+    return df.join(
+        mal_df.drop(Columns.FEATURES, strict=False),
+        left_on=Columns.ID_MAL,
+        right_on="id",
+        how="left",
+    )
 
 
 def transform_ani_seasonal_data(data, feature_names):

@@ -224,9 +224,9 @@ def test_because_you_liked():
     data.recommendations = recommendations
     data.similarity_matrix = pl.DataFrame(
         {
-            "3": [0.5, 1],
-            "4": [0.5, 0],
-            "5": [0, 0.5],
+            "3": [0.5, 1.0],
+            "4": [0.5, 0.0],
+            "5": [0.0, 0.5],
             "id": [1, 2],
         }
     )
@@ -271,9 +271,9 @@ def test_because_you_liked_does_not_raise_error_with_missing_similarity():
 
     data.similarity_matrix = pl.DataFrame(
         {
-            "3": [0.5, 1],
-            "4": [0.5, 0],
-            "5": [0, 0.5],
+            "3": [0.5, 1.0],
+            "4": [0.5, 0.0],
+            "5": [0.0, 0.5],
             "id": [6, 7],
         }
     )
@@ -422,10 +422,10 @@ def test_discourage_wrapper():
             "title": ["Test 1", "Test 2", "Test 3"],
             "user_status": [None, None, None],
             "status": ["releasing", "releasing", "releasing"],
-            "continuationscore": [0, 0, 0],
-            "recommend_score": [2, 2.1, 1.99],
-            "final_score": [2, 2.1, 1.99],
-            "discourage_score": [1, 1, 1],
+            "continuationscore": [0.0, 0.0, 0.0],
+            "recommend_score": [2.0, 2.1, 1.99],
+            "final_score": [2.0, 2.1, 1.99],
+            "discourage_score": [1.0, 1.0, 1.0],
         }
     )
 
@@ -451,7 +451,7 @@ def test_debug_category_returns_all_recommendations():
     recommendations = pl.DataFrame(
         {
             "title": ["Test 1", "Test 2", "Test 3"],
-            "final_score": [2, 2.1, 1.99],
+            "final_score": [2.0, 2.1, 1.99],
         }
     )
 

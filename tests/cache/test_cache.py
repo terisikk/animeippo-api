@@ -129,8 +129,8 @@ async def test_mal_list_can_be_stored_to_cache(mocker):
     mocker.patch("aiohttp.ClientSession.get", side_effect=[response, None])
 
     first_hit = await provider.get_seasonal_anime_list(year, season)
-
     second_hit = await provider.get_seasonal_anime_list(year, season)
+
     assert not first_hit.is_empty()
     assert first_hit["title"].to_list() == second_hit["title"].to_list()
 
@@ -149,8 +149,8 @@ async def test_mal_related_anime_can_be_stored_to_cache(mocker):
     mocker.patch("aiohttp.ClientSession.get", side_effect=[response, None])
 
     first_hit = await provider.get_related_anime(rid)
-
     second_hit = await provider.get_related_anime(rid)
+
     assert len(first_hit) != 0
     assert first_hit == second_hit
 

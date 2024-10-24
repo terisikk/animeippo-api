@@ -38,11 +38,11 @@ def get_ranks(df):
         df.select("id", pl.col("temp_ranks"))
         .explode("temp_ranks")
         .unnest("temp_ranks")
-        .pivot(index="id", values="rank", columns="name")
+        .pivot(index="id", values="rank", on="name")
         .join(
             df.explode("genres")
             .select("id", "genres", pl.lit(100).alias("rank"))
-            .pivot(index="id", values="rank", columns="genres"),
+            .pivot(index="id", values="rank", on="genres"),
             on="id",
             how="left",
         )

@@ -162,7 +162,7 @@ class BecauseYouLikedCategory:
                     pl.col("id").cast(pl.Int64),
                     pl.col(str(liked_item["id"].item())).alias("gscore"),
                 )
-            except pl.ColumnNotFoundError:
+            except pl.exceptions.ColumnNotFoundError:
                 similarity = []
 
             if len(similarity) > 0:

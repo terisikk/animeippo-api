@@ -70,7 +70,7 @@ def analyze_profile():
     categories = profiler.analyse(user)
 
     return Response(
-        views.profile_web_view(
+        views.profile_cluster_web_view(
             profiler.profile.watchlist.sort("title"),
             sorted(categories, key=lambda item: len(item["items"]), reverse=True),
         ),

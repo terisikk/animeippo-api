@@ -246,22 +246,22 @@ class FormatScorer(AbstractScorer):
         scoring_target_df = data.seasonal
 
         FORMAT_MAPPING = {
-            "TV": 1,
+            "TV": 1.0,
             "TV_SHORT": 0.8,
-            "MOVIE": 1,
+            "MOVIE": 1.0,
             "SPECIAL": 0.8,
-            "OVA": 1,
-            "ONA": 1,
+            "OVA": 1.0,
+            "ONA": 1.0,
             "MUSIC": 0.2,
-            "MANGA": 1,
-            "NOVEL": 1,
+            "MANGA": 1.0,
+            "NOVEL": 1.0,
             "ONE_SHOT": 0.2,
         }
 
         CUTOFF = 0.75
 
         scores = scoring_target_df.with_columns(
-            formatscore=pl.col("format").replace(FORMAT_MAPPING, default=1)
+            formatscore=pl.col("format").replace_strict(FORMAT_MAPPING, default=1)
         )
 
         episodes_median = scoring_target_df["episodes"].median()

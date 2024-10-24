@@ -35,14 +35,14 @@ def test_single_mapper():
 def test_single_mapper_default_works():
     mapper = animeippo.providers.mappers.SingleMapper("test", str.lower)
 
-    original = pl.DataFrame({"test": pl.Series(["TEST1", 2, 3])})
+    original = pl.DataFrame({"test": pl.Series(["TEST1", None, None])})
     actual = pl.DataFrame().with_columns(test=mapper.map(original))
 
     assert actual["test"].to_list() == ["test1", None, None]
 
     mapper = animeippo.providers.mappers.SingleMapper("test", str.lower, 123, pl.String)
 
-    original = pl.DataFrame({"wrong": ["TEST1", 2, 3]})
+    original = pl.DataFrame({"wrong": ["TEST1", None, None]})
     actual = pl.DataFrame({"existing": pl.Series([1, 2, 3])}).with_columns(
         test=mapper.map(original)
     )

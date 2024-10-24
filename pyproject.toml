@@ -18,7 +18,7 @@ redis = "^4.5.4"
 pyarrow = "^14.0.1"
 aiohttp = "^3.8.4"
 async-lru = "^2.0.4"
-polars = { extras = ["numpy", "pandas", "pyarrow"], version = "^0.20.2" }
+polars = "1.9.0"
 fast-json-normalize = "^0.0.9"
 
 
