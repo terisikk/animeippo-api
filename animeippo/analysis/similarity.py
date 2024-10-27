@@ -22,8 +22,8 @@ def categorical_similarity(features1, features2, metric="jaccard", columns=None)
     that contains vector-encoded representation of features."""
     similarities = pl.DataFrame(
         similarity(
-            np.stack(features1.to_list()),
-            np.stack(features2.to_list()),
+            np.stack(features1.to_numpy()),
+            np.stack(features2.to_numpy()),
             metric=metric,
         )
     )

@@ -75,7 +75,7 @@ async def test_mal_related_anime_can_be_fetched(mocker):
 
     details = await provider.get_related_anime(anime_id)
 
-    assert details == [31]
+    assert details == [[31]]
 
 
 @pytest.mark.asyncio

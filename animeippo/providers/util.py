@@ -10,7 +10,7 @@ def transform_to_animeippo_format(original, feature_names, schema, mapping):
     if "id" in original.columns:
         original = original.unique(subset=["id"], keep="first")
 
-    df = run_mappers(df, original, mapping)
+    df = run_mappers(df, original, mapping, schema)
 
     existing_feature_columns = set(feature_names).intersection(df.columns)
 
@@ -23,9 +23,18 @@ def transform_to_animeippo_format(original, feature_names, schema, mapping):
     return df
 
 
-def run_mappers(dataframe, original, mapping):
+# This here forgets the original schema and dtypes, so optimize this
+def run_mappers(dataframe, original, mapping, schema):
     return pl.DataFrame().with_columns(
-        **{key: mapper.map(original) for key, mapper in mapping.items() if key in dataframe.columns}
+        **{
+            key: (
+                mapper.map(original).cast(schema.get(key))
+                if key in schema
+                else mapper.map(original)
+            )
+            for key, mapper in mapping.items()
+            if key in dataframe.columns and key in schema
+        }
     )
 
 

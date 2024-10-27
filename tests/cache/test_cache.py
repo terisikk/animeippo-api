@@ -111,7 +111,7 @@ async def test_mal_related_anime_can_use_cache(mocker):
 
     related_anime = await provider.get_related_anime(rid)
 
-    assert related_anime == [31]
+    assert related_anime == [[31]]
 
 
 @pytest.mark.asyncio

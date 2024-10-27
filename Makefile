@@ -27,7 +27,7 @@ coverage-lcov:
 # in function from profilehooks
 .PHOY: profile 
 profile:
-	poetry run python animeippo
+	poetry run python -m animeippo
 	poetry run python -m gprof2dot -f pstats .profiling/cprofile.pstats > .profiling/cprofile.dot
 
 # For some reason it does not read pyproject.toml, even though it should

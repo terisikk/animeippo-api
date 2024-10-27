@@ -38,7 +38,7 @@ class AnimeClustering:
         self.distance_metric = distance_metric
 
     def cluster_by_features(self, dataframe):
-        series = np.vstack(dataframe["encoded"])
+        series = np.vstack(dataframe["encoded"].to_numpy())
 
         if self.distance_metric == "cosine":
             # Cosine is undefined for zero-vectors, need to hack (or change metric)
@@ -56,7 +56,7 @@ class AnimeClustering:
         return clusters
 
     def _remove_rows_with_no_features(self, series):
-        return np.array(series[series.sum(axis=1) > 0])
+        return series[series.sum(axis=1) > 0]
 
     def _reinsert_rows_with_no_features_as_a_new_cluster(self, clusters, series):
         if clusters is None:

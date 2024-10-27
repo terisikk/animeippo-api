@@ -2,7 +2,14 @@ import polars as pl
 
 from animeippo.providers.columns import Columns
 
-ANI_WATCHLIST_SCHEMA = {
+MIXED_MAL_WATCHLIST_SCHEMA = {
+    Columns.ID: pl.UInt32,
+    Columns.USER_STATUS: pl.Utf8,
+    Columns.SCORE: pl.UInt8,
+    Columns.USER_COMPLETE_DATE: pl.Date,
+}
+
+MIXED_ANI_WATCHLIST_SCHEMA = {
     Columns.ID: pl.UInt32,
     Columns.ID_MAL: pl.UInt32,
     Columns.TITLE: pl.Utf8,
@@ -10,7 +17,6 @@ ANI_WATCHLIST_SCHEMA = {
     Columns.GENRES: pl.List(pl.Utf8),
     Columns.TAGS: pl.List(pl.Utf8),
     Columns.COVER_IMAGE: pl.Utf8,
-    Columns.SCORE: pl.UInt16,
     Columns.MEAN_SCORE: pl.Float32,
     Columns.DURATION: pl.UInt32,
     Columns.EPISODES: pl.UInt16,
@@ -22,11 +28,9 @@ ANI_WATCHLIST_SCHEMA = {
     Columns.SEASON_YEAR: pl.UInt16,
     Columns.SEASON: pl.Utf8,
     Columns.DIRECTOR: pl.List(pl.UInt32),
-    Columns.USER_STATUS: pl.Utf8,
-    Columns.USER_COMPLETE_DATE: pl.Date,
 }
 
-ANI_SEASONAL_SCHEMA = {
+MIXED_ANI_SEASONAL_SCHEMA = {
     Columns.ID: pl.UInt32,
     Columns.ID_MAL: pl.UInt32,
     Columns.TITLE: pl.Utf8,
@@ -49,18 +53,5 @@ ANI_SEASONAL_SCHEMA = {
     Columns.SEASON_YEAR: pl.UInt16,
     Columns.SEASON: pl.Utf8,
     Columns.DIRECTOR: pl.List(pl.UInt32),
-    Columns.USER_COMPLETE_DATE: pl.Date,
-}
-
-ANI_MANGA_SCHEMA = {
-    Columns.ID: pl.UInt32,
-    Columns.ID_MAL: pl.UInt32,
-    Columns.TITLE: pl.Utf8,
-    Columns.GENRES: pl.List(pl.Utf8),
-    Columns.TAGS: pl.List(pl.Utf8),
-    Columns.SCORE: pl.UInt8,
-    Columns.MEAN_SCORE: pl.Float32,
-    Columns.STATUS: pl.Utf8,
-    Columns.USER_STATUS: pl.Utf8,
     Columns.USER_COMPLETE_DATE: pl.Date,
 }

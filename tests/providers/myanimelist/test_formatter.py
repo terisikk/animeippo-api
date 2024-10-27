@@ -20,7 +20,7 @@ def test_relations_can_be_constructed_from_mal():
     data = formatter.transform_related_anime(animelist, [])
 
     assert len(data) == 1
-    assert data == [31]
+    assert data == [[31]]
 
 
 def test_dataframe_can_be_constructed_from_incomplete_data():

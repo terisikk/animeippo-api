@@ -205,8 +205,10 @@ def test_because_you_liked():
             "encoded": [[1, 1], [0, 1]],
             "user_complete_date": [1, 2],
             "title": ["W1", "W2"],
-        }
+        },
     )
+
+    watchlist = watchlist.with_columns(id=pl.col("id").cast(pl.UInt32))
 
     recommendations = pl.DataFrame(
         {
@@ -218,6 +220,8 @@ def test_because_you_liked():
             "user_status": [None, None, None],
         }
     )
+
+    recommendations = recommendations.with_columns(id=pl.col("id").cast(pl.UInt32))
 
     uprofile = UserProfile("Test", watchlist)
     data = RecommendationModel(uprofile, None, None)

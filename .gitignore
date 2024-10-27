@@ -3,6 +3,8 @@ __pycache__/
 .vscode/
 .coverage
 .pytest_cache
+.sklearn_cache
+.ruff_cache
 build/
 venv
 .venv

@@ -159,7 +159,7 @@ class BecauseYouLikedCategory:
 
             try:
                 similarity = dataset.get_similarity_matrix(filtered=False, transposed=True).select(
-                    pl.col("id").cast(pl.Int64),
+                    pl.col("id").cast(pl.UInt32),
                     pl.col(str(liked_item["id"].item())).alias("gscore"),
                 )
             except pl.exceptions.ColumnNotFoundError:

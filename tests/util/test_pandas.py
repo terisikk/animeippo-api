@@ -55,6 +55,6 @@ def test_extract_features_without_feature_count():
 
     assert features.values.tolist() == [
         ["Action", "Comedy", "Horror", "Romance", "Historical", "Shounen", "Drama"],
-        ["Shounen", "Drama", "Comedy", "Horror", "Romance", "Historical", "Action"],
-        ["Historical", "Drama", "Comedy", "Horror", "Romance", "Shounen", "Action"],
+        ["Shounen", "Drama", "Comedy", "Romance", "Horror", "Historical", "Action"],
+        ["Historical", "Drama", "Comedy", "Romance", "Horror", "Shounen", "Action"],
     ]

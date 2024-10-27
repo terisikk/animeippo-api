@@ -7,19 +7,19 @@ from animeippo.providers.mappers import SingleMapper
 from ..anilist.formatter import ANILIST_MAPPING
 from ..myanimelist.formatter import MAL_MAPPING
 from ..util import transform_to_animeippo_format
+from .schema import (
+    MIXED_ANI_SEASONAL_SCHEMA,
+    MIXED_ANI_WATCHLIST_SCHEMA,
+    MIXED_MAL_WATCHLIST_SCHEMA,
+)
 
 
 def transform_mal_watchlist_data(data, feature_names):
     original = pl.from_pandas(fast_json_normalize(data["data"]))
 
-    keys = [
-        Columns.ID,
-        Columns.USER_STATUS,
-        Columns.SCORE,
-        Columns.USER_COMPLETE_DATE,
-    ]
-
-    return transform_to_animeippo_format(original, feature_names, keys, MAL_MAPPING)
+    return transform_to_animeippo_format(
+        original, feature_names, MIXED_MAL_WATCHLIST_SCHEMA, MAL_MAPPING
+    )
 
 
 def transform_ani_watchlist_data(data, feature_names, mal_df):
@@ -28,23 +28,9 @@ def transform_ani_watchlist_data(data, feature_names, mal_df):
 
     original = pl.from_pandas(original)
 
-    keys = [
-        Columns.ID,
-        Columns.ID_MAL,
-        Columns.TITLE,
-        Columns.FORMAT,
-        Columns.GENRES,
-        Columns.COVER_IMAGE,
-        Columns.MEAN_SCORE,
-        Columns.SOURCE,
-        Columns.TAGS,
-        Columns.RANKS,
-        Columns.STUDIOS,
-        Columns.SEASON_YEAR,
-        Columns.SEASON,
-    ]
-
-    df = transform_to_animeippo_format(original, feature_names, keys, ANILIST_MAPPING)
+    df = transform_to_animeippo_format(
+        original, feature_names, MIXED_ANI_WATCHLIST_SCHEMA, ANILIST_MAPPING
+    )
 
     return df.join(
         mal_df.drop(Columns.FEATURES, strict=False),
@@ -57,29 +43,9 @@ def transform_ani_watchlist_data(data, feature_names, mal_df):
 def transform_ani_seasonal_data(data, feature_names):
     original = pl.from_pandas(fast_json_normalize(data["data"]["media"]))
 
-    keys = [
-        Columns.ID,
-        Columns.ID_MAL,
-        Columns.TITLE,
-        Columns.FORMAT,
-        Columns.GENRES,
-        Columns.COVER_IMAGE,
-        Columns.MEAN_SCORE,
-        Columns.POPULARITY,
-        Columns.STATUS,
-        Columns.CONTINUATION_TO,
-        Columns.SCORE,
-        Columns.DURATION,
-        Columns.EPISODES,
-        Columns.SOURCE,
-        Columns.TAGS,
-        Columns.RANKS,
-        Columns.STUDIOS,
-        Columns.SEASON_YEAR,
-        Columns.SEASON,
-    ]
-
-    ani_df = transform_to_animeippo_format(original, feature_names, keys, ANILIST_MAPPING)
+    ani_df = transform_to_animeippo_format(
+        original, feature_names, MIXED_ANI_SEASONAL_SCHEMA, ANILIST_MAPPING
+    )
 
     ani_df = ani_df.with_columns(
         **{

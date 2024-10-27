@@ -19,8 +19,8 @@ from .. import util
 
 
 def transform_seasonal_data(data, feature_names):
-    # Believe me, with polars 0.20 this is way faster than
-    # pl.DataFrame(fast_json_normalize(data["data"]["media"], to_pandas=False))
+    # Believe me, with polars 1.12 this is way faster than
+    # original = pl.json_normalize(data["data"]["media"])
     original = pl.from_pandas(fast_json_normalize(data["data"]["media"]))
 
     return util.transform_to_animeippo_format(

@@ -1,6 +1,5 @@
 import abc
 
-import numpy as np
 import polars as pl
 
 from animeippo.analysis import statistics
@@ -39,9 +38,10 @@ class FeatureCorrelationScorer(AbstractScorer):
 
         fdf = data.seasonal_explode_cached("features")
 
-        scores = statistics.weighted_sum_for_categorical_values(
-            fdf, "features", score_correlations
-        ) / np.sqrt(scoring_target_df["features"].list.len())
+        scores = (
+            statistics.weighted_sum_for_categorical_values(fdf, "features", score_correlations)
+            / scoring_target_df["features"].list.len().sqrt()
+        )
 
         scores = scores - (
             statistics.weighted_mean_for_categorical_values(fdf, "features", drop_correlations)

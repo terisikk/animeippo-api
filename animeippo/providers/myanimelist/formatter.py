@@ -8,6 +8,12 @@ from animeippo.providers.columns import (
     Columns,
 )
 from animeippo.providers.mappers import DefaultMapper, MultiMapper, SelectorMapper, SingleMapper
+from animeippo.providers.myanimelist.schema import (
+    MAL_MANGA_SCHEMA,
+    MAL_RELATED_SCHEMA,
+    MAL_SEASONAL_SCHEMA,
+    MAL_WATCHLIST_SCHEMA,
+)
 
 from .. import util
 
@@ -19,77 +25,33 @@ def combine_dataframes(dataframes):
 def transform_watchlist_data(data, feature_names):
     original = pl.from_pandas(fast_json_normalize(data["data"]))
 
-    keys = [
-        Columns.ID,
-        Columns.TITLE,
-        Columns.FORMAT,
-        Columns.GENRES,
-        Columns.COVER_IMAGE,
-        Columns.USER_STATUS,
-        Columns.MEAN_SCORE,
-        Columns.SCORE,
-        Columns.SOURCE,
-        Columns.RATING,
-        Columns.STUDIOS,
-        Columns.USER_COMPLETE_DATE,
-        Columns.SEASON_YEAR,
-        Columns.SEASON,
-    ]
-
-    return util.transform_to_animeippo_format(original, feature_names, keys, MAL_MAPPING)
+    return util.transform_to_animeippo_format(
+        original, feature_names, MAL_WATCHLIST_SCHEMA, MAL_MAPPING
+    )
 
 
 def transform_seasonal_data(data, feature_names):
     original = pl.from_pandas(fast_json_normalize(data["data"]))
 
-    keys = [
-        Columns.ID,
-        Columns.TITLE,
-        Columns.FORMAT,
-        Columns.GENRES,
-        Columns.COVER_IMAGE,
-        Columns.MEAN_SCORE,
-        Columns.POPULARITY,
-        Columns.STATUS,
-        Columns.DURATION,
-        Columns.EPISODES,
-        Columns.SOURCE,
-        Columns.TAGS,
-        Columns.RATING,
-        Columns.STUDIOS,
-        Columns.SEASON_YEAR,
-        Columns.SEASON,
-    ]
-
-    return util.transform_to_animeippo_format(original, feature_names, keys, MAL_MAPPING)
+    return util.transform_to_animeippo_format(
+        original, feature_names, MAL_SEASONAL_SCHEMA, MAL_MAPPING
+    )
 
 
 def transform_user_manga_list_data(data, feature_names):
     original = pl.from_pandas(fast_json_normalize(data["data"]))
 
-    keys = [
-        Columns.ID,
-        Columns.TITLE,
-        Columns.FORMAT,
-        Columns.GENRES,
-        Columns.COVER_IMAGE,
-        Columns.USER_STATUS,
-        Columns.MEAN_SCORE,
-        Columns.RATING,
-        Columns.SCORE,
-        Columns.SOURCE,
-        Columns.USER_COMPLETE_DATE,
-    ]
-
-    return util.transform_to_animeippo_format(original, feature_names, keys, MAL_MAPPING)
+    return util.transform_to_animeippo_format(
+        original, feature_names, MAL_MANGA_SCHEMA, MAL_MAPPING
+    )
 
 
 def transform_related_anime(data, feature_names):
     original = pl.from_pandas(fast_json_normalize(data["data"]))
 
-    keys = [Columns.ID, Columns.CONTINUATION_TO]
-
-    filtered = util.transform_to_animeippo_format(original, feature_names, keys, MAL_MAPPING)
+    filtered = util.transform_to_animeippo_format(
+        original, feature_names, MAL_RELATED_SCHEMA, MAL_MAPPING
+    )
 
     return filtered.filter(~pl.col(Columns.CONTINUATION_TO).is_null())[
         Columns.CONTINUATION_TO

@@ -1,3 +1,6 @@
+import polars as pl
+
+
 class AnimeRecommendationEngine:
     """Generates recommendations based on given scorers and categorizers. Optionally accepts
     a custom clustering model and feature encoder."""
@@ -16,7 +19,7 @@ class AnimeRecommendationEngine:
         recommendations = recommendations.with_columns(
             cluster=self.clustering_model.predict(
                 dataset.seasonal["encoded"], dataset.get_similarity_matrix(filtered=False)
-            ),
+            ).cast(pl.UInt32),
         )
 
         return recommendations.sort("recommend_score", descending=True)

@@ -62,7 +62,7 @@ def weight_encoded_categoricals_correlation(dataframe, column, features, against
             pl.col(against).alias("score"),
         )
         .unnest(column)
-        .select(pl.corr(pl.exclude("score"), pl.col("score")))
+        .select(pl.corr(pl.exclude("score"), pl.col("score"), method="spearman"))
         .transpose(include_header=True, header_name="name", column_names=["weight"])
         .fill_nan(0.0)
     )
@@ -84,7 +84,9 @@ def weight_categoricals_correlation(dataframe, column):
     return (
         dataframe.select(column, "score")
         .to_dummies(column)  # Convert to marker variables so that we can correlate with 1 and 0
-        .select(pl.corr(pl.exclude("score"), pl.col("score")))  # Correlate with score
+        .select(
+            pl.corr(pl.exclude("score"), pl.col("score"), method="spearman")
+        )  # Correlate with score
         .transpose(column_names=["weight"])  # Transpose to get correlations as rows
         .select(pl.col("weight").mul(weights["weight"]))  # Multiply with weights
         .fill_nan(0.0)

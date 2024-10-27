@@ -5,7 +5,7 @@ from animeippo.providers import util
 
 class StubMapper:
     def map(self, original):
-        return [f"{original} ran"]
+        return pl.Series([f"{original} ran"])
 
 
 def test_get_features():
@@ -20,8 +20,8 @@ def test_mapping_skips_keys_not_in_dataframe():
     dataframe = pl.DataFrame({"test1": [1], "test2": [2]})
     mapping = {"test1": StubMapper(), "test3": StubMapper()}
 
-    actual = util.run_mappers(dataframe, "test1", mapping)
-    assert actual["test1"].to_list() == [["test1 ran"]]
+    actual = util.run_mappers(dataframe, "test1", mapping, {"test1": pl.Utf8})
+    assert actual["test1"].to_list() == ["test1 ran"]
     assert "test3" not in actual.columns
 
 
