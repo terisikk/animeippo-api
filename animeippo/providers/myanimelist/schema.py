@@ -1,6 +1,6 @@
 import polars as pl
 
-from animeippo.providers.columns import Columns
+from animeippo.providers.columns import Columns, Season
 
 MAL_WATCHLIST_SCHEMA = {
     Columns.ID: pl.UInt32,
@@ -16,7 +16,7 @@ MAL_WATCHLIST_SCHEMA = {
     Columns.STUDIOS: pl.List(pl.Utf8),
     Columns.USER_COMPLETE_DATE: pl.Date,
     Columns.SEASON_YEAR: pl.UInt16,
-    Columns.SEASON: pl.Utf8,
+    Columns.SEASON: Season,
 }
 
 
@@ -36,7 +36,7 @@ MAL_SEASONAL_SCHEMA = {
     Columns.RATING: pl.Utf8,
     Columns.STUDIOS: pl.List(pl.Utf8),
     Columns.SEASON_YEAR: pl.UInt16,
-    Columns.SEASON: pl.Utf8,
+    Columns.SEASON: Season,
 }
 
 MAL_MANGA_SCHEMA = {

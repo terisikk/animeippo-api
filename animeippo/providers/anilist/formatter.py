@@ -130,9 +130,6 @@ ANILIST_MAPPING = {
     Columns.SEASON_YEAR:        DefaultMapper("seasonYear"),
     Columns.SEASON:             SelectorMapper(
                                     pl.col("season").str.to_lowercase()
-                                    .cast(
-                                        pl.Enum(["winter", "spring", "summer", "fall"])
-                                    )
                                 ),
     Columns.USER_STATUS:        SelectorMapper(pl.col("status").str.to_lowercase()),
     Columns.STATUS:             SelectorMapper(pl.col("status").str.to_lowercase()),

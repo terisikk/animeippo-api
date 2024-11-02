@@ -1,5 +1,7 @@
 from enum import StrEnum
 
+from polars import Enum
+
 
 class Columns(StrEnum):
     ID = "id"
@@ -28,3 +30,6 @@ class Columns(StrEnum):
     RATING = "rating"
     FEATURES = "features"
     DIRECTOR = "directors"
+
+
+Season = Enum(["winter", "spring", "summer", "fall"])

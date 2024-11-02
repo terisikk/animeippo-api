@@ -1,6 +1,6 @@
 import polars as pl
 
-from animeippo.providers.columns import Columns
+from animeippo.providers.columns import Columns, Season
 
 ANI_WATCHLIST_SCHEMA = {
     Columns.ID: pl.UInt32,
@@ -20,7 +20,7 @@ ANI_WATCHLIST_SCHEMA = {
     ),
     Columns.STUDIOS: pl.List(pl.Utf8),
     Columns.SEASON_YEAR: pl.UInt16,
-    Columns.SEASON: pl.Utf8,
+    Columns.SEASON: Season,
     Columns.DIRECTOR: pl.List(pl.UInt32),
     Columns.USER_STATUS: pl.Utf8,
     Columns.USER_COMPLETE_DATE: pl.Date,
@@ -47,7 +47,7 @@ ANI_SEASONAL_SCHEMA = {
     ),
     Columns.STUDIOS: pl.List(pl.Utf8),
     Columns.SEASON_YEAR: pl.UInt16,
-    Columns.SEASON: pl.Utf8,
+    Columns.SEASON: Season,
     Columns.DIRECTOR: pl.List(pl.UInt32),
     Columns.USER_COMPLETE_DATE: pl.Date,
 }
