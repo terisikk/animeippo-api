@@ -44,6 +44,7 @@ class MixedProvider(abstract_provider.AbstractAnimeProvider):
                         name
                         rank
                         isAdult
+                        category
                     }
                     meanScore
                     source
@@ -86,6 +87,7 @@ class MixedProvider(abstract_provider.AbstractAnimeProvider):
                             name
                             rank
                             isAdult
+                            category
                         }
                         meanScore
                         duration
@@ -120,6 +122,7 @@ class MixedProvider(abstract_provider.AbstractAnimeProvider):
                             name
                             rank
                             isAdult
+                            category
                         }
                         meanScore
                         duration

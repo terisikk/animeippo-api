@@ -50,6 +50,7 @@ class AniListProvider(abstract_provider.AbstractAnimeProvider):
                             tags {
                                 name
                                 rank
+                                category
                                 isAdult
                             }
                             meanScore
@@ -104,6 +105,7 @@ class AniListProvider(abstract_provider.AbstractAnimeProvider):
                             tags {
                                 name
                                 rank
+                                category
                                 isAdult
                             }
                             meanScore
@@ -141,6 +143,7 @@ class AniListProvider(abstract_provider.AbstractAnimeProvider):
                             tags {
                                 name
                                 rank
+                                category
                                 isAdult
                             }
                             meanScore
@@ -196,6 +199,7 @@ class AniListProvider(abstract_provider.AbstractAnimeProvider):
                             tags {
                                 name
                                 rank
+                                category
                                 isAdult
                             }
                             meanScore

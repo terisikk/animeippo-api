@@ -177,13 +177,13 @@ def test_top_upcoming_category(mocker):
 
     recommendations = pl.DataFrame(
         {
-            "status": ["not_yet_released", "finished", "cancelled"],
-            "user_status": [None, None, None],
-            "season_year": [1, 1, 1],
-            "season": ["summer", "winter", "summer"],
-            "title": ["Test 1", "Test 2", "Test 3"],
-            "final_score": [0, 1, 2],
-            "continuationscore": [0, 0, 0],
+            "status": ["not_yet_released", "finished", "cancelled", "not_yet_released"],
+            "user_status": [None, None, None, None],
+            "season_year": [2022, 2022, 2022, 2023],
+            "season": ["summer", "winter", "summer", "spring"],
+            "title": ["Test 1", "Test 2", "Test 3", "Test 4"],
+            "final_score": [0, 1, 2, 3],
+            "continuationscore": [0, 0, 0, 0],
         }
     )
 
@@ -192,7 +192,7 @@ def test_top_upcoming_category(mocker):
 
     actual = cat.categorize(data)
 
-    assert actual["title"].to_list() == ["Test 1"]
+    assert actual["title"].to_list() == ["Test 1", "Test 4"]
 
 
 def test_because_you_liked():

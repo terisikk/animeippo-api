@@ -98,10 +98,10 @@ class GenreCategory:
         if self.nth_genre < len(genre_correlations):
             genre = genre_correlations[self.nth_genre]["name"].item()
 
-            mask = (pl.col("genres").list.contains(genre)) & (
+            mask = (
                 ~(pl.col("user_status").is_in(["completed", "dropped"]))
                 | (pl.col("user_status").is_null())
-            )
+            ) & (pl.col("genres").list.contains(genre))
 
             self.description = genre
 
@@ -131,8 +131,10 @@ class TopUpcomingCategory:
     description = "Top Picks from Upcoming Anime"
 
     def categorize(self, dataset, max_items=25):
+        year, season = meta.get_current_anime_season()
+
         mask = (pl.col("status") == "not_yet_released") & (
-            pl.col("season") > meta.get_current_anime_season()[1]
+            (pl.col("season") > season) | (pl.col("season_year") > year)
         )
 
         return dataset.recommendations.filter(mask).sort(
