@@ -84,13 +84,17 @@ class RecommendationModel:
         self.watchlist = self.watchlist.rechunk()
 
     def extract_features(self):
-        if "ranks" in self.seasonal.columns and "ranks" in self.watchlist.columns:
-            return {field.name for field in self.seasonal["ranks"].dtype.fields}.union(
-                field.name for field in self.watchlist["ranks"].dtype.fields
+        return set(
+            pl.concat(
+                [
+                    self.seasonal.select(pl.col("features").explode().cat.get_categories()),
+                    self.watchlist.select(pl.col("features").explode().cat.get_categories()),
+                ]
             )
-        else:
-            all_features = pl.concat([self.seasonal["features"], self.watchlist["features"]])
-            return all_features.explode().unique().drop_nulls()
+            .select(pl.col("features").unique())
+            .to_series()
+            .to_list()
+        )
 
     def watchlist_explode_cached(self, column):
         return watchlist_explode_cached(self, column)

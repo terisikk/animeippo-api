@@ -15,7 +15,7 @@ def transform_to_animeippo_format(original, feature_names, schema, mapping):
     existing_feature_columns = set(feature_names).intersection(df.columns)
 
     if len(existing_feature_columns) > 0:
-        df = df.with_columns(features=get_features(df, existing_feature_columns))
+        df = df.with_columns(features=get_features(existing_feature_columns))
 
     if "temp_ranks" in df.columns and df["temp_ranks"].dtype != pl.Null:
         df = df.with_columns(ranks=get_ranks(df).to_series())
@@ -38,8 +38,8 @@ def run_mappers(dataframe, original, mapping, schema):
     )
 
 
-def get_features(dataframe, columns):
-    return dataframe.select(pl.concat_list(columns).list.sort().list.drop_nulls()).to_series()
+def get_features(columns):
+    return pl.concat_list(columns).cast(pl.List(pl.Categorical(ordering="lexical")))
 
 
 TAG_WEIGHTS = {

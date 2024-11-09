@@ -3,7 +3,7 @@ from profilehooks import profile as pr
 
 @pr(filename=".profiling/cprofile.pstats")
 def get_recs():
-    year = "2019"
+    year = "2022"
     season = None
     user = "Janiskeisari"
 

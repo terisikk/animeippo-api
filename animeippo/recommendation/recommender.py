@@ -28,6 +28,8 @@ class AnimeRecommender:
     async def databuilder(self, year, season, user):
         user_profile = None
 
+        pl.enable_string_cache()
+
         if user:
             season_data, user_data, manga_data = await asyncio.gather(
                 self.provider.get_seasonal_anime_list(year, season),
