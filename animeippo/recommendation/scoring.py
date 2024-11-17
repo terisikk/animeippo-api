@@ -140,8 +140,8 @@ class DirectSimilarityScorer(AbstractScorer):
 
         # Feels kinda hackish, I think the max column should not have nans in the first place,
         # need to investigate why it does.
-        idymax = idymax.with_columns(max=pl.col("max").fill_nan(None)).fill_null(
-            pl.col("max").mean()
+        idymax = idymax.with_columns(
+            max=pl.col("max").fill_nan(None).fill_null(pl.col("max").mean())
         )
 
         scores = idymax.join(

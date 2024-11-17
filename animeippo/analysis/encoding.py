@@ -8,9 +8,9 @@ class CategoricalEncoder:
     """
 
     def fit(self, classes, class_field="features"):
-        self.classes = classes
+        self.classes = list(classes)
         self.class_field = class_field
-        self.mlb = skpre.MultiLabelBinarizer(classes=classes)
+        self.mlb = skpre.MultiLabelBinarizer(classes=self.classes)
         self.mlb.fit(None)
 
     def encode(self, dataframe, dtype=bool):

@@ -21,10 +21,15 @@ class ProviderStub:
         self.cache = cache
 
     async def get_seasonal_anime_list(self, *args, **kwargs):
-        return pl.DataFrame(self.seasonal)
+        return pl.DataFrame(
+            self.seasonal,
+            schema_overrides={"features": pl.List(pl.Categorical(ordering="lexical"))},
+        )
 
     async def get_user_anime_list(self, *args, **kwargs):
-        return pl.DataFrame(self.user)
+        return pl.DataFrame(
+            self.user, schema_overrides={"features": pl.List(pl.Categorical(ordering="lexical"))}
+        )
 
     async def get_related_anime(self, *args, **kwargs):
         return [1]

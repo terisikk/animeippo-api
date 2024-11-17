@@ -15,7 +15,7 @@ def transform_to_animeippo_format(original, feature_names, schema, mapping):
     existing_feature_columns = set(feature_names).intersection(df.columns)
 
     if len(existing_feature_columns) > 0:
-        df = df.with_columns(features=get_features(existing_feature_columns))
+        df = df.with_columns(features=get_feature_selector(existing_feature_columns))
 
     if "temp_ranks" in df.columns and df["temp_ranks"].dtype != pl.Null:
         df = df.with_columns(ranks=get_ranks(df).to_series())
@@ -38,7 +38,7 @@ def run_mappers(dataframe, original, mapping, schema):
     )
 
 
-def get_features(columns):
+def get_feature_selector(columns):
     return pl.concat_list(columns).cast(pl.List(pl.Categorical(ordering="lexical")))
 
 
@@ -48,7 +48,7 @@ TAG_WEIGHTS = {
     "Cast": 0.5,
     "Demographic": 1.5,
     "Technical": 0.5,
-    "Sexual Content": 0.2,
+    "Sexual Content": 0.5,
 }
 
 
@@ -63,13 +63,13 @@ def get_ranks(df):
             .str.split("-")
             .alias("category_weight")
             .list.first()
-            .replace_strict(TAG_WEIGHTS),
+            .replace_strict(TAG_WEIGHTS, default=1.0),
         )
         .select(pl.exclude("rank"), pl.col("rank") * pl.col("category_weight"))
         .pivot(index="id", values="rank", on="name")
         .join(
             df.explode("genres")
-            .select("id", "genres", pl.lit(100).alias("rank"))
+            .select("id", "genres", pl.lit(75).alias("rank"))
             .pivot(index="id", values="rank", on="genres"),
             on="id",
             how="left",

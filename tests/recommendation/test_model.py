@@ -30,8 +30,14 @@ def test_continuation_filtering_works():
 
 
 def test_features_can_be_extracted_from_ranks():
-    seasonal = pl.DataFrame(test_data.FORMATTED_ANI_SEASONAL_LIST)
-    watchlist = pl.DataFrame(test_data.FORMATTED_ANI_USER_LIST)
+    seasonal = pl.DataFrame(
+        test_data.FORMATTED_ANI_SEASONAL_LIST,
+        schema_overrides={"features": pl.List(pl.Categorical(ordering="lexical"))},
+    )
+    watchlist = pl.DataFrame(
+        test_data.FORMATTED_ANI_USER_LIST,
+        schema_overrides={"features": pl.List(pl.Categorical(ordering="lexical"))},
+    )
 
     dset = model.RecommendationModel(None, seasonal)
     dset.watchlist = watchlist

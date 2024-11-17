@@ -11,9 +11,9 @@ class StubMapper:
 def test_get_features():
     original = pl.DataFrame({"features1": ["1", "2", "3"], "features2": ["test", "test", "test"]})
 
-    features = util.get_features(original, ["features1", "features2"])
+    features = original.select(util.get_feature_selector(["features1", "features2"]))
 
-    assert features[0].to_list() == ["1", "test"]
+    assert features[0].item().to_list() == ["1", "test"]
 
 
 def test_mapping_skips_keys_not_in_dataframe():
