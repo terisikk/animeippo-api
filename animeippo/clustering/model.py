@@ -42,9 +42,15 @@ class AnimeClustering:
 
         if self.distance_metric == "cosine":
             # Cosine is undefined for zero-vectors, need to hack (or change metric)
-            filtered_series = self._remove_rows_with_no_features(series)
-            clusters = self.model.fit_predict(filtered_series)
-            clusters = self._reinsert_rows_with_no_features_as_a_new_cluster(clusters, series)
+            clusters = np.full(len(series), -1)
+            mask = series.sum(axis=1) > 0
+
+            result = self.model.fit_predict(series[mask])
+
+            if result is not None:
+                clusters[mask] = result
+            else:
+                clusters = None
         else:
             clusters = self.model.fit_predict(series)
 
@@ -54,15 +60,6 @@ class AnimeClustering:
             self.clustered_series = dataframe.with_columns(cluster=clusters)
 
         return clusters
-
-    def _remove_rows_with_no_features(self, series):
-        return series[series.sum(axis=1) > 0]
-
-    def _reinsert_rows_with_no_features_as_a_new_cluster(self, clusters, series):
-        if clusters is None:
-            return None
-
-        return np.insert(clusters, np.where(series.sum(axis=1) == 0)[0], -1)
 
     def predict(self, series, similarities=None):
         if not self.fit:
