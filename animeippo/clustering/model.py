@@ -33,7 +33,7 @@ class AnimeClustering:
         )
 
         self.n_clusters = None
-        self.fit = False
+        self.is_fit = False
         self.clustered_series = None
         self.distance_metric = distance_metric
 
@@ -55,14 +55,14 @@ class AnimeClustering:
             clusters = self.model.fit_predict(series)
 
         if clusters is not None:
-            self.fit = True
+            self.is_fit = True
             self.n_clusters = self.model.n_clusters_
             self.clustered_series = dataframe.with_columns(cluster=clusters)
 
         return clusters
 
     def predict(self, series, similarities=None):
-        if not self.fit:
+        if not self.is_fit:
             raise RuntimeError("Cluster is not fitted yet. Please call cluster_by_features first.")
 
         if similarities is None:
@@ -70,8 +70,7 @@ class AnimeClustering:
                 self.clustered_series["encoded"],
                 series,
                 metric=self.distance_metric,
-            )
-            similarities = similarities.with_columns(id=self.clustered_series["id"])
+            ).with_columns(id=self.clustered_series["id"])
 
         idymax = statistics.idymax(similarities)
 

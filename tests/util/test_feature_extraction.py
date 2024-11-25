@@ -26,12 +26,12 @@ def test_extract_features():
 
     gdf = df.explode("genres")
 
-    features = animeippo.analysis.statistics.extract_features(gdf["genres"], gdf["cluster"], 2)
+    features = animeippo.analysis.statistics.get_descriptive_features(gdf, "genres", "cluster", 2)
 
-    assert features.values.tolist() == [
-        ["Action", "Comedy"],
-        ["Shounen", "Drama"],
-        ["Historical", "Drama"],
+    assert features.select(pl.exclude("cluster")).rows() == [
+        ("Action", "Comedy"),
+        ("Shounen", "Drama"),
+        ("Historical", "Drama"),
     ]
 
 
@@ -51,10 +51,10 @@ def test_extract_features_without_feature_count():
 
     gdf = df.explode("genres")
 
-    features = animeippo.analysis.statistics.extract_features(gdf["genres"], gdf["cluster"])
+    features = animeippo.analysis.statistics.get_descriptive_features(gdf, "genres", "cluster")
 
-    assert features.values.tolist() == [
-        ["Action", "Comedy", "Horror", "Romance", "Historical", "Shounen", "Drama"],
-        ["Shounen", "Drama", "Comedy", "Romance", "Horror", "Historical", "Action"],
-        ["Historical", "Drama", "Comedy", "Romance", "Horror", "Shounen", "Action"],
+    assert features.select(pl.exclude("cluster")).rows() == [
+        ("Action", "Comedy", "Horror", "Romance", "Historical", "Shounen", "Drama"),
+        ("Shounen", "Drama", "Comedy", "Horror", "Romance", "Historical", "Action"),
+        ("Historical", "Drama", "Comedy", "Horror", "Romance", "Shounen", "Action"),
     ]

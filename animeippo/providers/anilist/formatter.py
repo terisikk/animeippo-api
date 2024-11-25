@@ -97,6 +97,7 @@ def get_studios(dataframe):
 
 
 def get_staff(dataframe):
+    # Could use .over() but this is 4x faster, possibly due to the overhead of explodes
     return dataframe.join(
         dataframe.select("id", "staff.edges", "staff.nodes")
         .explode(["staff.edges", "staff.nodes"])

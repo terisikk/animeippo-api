@@ -1,5 +1,4 @@
 import numpy as np
-import pandas as pd
 import polars as pl
 import scipy.stats as scstats
 
@@ -41,15 +40,13 @@ def weighted_sum_for_categorical_values(dataframe, column, weights, fillna=0.0):
 
 
 def weight_categoricals(dataframe, column):
-    averages = mean_score_per_categorical(dataframe, column)
-
     return (
-        dataframe[column]
-        .value_counts()
-        .join(averages, on=column, how="left")
-        .select(
-            pl.col(column).alias("name"), (pl.col("count").sqrt() * pl.col("score")).alias("weight")
+        dataframe.select(
+            pl.col(column).alias("name"),
+            pl.col("score").mean().over(column).alias("weight")
+            * pl.col(column).count().sqrt().over(column),
         )
+        .unique()
         .sort("name")
     )
 
@@ -98,10 +95,6 @@ def normalize_series(series):
     return (series - series.min()) / (series.max() - series.min())
 
 
-def mean_score_per_categorical(dataframe, column):
-    return dataframe.group_by(column).agg(pl.col("score").mean())
-
-
 def mean_score_default(compare_df, default=0):
     mean_score = compare_df.select("score").mean().item()
 
@@ -112,6 +105,10 @@ def mean_score_default(compare_df, default=0):
 
 
 def idymax(dataframe):
+    """
+    Find the max value in each column and return it along with the id of the max value.
+    """
+
     return dataframe.select(
         pl.concat_list(pl.col("id").gather(pl.exclude("id").arg_max())).alias("idymax"),
         pl.concat_list(pl.exclude("id").max()).alias("max"),
@@ -119,34 +116,48 @@ def idymax(dataframe):
 
 
 def calculate_residuals(contingency_table, expected):
-    residuals = ((contingency_table - expected) * np.abs((contingency_table - expected))) / np.sqrt(
+    return ((contingency_table - expected) * np.abs(contingency_table - expected)) / np.sqrt(
         expected
     )
-    return residuals
 
 
-def extract_features(features, columns, n_features=None):
+def get_descriptive_features(dataframe, feature_column, cluster_column, n_features=None):
     """
     Extracts the most correlated features from a categorical column.
     Used to find the most correlated features for a given cluster.
-
-    Creating a crosstab in polars is much more inconvenient than in pandas
-    currently, so we convert to pandas here until I find a better way.
     """
-    features = features.to_pandas()
-    columns = columns.to_pandas()
 
-    contingency_table = pd.crosstab(features, columns)
+    contingency_table = dataframe.pivot(
+        on=cluster_column, index=feature_column, values=cluster_column, aggregate_function="len"
+    ).fill_null(0)  # Approximately same as pd.crosstab
 
-    _, _, _, expected = scstats.chi2_contingency(contingency_table)
+    cet = contingency_table.select(pl.exclude(feature_column)).to_numpy()
 
-    residuals = calculate_residuals(contingency_table, expected)
+    _, _, _, expected = scstats.chi2_contingency(cet)
+
+    residuals = pl.concat(
+        [
+            contingency_table.select(pl.col(feature_column)),
+            pl.DataFrame(calculate_residuals(cet, expected)),
+        ],
+        how="horizontal",
+    )
+
+    residuals.columns = contingency_table.columns
 
     if not n_features:
         n_features = len(residuals)
 
-    descriptions = contingency_table.apply(
-        lambda row: residuals.nlargest(n_features, row.name).index.values, axis=0
-    ).T
+    column_iterator = (column for column in residuals.select(pl.exclude(feature_column)).columns)
 
-    return descriptions
+    return (
+        residuals.sort(feature_column)
+        .select(
+            pl.col(feature_column)
+            .top_k_by(pl.exclude(feature_column), n_features)
+            .name.map(
+                lambda c: str(next(column_iterator))
+            )  # Hack with top_k_by to get unique column names
+        )
+        .transpose(include_header=True, header_name="cluster")
+    )

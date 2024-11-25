@@ -104,13 +104,17 @@ class ProfileAnalyser:
 
         gdf = gdf.filter(~pl.col("features").is_in(self.provider.get_nsfw_tags()))
 
-        descriptions = statistics.extract_features(gdf["features"], gdf["cluster"], 2)
+        descriptions = statistics.get_descriptive_features(gdf, "features", "cluster", 2).select(
+            pl.col("cluster"), pl.concat_list(pl.exclude("cluster")).alias("description")
+        )
 
         clustergroups = target.sort("title").group_by(["cluster"])
 
         return [
             {
-                "name": " ".join(descriptions.iloc[key].tolist()),
+                "name": " ".join(
+                    descriptions.filter(pl.col("cluster") == str(key[0]))["description"].item()
+                ),
                 "items": value["id"].to_list(),
             }
             for key, value in clustergroups

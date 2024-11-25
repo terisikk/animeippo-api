@@ -9,19 +9,6 @@ class EncoderStub:
         return [np.array(value) for value in values]
 
 
-def test_genre_average_scores():
-    original = pl.DataFrame(
-        {
-            "genres": [["Action"], ["Action", "Horror"], ["Action", "Horror", "Romance"]],
-            "score": [10, 10, 7],
-        }
-    )
-
-    avg = statistics.mean_score_per_categorical(original.explode("genres"), "genres")
-
-    assert avg.sort("genres")["score"].to_list() == [9.0, 8.5, 7.0]
-
-
 def test_weighted_mean_for_categoricals():
     genre_averages = pl.DataFrame(
         {"name": ["Action", "Horror", "Romance"], "weight": [9.0, 8.0, 7.0]}
