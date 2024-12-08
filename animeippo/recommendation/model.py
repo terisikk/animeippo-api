@@ -51,10 +51,20 @@ class RecommendationModel:
             and self.watchlist is not None
             and self.seasonal["continuation_to"].dtype != pl.List(pl.Null)
         ):
-            completed = self.watchlist.filter(pl.col("user_status") == "completed")["id"]
+            """
+            Filter out all sequels unless they are a continuation from the user's watchlist.
+            """
+            previously_watched = self.watchlist.filter(
+                pl.col("user_status").is_in(["completed", "watching", "paused"])
+            )["id"]
 
-            mask = (pl.col("continuation_to").list.set_intersection(completed.to_list()) != []) | (
-                pl.col("continuation_to") == []
+            mask = (
+                (
+                    pl.col("continuation_to").list.set_intersection(previously_watched.to_list())
+                    != []
+                )
+                | (pl.col("continuation_to") == [])
+                | (pl.col("user_status").is_not_null())
             )
 
             self.seasonal = self.seasonal.filter(mask)

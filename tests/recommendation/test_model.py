@@ -20,6 +20,8 @@ def test_continuation_filtering_works():
     seasonal = pl.DataFrame(test_data.FORMATTED_ANI_SEASONAL_LIST)
     watchlist = pl.DataFrame(test_data.FORMATTED_ANI_USER_LIST)
 
+    seasonal = seasonal.with_columns(user_status=pl.lit(None, pl.Utf8))
+
     dset = model.RecommendationModel(None, seasonal)
     dset.watchlist = watchlist
 
