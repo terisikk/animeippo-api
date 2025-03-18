@@ -20,8 +20,7 @@ RUN pip install "uv==$UV_VERSION"
 
 COPY pyproject.toml uv.lock ./
 
-RUN poetry config virtualenvs.in-project true && \
-    uv sync --only=main
+RUN uv sync --no-dev
 
 COPY . .
 
