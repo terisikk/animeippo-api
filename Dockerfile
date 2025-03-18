@@ -1,10 +1,10 @@
 # This is a production Dockerfile for hosting the application
 
-FROM python:3.12-slim-bullseye as base
+FROM python:3.12-slim-bullseye AS base
 
 WORKDIR /app
 
-FROM base as builder
+FROM base AS builder
 
 ENV PIP_DEFAULT_TIMEOUT=100 \
     PIP_DISABLE_PIP_VERSION_CHECK=1 \
@@ -18,7 +18,7 @@ RUN apt update && \
 
 RUN pip install "uv==$UV_VERSION"
 
-COPY pyproject.toml poetry.lock ./
+COPY pyproject.toml uv.lock ./
 
 RUN poetry config virtualenvs.in-project true && \
     uv sync --only=main
@@ -27,7 +27,7 @@ COPY . .
 
 RUN uv build --wheel && ./.venv/bin/pip install dist/*.whl --no-cache
 
-FROM base as final
+FROM base AS final
 
 COPY --from=builder /app/.venv ./.venv
 COPY --from=builder /app/dist .
