@@ -24,13 +24,12 @@ RUN uv sync --no-dev
 
 COPY . .
 
-RUN uv build --wheel
+RUN uv build --wheel && uv pip install dist/*.whl --no-cache
 
 FROM base AS final
 
+COPY --from=builder /app/.venv ./.venv
 COPY --from=builder /app/dist .
-RUN pip install *.whl
-
 COPY docker-entrypoint.sh wsgi.py app.py ./
 COPY conf ./conf
 
