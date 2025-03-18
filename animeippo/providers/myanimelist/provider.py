@@ -82,8 +82,8 @@ class MyAnimeListProvider(abstract_provider.AbstractAnimeProvider):
         else:
             responses = []
 
-            for season in ["winter", "spring", "summer", "fall"]:
-                query = f"/anime/season/{year}/{season}"
+            for season_name in ["winter", "spring", "summer", "fall"]:
+                query = f"/anime/season/{year}/{season_name}"
                 anime_list = await self.connection.request_anime_list(query, parameters)
 
                 responses.append(

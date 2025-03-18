@@ -1,4 +1,4 @@
-__all__ = ["mixed", "anilist", "myanimelist"]
+__all__ = ["anilist", "mixed", "myanimelist"]
 
 from .anilist import provider as anilist
 from .mixed import provider as mixed

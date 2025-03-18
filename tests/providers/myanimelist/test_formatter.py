@@ -9,7 +9,7 @@ def test_dataframe_can_be_constructed_from_mal():
 
     data = formatter.transform_watchlist_data(animelist, ["genres"])
 
-    assert type(data) == pl.DataFrame
+    assert type(data) is pl.DataFrame
     assert len(data) == 2
     assert "Hellsingfårs" in data["title"].to_list()
 
@@ -31,7 +31,7 @@ def test_dataframe_can_be_constructed_from_incomplete_data():
 
     data = formatter.transform_watchlist_data(animelist, ["genres"])
 
-    assert type(data) == pl.DataFrame
+    assert type(data) is pl.DataFrame
     assert len(data) == 2
     assert "Hellsingfårs" in data["title"].to_list()
 

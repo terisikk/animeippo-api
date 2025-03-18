@@ -10,7 +10,7 @@ class FaultyClusterStub:
 
 
 def test_clustering():
-    ml = model.AnimeClustering()
+    ml = model.AnimeClustering(distance_threshold=0.33)
 
     series = pl.DataFrame({"encoded": [[0, 1, 2], [1, 2, 3]]})
     clusters = ml.cluster_by_features(series)

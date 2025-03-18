@@ -28,11 +28,11 @@ def test_mapping_skips_keys_not_in_dataframe():
 def test_transformation_does_not_fail_with_empty_data():
     data = util.transform_to_animeippo_format(pl.DataFrame(), ["genres", "tags"], [], {})
 
-    assert type(data) == pl.DataFrame
+    assert type(data) is pl.DataFrame
     assert len(data) == 0
 
     data = util.transform_to_animeippo_format(
         pl.DataFrame({"data": {"test": "test"}}), ["genres", "tags"], [], {}
     )
-    assert type(data) == pl.DataFrame
+    assert type(data) is pl.DataFrame
     assert len(data) == 0

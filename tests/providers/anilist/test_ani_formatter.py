@@ -17,6 +17,6 @@ def test_dataframe_can_be_constructed_from_ani():
 
     data = formatter.transform_watchlist_data(animelist, ["genres", "tags"])
 
-    assert type(data) == pl.DataFrame
+    assert type(data) is pl.DataFrame
     assert "Dr. STRONK: OLD WORLD" in data["title"].to_list()
     assert len(data) == 2

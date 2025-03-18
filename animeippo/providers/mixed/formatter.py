@@ -49,7 +49,9 @@ def transform_ani_seasonal_data(data, feature_names):
 
     ani_df = ani_df.with_columns(
         **{
-            Columns.ADAPTATION_OF: SingleMapper("relations.edges", get_adaptation).map(original),
+            Columns.ADAPTATION_OF: SingleMapper(
+                "relations.edges", get_adaptation, dtype=pl.List
+            ).map(original),
         }
     )
 
@@ -64,7 +66,7 @@ def get_adaptation(field):
         node = item.get("node", {})
         mal_id = node.get("idMal", None)
 
-        if relationType == "ADAPTATION" and id is not None:
+        if relationType == "ADAPTATION" and mal_id is not None:
             relations.append(mal_id)
 
     return relations

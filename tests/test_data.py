@@ -841,8 +841,8 @@ MIXED_ANI_SEASONAL_LIST = {
                 "seasonYear": 2023,
                 "relations": {
                     "edges": [
-                        {"relationType": "PREQUEL", "node": {"id": 119683}},
-                        {"relationType": "ADAPTATION", "node": {"id": 101860}},
+                        {"relationType": "PREQUEL", "node": {"id": 119683, "idMal": 123}},
+                        {"relationType": "ADAPTATION", "node": {"id": 101860, "idMal": 456}},
                     ]
                 },
                 "genres": ["Action", "Adventure", "Drama", "Fantasy", "Supernatural"],
@@ -856,8 +856,8 @@ MIXED_ANI_SEASONAL_LIST = {
                 "seasonYear": 2023,
                 "relations": {
                     "edges": [
-                        {"relationType": "ADAPTATION", "node": {"id": 87216}},
-                        {"relationType": "PREQUEL", "node": {"id": 142329}},
+                        {"relationType": "ADAPTATION", "node": {"id": 87216, "idMal": 1234}},
+                        {"relationType": "PREQUEL", "node": {"id": 142329, "idMal": 2345}},
                     ]
                 },
                 "genres": ["Action", "Adventure", "Comedy", "Fantasy", "Sci-Fi"],
