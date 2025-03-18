@@ -1,7 +1,7 @@
 .PHONY: install
 install:
-	pipx install poetry==1.7.1
-	poetry install && poetry build
+	pip install uv==0.6.7
+	uv pip install -e .
 
 .PHONY: lint
 lint:
