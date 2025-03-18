@@ -46,8 +46,9 @@ extras = [
     "cohesion<2.0.0,>=1.1.0",
 ]
 
-[tool.setuptools]
-packages = ["animeippo"]
+[tool.setuptools.packages.find]
+where = ["src"]
+
 
 [tool.bandit]
 exclude_dirs = [".venv"]
