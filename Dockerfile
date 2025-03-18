@@ -24,7 +24,7 @@ RUN uv sync --no-dev
 
 COPY . .
 
-RUN uv build --wheel && uv pip install dist/*.whl --no-cache
+RUN uv build && uv pip install dist/*.whl --no-cache
 
 FROM base AS final
 
