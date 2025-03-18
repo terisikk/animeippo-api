@@ -24,7 +24,7 @@ RUN uv sync --no-dev
 
 COPY . .
 
-RUN uv build --wheel && ./.venv/bin/pip install dist/*.whl --no-cache
+RUN uv build --wheel
 
 FROM base AS final
 
