@@ -20,3 +20,4 @@ conf/*
 *.ipynb
 *.xlsx
 *.lcov
+*.egg-info
