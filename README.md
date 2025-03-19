@@ -5,21 +5,19 @@ Cannot process people with no scores added
 
 # Dependencies for development
 
-* Poetry >= 1.4.0
+* uv >= 0.6.7
 
 # How to run locally
 
-`poetry install` or `make install`
+`make install`
 
 For testing with web-api version:
 
-`poetry shell`
-`flask --app app run --host 0.0.0.0`
+`uv run flask --app app run --host 0.0.0.0`
 
 For testing without web front:
 
-`poetry shell`
-`python animeippo/main.py`
+`uv run python animeippo/main.py`
 
 # VSCode devcontainers
 

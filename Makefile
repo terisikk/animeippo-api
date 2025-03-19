@@ -1,7 +1,7 @@
 .PHONY: install
 install:
 	pip install uv==0.6.7
-	uv pip install -e .
+	uv sync && uv pip install -e .
 
 .PHONY: lint
 lint:
