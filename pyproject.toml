@@ -61,7 +61,7 @@ source = ["animeippo"]
 branch = true
 command_line = "-m pytest tests"
 data_file = ".coverage"
-omit = ["animeippo/util/**"]
+omit = ["src/animeippo/util/**"]
 
 [tool.coverage.report]
 fail_under = 100
@@ -73,7 +73,7 @@ exclude_lines = [
   # Don't complain if non-runnable code isn't run:
   "if __name__ == .__main__.:",
 ]
-omit = ["animeippo/__main__.py"]
+omit = ["src/animeippo/__main__.py"]
 
 [tool.pytest.ini_options]
 filterwarnings = [
