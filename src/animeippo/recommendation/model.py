@@ -144,7 +144,7 @@ def get_similarity_matrix(self, filtered=False, transposed=False):
     ret = self.similarity_matrix
 
     if filtered:
-        ret = ret.filter(~pl.col("id").is_in(self.seasonal["id"]))
+        ret = ret.filter(~pl.col("id").is_in(self.seasonal["id"].implode()))
 
     if transposed:
         column_names = ret["id"].cast(pl.Utf8).to_list()

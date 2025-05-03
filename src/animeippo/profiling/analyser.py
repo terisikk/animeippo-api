@@ -86,7 +86,7 @@ class ProfileAnalyser:
 
             for tag in top_5_tags:
                 gdf = profile.watchlist.filter(
-                    ~pl.col("id").is_in(top_genre_items.extend(top_tag_items))
+                    ~pl.col("id").is_in(pl.Series(top_genre_items.extend(top_tag_items)).implode())
                 ).explode("tags")
                 filtered = gdf.filter(pl.col("tags") == tag).sort("score", descending=True)
 

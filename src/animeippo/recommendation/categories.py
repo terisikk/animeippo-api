@@ -218,7 +218,7 @@ class DiscouragingWrapper:
         self.description = self.category.description
 
         dataset.recommendations = dataset.recommendations.with_columns(
-            discourage_score=pl.when(pl.col("id").is_in(result["id"]))
+            discourage_score=pl.when(pl.col("id").is_in(result["id"].implode()))
             .then(pl.col("discourage_score") - self.DISCOURAGE_AMOUNT)
             .otherwise(pl.col("discourage_score")),
         )
