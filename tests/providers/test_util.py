@@ -17,10 +17,9 @@ def test_get_features():
 
 
 def test_mapping_skips_keys_not_in_dataframe():
-    dataframe = pl.DataFrame({"test1": [1], "test2": [2]})
     mapping = {"test1": StubMapper(), "test3": StubMapper()}
 
-    actual = util.run_mappers(dataframe, "test1", mapping, {"test1": pl.Utf8})
+    actual = util.run_mappers("test1", mapping, {"test1": pl.Utf8})
     assert actual["test1"].to_list() == ["test1 ran"]
     assert "test3" not in actual.columns
 
@@ -32,7 +31,7 @@ def test_transformation_does_not_fail_with_empty_data():
     assert len(data) == 0
 
     data = util.transform_to_animeippo_format(
-        pl.DataFrame({"data": {"test": "test"}}), ["genres", "tags"], [], {}
+        pl.DataFrame({"data": {"test": "test"}}), ["genres", "tags"], {}, {}
     )
     assert type(data) is pl.DataFrame
     assert len(data) == 0

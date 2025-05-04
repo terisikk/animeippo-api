@@ -1,3 +1,5 @@
+import datetime
+
 from aiohttp.client_exceptions import ClientError
 from flask import Flask, Response, request
 from flask_cors import CORS
@@ -12,6 +14,10 @@ cors = CORS(app, origins="http://localhost:3000")
 
 recommender = recommender_builder.build_recommender("anilist")
 profiler = analyser.ProfileAnalyser(recommender.provider)
+
+# Pre-fetch the current year anime to cache
+current_year = datetime.datetime.now().year
+recommender.recommend_seasonal_anime(current_year, None, None)
 
 
 @app.route("/seasonal")

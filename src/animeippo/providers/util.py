@@ -2,39 +2,37 @@ import polars as pl
 
 
 def transform_to_animeippo_format(original, feature_names, schema, mapping):
-    df = pl.DataFrame(schema=schema)
-
     if len(original) == 0:
-        return df
+        return pl.DataFrame(schema=schema)
 
     if "id" in original.columns:
         original = original.unique(subset=["id"], keep="first")
 
-    df = run_mappers(df, original, mapping, schema)
+    df = run_mappers(original, mapping, schema)
 
-    existing_feature_columns = set(feature_names).intersection(df.columns)
+    existing_feature_columns = set(feature_names).intersection(schema.keys())
 
     if len(existing_feature_columns) > 0:
         df = df.with_columns(features=get_feature_selector(existing_feature_columns))
 
-    if "temp_ranks" in df.columns and df["temp_ranks"].dtype != pl.Null:
+    if "temp_ranks" in schema.keys():
         df = df.with_columns(ranks=get_ranks(df).to_series())
 
     return df
 
 
 # This here forgets the original schema and dtypes, so optimize this
-def run_mappers(dataframe, original, mapping, schema):
-    return pl.DataFrame().with_columns(
-        **{
-            key: (
-                mapper.map(original).cast(schema.get(key))
+def run_mappers(original, mapping, schema):
+    return (
+        pl.LazyFrame()
+        .with_columns(
+            **{
+                key: (mapper.map(original).cast(schema.get(key)))
+                for key, mapper in mapping.items()
                 if key in schema
-                else mapper.map(original)
-            )
-            for key, mapper in mapping.items()
-            if key in dataframe.columns and key in schema
-        }
+            }
+        )
+        .collect()
     )
 
 

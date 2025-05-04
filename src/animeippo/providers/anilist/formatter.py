@@ -74,18 +74,8 @@ def get_adaptation(field):
     return filter_relations(field, meaningful_relations)
 
 
-def get_tags(dataframe):
-    return dataframe.select(pl.col("tags").list.eval(pl.element().struct.field("name"))).to_series()
-
-
-def get_user_complete_date(dataframe):
-    return dataframe.select(
-        pl.date(pl.col("completedAt.year"), pl.col("completedAt.month"), pl.col("completedAt.day"))
-    ).to_series()
-
-
-def get_studios(dataframe):
-    return dataframe.select(
+def get_studios():
+    return (
         pl.col("studios.edges")
         .list.eval(
             pl.when(pl.element().struct.field("node").struct.field("isAnimationStudio")).then(
@@ -93,7 +83,7 @@ def get_studios(dataframe):
             )
         )
         .list.drop_nulls()
-    ).to_series()
+    )
 
 
 def get_staff(dataframe):
@@ -144,14 +134,22 @@ ANILIST_MAPPING = {
                                     .then(pl.col("source").str.to_lowercase())
                                     .otherwise(None)
                                 ),
-    Columns.TAGS:               QueryMapper(get_tags),
+    Columns.TAGS:               SelectorMapper(
+                                    pl.col("tags").list.eval(
+                                        pl.element().struct.field("name")
+                                    )
+                                ),
     Columns.CONTINUATION_TO:    QueryMapper(get_continuation),
     Columns.ADAPTATION_OF:      QueryMapper(get_adaptation),
-    Columns.STUDIOS:            QueryMapper(get_studios),
-    Columns.USER_COMPLETE_DATE: QueryMapper(get_user_complete_date),
+    Columns.STUDIOS:            SelectorMapper(get_studios()),
+    Columns.USER_COMPLETE_DATE: SelectorMapper(
+                                    pl.date(
+                                        pl.col("completedAt.year"), 
+                                        pl.col("completedAt.month"), 
+                                        pl.col("completedAt.day")
+                                    )
+                                ),
     Columns.TEMP_RANKS:         DefaultMapper("tags"),
-    # Columns.DIRECTOR:           MultiMapper(["staff.edges", "staff.nodes"], 
-    #                                        functools.partial(get_staff, role="Director")),
     Columns.DIRECTOR:           QueryMapper(get_staff),
 }
 # fmt: on

@@ -58,6 +58,7 @@ def weight_encoded_categoricals_correlation(dataframe, column, features, against
             pl.col(column).list.to_struct(fields=sorted(features)),
             pl.col(against).alias("score"),
         )
+        # One would think that .struct.unnest() would be faster, but it is not
         .unnest(column)
         .select(pl.corr(pl.exclude("score"), pl.col("score"), method="spearman"))
         .transpose(include_header=True, header_name="name", column_names=["weight"])
