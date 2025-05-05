@@ -3,7 +3,7 @@ import json
 import polars as pl
 
 
-def recommendations_web_view(dataframe, categories=None):
+def recommendations_web_view(dataframe, categories=None, tags_and_genres=None):
     if dataframe is None:
         return json.dumps(
             {
@@ -13,16 +13,11 @@ def recommendations_web_view(dataframe, categories=None):
             }
         )
 
-    fields = ["id", "title", "cover_image", "genres", "status", "season_year", "season"]
+    fields = ["id", "title", "cover_image", "genres", "tags", "status", "season_year", "season"]
     df_json = dataframe.select(fields).to_dicts()
 
     return json.dumps(
-        {
-            "data": {
-                "shows": df_json,
-                "categories": categories,
-            }
-        }
+        {"data": {"shows": df_json, "categories": categories, "tags": sorted(tags_and_genres)}}
     )
 
 

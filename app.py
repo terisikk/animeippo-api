@@ -58,7 +58,9 @@ def recommend_anime():
 
     return Response(
         views.recommendations_web_view(
-            None if only_categories else dataset.recommendations, categories
+            None if only_categories else dataset.recommendations,
+            categories,
+            list(set(dataset.all_features) - set(dataset.nsfw_tags)),
         ),
         mimetype="application/json",
     )
