@@ -4,6 +4,8 @@ import polars as pl
 
 
 def recommendations_web_view(dataframe, categories=None, tags_and_genres=None):
+    tags_and_genres = tags_and_genres or []
+
     if dataframe is None:
         return json.dumps(
             {
@@ -14,7 +16,8 @@ def recommendations_web_view(dataframe, categories=None, tags_and_genres=None):
         )
 
     fields = ["id", "title", "cover_image", "genres", "tags", "status", "season_year", "season"]
-    df_json = dataframe.select(fields).to_dicts()
+    filtered_fields = list(set(dataframe.columns).intersection(fields))
+    df_json = dataframe.select(filtered_fields).to_dicts()
 
     return json.dumps(
         {"data": {"shows": df_json, "categories": categories, "tags": sorted(tags_and_genres)}}
