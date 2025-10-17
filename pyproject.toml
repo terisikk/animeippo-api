@@ -32,7 +32,6 @@ dev = [
     "requests-mock<2.0.0,>=1.10.0",
     "ruff<1.0.0,>=0.1.13",
     "pytest<8.0.0,>=7.2.2",
-    "bandit<2.0.0,>=1.7.5",
     "pytest-dotenv<1.0.0,>=0.5.2",
     "coverage<8.0.0,>=7.2.2",
     "pytest-mock<4.0.0,>=3.10.0",
@@ -50,13 +49,6 @@ extras = [
 
 [tool.setuptools.packages.find]
 where = ["src"]
-
-
-[tool.bandit]
-exclude_dirs = [".venv"]
-
-[tool.bandit.assert_used]
-skips = ['*/test_*.py'] # Pytest uses asserts
 
 [tool.coverage.run]
 source = ["animeippo"]

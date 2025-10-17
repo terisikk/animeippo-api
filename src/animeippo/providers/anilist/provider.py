@@ -19,6 +19,15 @@ class AniListProvider(abstract_provider.AbstractAnimeProvider):
         self.cache = cache
         self.connection = AnilistConnection(cache)
 
+    async def __aenter__(self):
+        """Async context manager entry."""
+        await self.connection.__aenter__()
+        return self
+
+    async def __aexit__(self, exc_type, exc_val, exc_tb):
+        """Async context manager exit - ensures connection is properly closed."""
+        return await self.connection.__aexit__(exc_type, exc_val, exc_tb)
+
     @async_cached(
         TTLCache(
             maxsize=1,

@@ -1,0 +1,3 @@
+- Always add imports to the top of the file, not in the middle
+- Keep the existing thresholds for coverage requirements, line-lengths, ignore rules etc. unless excplicitly told to change them
+- `make lint` is the single source of truth for linting errors, not IDE

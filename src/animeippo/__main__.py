@@ -1,19 +1,28 @@
 from profilehooks import profile as pr
 
 
-@pr(filename=".profiling/cprofile.pstats")
-def get_recs():
+async def get_recs_async():
     year = "2025"
     season = None
     user = "Janiskeisari"
 
-    recommender = recommender_builder.build_recommender("anilist")
-    # recommender = recommender_builder.create_builder(os.environ.get("DEFAULT_PROVIDER"))
-    dataset = recommender.recommend_seasonal_anime(year, season, user)
+    async with recommender_builder.build_recommender("anilist") as recommender:
+        dataset = await recommender.databuilder(year, season, user)
 
-    recommender.get_categories(dataset)
+        if user:
+            dataset.recommendations = recommender.engine.fit_predict(dataset)
+        else:
+            dataset.recommendations = dataset.seasonal.sort("popularity", descending=True)
 
-    return dataset.recommendations
+        recommender.get_categories(dataset)
+        return dataset.recommendations
+
+
+@pr(filename=".profiling/cprofile.pstats")
+def get_recs():
+    import asyncio
+
+    return asyncio.run(get_recs_async())
 
 
 if __name__ == "__main__":

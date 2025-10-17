@@ -40,9 +40,10 @@ async def test_mixed_provider_user_anime_can_be_fetched(mocker):
     )
 
     user_anime = await provider.get_user_anime_list(1)
-
     assert len(user_anime) == 2
     assert "Neon Genesis Evangelion" in user_anime["title"].to_list()
+
+    del provider.ani_provider.connection
 
 
 @pytest.mark.asyncio

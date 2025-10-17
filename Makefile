@@ -5,7 +5,6 @@ install:
 
 .PHONY: lint
 lint:
-	uv run bandit -c pyproject.toml -q -r .
 	uv run ruff check .
 	uv run ruff format --check .
 

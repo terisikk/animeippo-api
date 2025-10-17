@@ -25,6 +25,18 @@ class AnimeRecommender:
         self.recommendation_model_cls = recommendation_model_cls
         self.profile_model_cls = profile_model_cls
 
+    async def __aenter__(self):
+        """Async context manager entry - delegate to provider."""
+        if hasattr(self.provider, "__aenter__"):
+            await self.provider.__aenter__()
+        return self
+
+    async def __aexit__(self, exc_type, exc_val, exc_tb):
+        """Async context manager exit - delegate to provider."""
+        if hasattr(self.provider, "__aexit__"):
+            return await self.provider.__aexit__(exc_type, exc_val, exc_tb)
+        return False
+
     async def databuilder(self, year, season, user):
         user_profile = None
 

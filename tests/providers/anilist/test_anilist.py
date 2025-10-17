@@ -107,7 +107,7 @@ async def test_get_all_pages_returns_all_pages(mocker):
         "data": {
             "Page": {
                 "media": {"test": "test2"},
-                "pageInfo": {"hasNextPage": True, "currentPage": 0},
+                "pageInfo": {"hasNextPage": True, "currentPage": 1, "lastPage": 3},
             }
         }
     }
@@ -115,7 +115,7 @@ async def test_get_all_pages_returns_all_pages(mocker):
         "data": {
             "Page": {
                 "media": {"test": "test2"},
-                "pageInfo": {"hasNextPage": True, "currentPage": 1},
+                "pageInfo": {"hasNextPage": True, "currentPage": 2, "lastPage": 3},
             }
         }
     }
@@ -123,7 +123,7 @@ async def test_get_all_pages_returns_all_pages(mocker):
         "data": {
             "Page": {
                 "media": {"test": "test1"},
-                "pageInfo": {"hasNextPage": False, "currentPage": 2},
+                "pageInfo": {"hasNextPage": False, "currentPage": 3, "lastPage": 3},
             }
         }
     }
@@ -155,6 +155,57 @@ async def test_request_does_not_fail_catastrophically_when_response_is_empty(moc
 
     assert len(all_pages) == 1
     assert all_pages[0] is None
+
+
+@pytest.mark.asyncio
+async def test_get_all_pages_returns_single_page_when_no_next_page(mocker):
+    response = {
+        "data": {
+            "Page": {
+                "media": {"test": "data"},
+                "pageInfo": {"hasNextPage": False, "currentPage": 1, "lastPage": 1},
+            }
+        }
+    }
+
+    mocker.patch("aiohttp.ClientSession.post", return_value=ResponseStub(response))
+
+    final_pages = [
+        page async for page in animeippo.providers.anilist.AnilistConnection().get_all_pages("", {})
+    ]
+
+    assert len(final_pages) == 1
+    assert final_pages[0] == response["data"]["Page"]
+
+
+@pytest.mark.asyncio
+async def test_get_all_pages_with_null_page_data_in_response(mocker):
+    response1 = {
+        "data": {
+            "Page": {
+                "media": {"test": "test1"},
+                "pageInfo": {"hasNextPage": True, "currentPage": 1, "lastPage": 2},
+            }
+        }
+    }
+    response2 = {
+        "data": {
+            "Page": None  # Null page data in second response
+        }
+    }
+
+    mocker.patch(
+        "aiohttp.ClientSession.post",
+        side_effect=[ResponseStub(response1), ResponseStub(response2)],
+    )
+
+    final_pages = [
+        page async for page in animeippo.providers.anilist.AnilistConnection().get_all_pages("", {})
+    ]
+
+    # Should only get the first page, null page should be filtered out
+    assert len(final_pages) == 1
+    assert final_pages[0] == response1["data"]["Page"]
 
 
 def test_features_can_be_fetched():
@@ -196,3 +247,92 @@ def test_anilist_get_genres_returns_genres():
 
     assert genres is not None
     assert "Action" in genres
+
+
+@pytest.mark.asyncio
+async def test_get_session_creates_session():
+    connection = animeippo.providers.anilist.AnilistConnection()
+
+    session = await connection.get_session()
+
+    assert session is not None
+    assert not session.closed
+
+    await connection.close()
+
+
+@pytest.mark.asyncio
+async def test_get_session_reuses_existing_session():
+    connection = animeippo.providers.anilist.AnilistConnection()
+
+    session1 = await connection.get_session()
+    session2 = await connection.get_session()
+
+    assert session1 is session2
+
+    await connection.close()
+
+
+@pytest.mark.asyncio
+async def test_close_closes_session():
+    connection = animeippo.providers.anilist.AnilistConnection()
+
+    session = await connection.get_session()
+    assert not session.closed
+
+    await connection.close()
+
+    assert session.closed
+    assert connection._session is None
+
+
+@pytest.mark.asyncio
+async def test_close_does_nothing_when_no_session():
+    connection = animeippo.providers.anilist.AnilistConnection()
+
+    # Should not raise an error
+    await connection.close()
+
+    assert connection._session is None
+
+
+@pytest.mark.asyncio
+async def test_context_manager_closes_session():
+    """Test that using AnilistConnection as async context manager properly closes session."""
+    async with animeippo.providers.anilist.AnilistConnection() as connection:
+        session = await connection.get_session()
+        assert not session.closed
+
+    # Session should be closed after exiting context
+    assert session.closed
+
+
+@pytest.mark.asyncio
+async def test_context_manager_with_exception():
+    """Test that session is closed even if exception occurs in context."""
+    connection = None
+    session = None
+
+    try:
+        async with animeippo.providers.anilist.AnilistConnection() as conn:
+            connection = conn
+            session = await connection.get_session()
+            assert not session.closed
+            raise ValueError("test error")
+    except ValueError:
+        pass
+
+    # Session should still be closed after exception
+    assert session.closed
+
+
+@pytest.mark.asyncio
+async def test_anilist_provider_context_manager():
+    """Test that AniListProvider properly manages connection lifecycle."""
+    async with anilist.AniListProvider() as provider:
+        # Provider should work normally
+        assert provider.connection is not None
+
+    # Connection should be closed after context exit
+    # We can't directly check the session, but we can verify close was called
+    assert provider.connection._session is None or provider.connection._session.closed
