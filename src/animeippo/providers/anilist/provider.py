@@ -44,10 +44,11 @@ class AniListProvider(abstract_provider.AbstractAnimeProvider):
         # fmt: off
         query = """
         query ($userName: String) {
-            MediaListCollection(userName: $userName, type: ANIME) {
+            MediaListCollection(userName: $userName, type: ANIME, forceSingleCompletedList: true) {
                 lists {
                     name
                     status
+                    isCustomList
                     entries {
                         status
                         score(format:POINT_10)
@@ -66,7 +67,6 @@ class AniListProvider(abstract_provider.AbstractAnimeProvider):
                                 name
                                 rank
                                 category
-                                isAdult
                             }
                             meanScore
                             duration
@@ -90,8 +90,9 @@ class AniListProvider(abstract_provider.AbstractAnimeProvider):
         collection = await self.connection.request_collection(query, variables)
 
         for coll in collection["data"]["MediaListCollection"]["lists"]:
-            for entry in coll["entries"]:
-                anime_list["data"].append(entry)
+            if not coll.get("isCustomList", False):
+                for entry in coll["entries"]:
+                    anime_list["data"].append(entry)
 
         return formatter.transform_watchlist_data(anime_list, self.get_feature_fields())
 
@@ -127,7 +128,6 @@ class AniListProvider(abstract_provider.AbstractAnimeProvider):
                                 name
                                 rank
                                 category
-                                isAdult
                             }
                             meanScore
                             duration
@@ -165,7 +165,6 @@ class AniListProvider(abstract_provider.AbstractAnimeProvider):
                                 name
                                 rank
                                 category
-                                isAdult
                             }
                             meanScore
                             duration
@@ -205,10 +204,11 @@ class AniListProvider(abstract_provider.AbstractAnimeProvider):
 
         query = """
         query ($userName: String) {
-            MediaListCollection(userName: $userName, type: MANGA) {
+            MediaListCollection(userName: $userName, type: MANGA, forceSingleCompletedList: true) {
                 lists {
                     name
                     status
+                    isCustomList
                     entries {
                         status
                         score(format:POINT_10)
@@ -226,7 +226,6 @@ class AniListProvider(abstract_provider.AbstractAnimeProvider):
                                 name
                                 rank
                                 category
-                                isAdult
                             }
                             meanScore
                         }
@@ -241,8 +240,9 @@ class AniListProvider(abstract_provider.AbstractAnimeProvider):
         collection = await self.connection.request_collection(query, variables)
 
         for coll in collection["data"]["MediaListCollection"]["lists"]:
-            for entry in coll["entries"]:
-                manga_list["data"].append(entry)
+            if not coll.get("isCustomList", False):
+                for entry in coll["entries"]:
+                    manga_list["data"].append(entry)
 
         return formatter.transform_user_manga_list_data(manga_list, self.get_feature_fields())
 

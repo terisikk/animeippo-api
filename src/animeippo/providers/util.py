@@ -5,9 +5,6 @@ def transform_to_animeippo_format(original, feature_names, schema, mapping):
     if len(original) == 0:
         return pl.DataFrame(schema=schema)
 
-    if "id" in original.columns:
-        original = original.unique(subset=["id"], keep="first")
-
     df = run_mappers(original, mapping, schema)
 
     existing_feature_columns = set(feature_names).intersection(schema.keys())
