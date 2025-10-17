@@ -79,6 +79,53 @@ ANI_USER_LIST = {
         "MediaListCollection": {
             "lists": [
                 {
+                    "name": "Custom List",
+                    "isCustomList": True,
+                    "isSplitCompletedList": False,
+                    "status": "CURRENT",
+                    "entries": [
+                        {
+                            "status": "CURRENT",
+                            "score": 0,
+                            "dateStarted": {"year": 2023, "month": 2, "day": 23},
+                            "completedAt": {"year": None, "month": None, "day": None},
+                            "media": {
+                                "id": 131518,  # Same as Dr. STRONK: OLD WORLD to test deduplication
+                                "title": {"romaji": "Custom List Anime"},
+                                "genres": ["Action", "Adventure", "Comedy", "Sci-Fi"],
+                                "tags": [],
+                                "meanScore": 82,
+                                "source": "MANGA",
+                                "studios": {
+                                    "edges": [
+                                        {
+                                            "node": {
+                                                "name": "Test Studio",
+                                                "isAnimationStudio": True,
+                                            }
+                                        },
+                                        {
+                                            "node": {
+                                                "name": "Test Studio 2",
+                                                "isAnimationStudio": False,
+                                            }
+                                        },
+                                        {
+                                            "node": {
+                                                "name": "Test Studio 3",
+                                                "isAnimationStudio": True,
+                                            }
+                                        },
+                                    ]
+                                },
+                                "seasonYear": 2023,
+                                "season": "SPRING",
+                                "isAdult": False,
+                            },
+                        },
+                    ],
+                },
+                {
                     "name": "Watching",
                     "isCustomList": False,
                     "isSplitCompletedList": False,
@@ -219,7 +266,7 @@ ANI_USER_LIST = {
                             },
                         },
                     ],
-                }
+                },
             ]
         }
     }
@@ -229,6 +276,28 @@ ANI_MANGA_LIST = {
     "data": {
         "MediaListCollection": {
             "lists": [
+                {
+                    "name": "Reading",
+                    "isCustomList": True,
+                    "isSplitCompletedList": False,
+                    "status": "CURRENT",
+                    "entries": [
+                        {
+                            "status": "CURRENT",
+                            "score": 0,
+                            "completedAt": {"year": None, "month": None, "day": None},
+                            "media": {
+                                # Same as Dr. BONK: BONK BATTLES to test deduplication
+                                "id": 324324,
+                                "idMal": 12321,
+                                "title": {"romaji": "Custom List Manga"},
+                                "genres": ["Action", "Adventure", "Comedy", "Sci-Fi"],
+                                "tags": [],
+                                "meanScore": 82,
+                            },
+                        },
+                    ],
+                },
                 {
                     "name": "Reading",
                     "isCustomList": False,
@@ -310,7 +379,7 @@ ANI_MANGA_LIST = {
                             "mean_score": 50,
                         },
                     ],
-                }
+                },
             ]
         }
     }
@@ -430,10 +499,10 @@ ANI_SEASONAL_LIST = {
     "data": {
         "Page": {
             "pageInfo": {
-                "hasNextPage": True,
-                "total": 5000,
+                "hasNextPage": False,
+                "total": 50,
                 "currentPage": 1,
-                "lastPage": 100,
+                "lastPage": 1,
                 "perPage": 50,
             },
             "media": [

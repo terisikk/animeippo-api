@@ -336,3 +336,35 @@ async def test_anilist_provider_context_manager():
     # Connection should be closed after context exit
     # We can't directly check the session, but we can verify close was called
     assert provider.connection._session is None or provider.connection._session.closed
+
+
+@pytest.mark.asyncio
+async def test_custom_lists_are_filtered_out_from_user_anime_list(mocker):
+    provider = anilist.AniListProvider()
+
+    user = "Janiskeisari"
+
+    response = ResponseStub(test_data.ANI_USER_LIST)
+    mocker.patch("aiohttp.ClientSession.post", return_value=response)
+
+    animelist = await provider.get_user_anime_list(user)
+
+    assert "Dr. STRONK: OLD WORLD" in animelist["title"]
+    # Ensure custom lists are filtered out
+    assert "Custom List Anime" not in animelist["title"]
+
+
+@pytest.mark.asyncio
+async def test_custom_lists_are_filtered_out_from_user_manga_list(mocker):
+    provider = anilist.AniListProvider()
+
+    user = "Janiskeisari"
+
+    response = ResponseStub(test_data.ANI_USER_LIST)
+    mocker.patch("aiohttp.ClientSession.post", return_value=response)
+
+    animelist = await provider.get_user_manga_list(user)
+
+    assert "Dr. STRONK: OLD WORLD" in animelist["title"]
+    # Ensure custom lists are filtered out
+    assert "Custom List Anime" not in animelist["title"]
