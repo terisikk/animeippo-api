@@ -43,7 +43,13 @@ class AnilistConnection:
     async def get_session(self):
         """Get or create a persistent aiohttp ClientSession for connection reuse."""
         if self._session is None or self._session.closed:
-            self._session = aiohttp.ClientSession()
+            # Configure connector with reasonable limits to prevent resource leaks
+            connector = aiohttp.TCPConnector(
+                limit=100,  # Total connection limit
+                limit_per_host=10,  # Max 10 connections per host
+                ttl_dns_cache=300,  # DNS cache for 5 minutes
+            )
+            self._session = aiohttp.ClientSession(connector=connector)
         return self._session
 
     async def close(self):

@@ -1,3 +1,5 @@
+import asyncio
+import atexit
 import datetime
 
 from aiohttp.client_exceptions import ClientError
@@ -18,6 +20,19 @@ profiler = analyser.ProfileAnalyser(recommender.provider)
 # Pre-fetch the current year anime to cache
 current_year = datetime.datetime.now().year
 recommender.recommend_seasonal_anime(current_year, None, None)
+
+
+def cleanup_connections():
+    """Close provider connections on app shutdown."""
+    if hasattr(recommender.provider, "connection") and hasattr(
+        recommender.provider.connection, "close"
+    ):
+        # Close the connection synchronously at shutdown
+        asyncio.run(recommender.provider.connection.close())
+
+
+# Register cleanup to run when the Flask app shuts down
+atexit.register(cleanup_connections)
 
 
 @app.route("/seasonal")
