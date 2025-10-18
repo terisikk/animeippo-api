@@ -167,37 +167,62 @@ class PopularityScorer(AbstractScorer):
 class ContinuationScorer(AbstractScorer):
     name = "continuationscore"
 
-    DEFAULT_SCORE = 0
-    DEFAULT_MEAN_SCORE = 5
+    BASE_CONTINUATION_BONUS = 1.5
+    COMPLETION_BONUS = 1.0
 
     def score(self, data):
         scoring_target_df = data.seasonal
         compare_df = data.watchlist
 
-        mean_score = statistics.mean_score_default(compare_df, self.DEFAULT_MEAN_SCORE)
-
-        rdf = scoring_target_df.explode("continuation_to")
+        user_baseline = statistics.mean_score_default(compare_df, 5.0)
 
         rdf = (
-            rdf.select(["id", "continuation_to"])
+            scoring_target_df.explode("continuation_to")
+            .select(["id", "continuation_to"])
             .join(
-                compare_df.with_columns(
-                    pl.col("score").alias("continuationscore").fill_null(mean_score)
-                ).select(["id", "continuationscore"]),
+                compare_df.select(["id", "score", "user_status"]),
                 left_on="continuation_to",
                 right_on="id",
                 how="left",
             )
-            .fill_null(self.DEFAULT_SCORE)
+            .with_columns(
+                [
+                    # Track whether this was a valid continuation match (exists in watchlist)
+                    pl.col("user_status").is_not_null().alias("has_continuation"),
+                    pl.when(pl.col("user_status") == "completed")
+                    .then(pl.lit(1.0))
+                    .when(pl.col("user_status").is_in(["watching", "paused"]))
+                    .then(pl.lit(0.5))
+                    .otherwise(pl.lit(0.2))
+                    .alias("confidence"),
+                ]
+            )
+            .with_columns(
+                # Apply shrinkage: blend prior score towards baseline based on confidence
+                # If score is null, use baseline
+                shrunk_score=(
+                    user_baseline
+                    + pl.col("confidence")
+                    * (pl.col("score").fill_null(user_baseline) - user_baseline)
+                )
+            )
+            .with_columns(
+                # Only apply bonuses for valid continuations
+                continuationscore=pl.when(pl.col("has_continuation"))
+                .then(
+                    pl.col("shrunk_score")
+                    + self.BASE_CONTINUATION_BONUS
+                    + pl.when(pl.col("user_status") == "completed")
+                    .then(pl.lit(self.COMPLETION_BONUS))
+                    .otherwise(pl.lit(0.0))
+                )
+                .otherwise(pl.lit(None))
+            )
+            .group_by("id", maintain_order=True)
+            .agg(pl.col("continuationscore").max())
         )
 
-        return (
-            self.get_max_score_of_duplicate_relations(rdf, "continuationscore")["continuationscore"]
-            / 10
-        )
-
-    def get_max_score_of_duplicate_relations(self, df, column):
-        return df.group_by("id", maintain_order=True).agg(pl.col(column).max())
+        return statistics.normalize_series(rdf["continuationscore"].fill_null(0.0))
 
 
 class AdaptationScorer(AbstractScorer):

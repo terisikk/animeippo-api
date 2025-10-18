@@ -93,7 +93,13 @@ def weight_categoricals_correlation(dataframe, column):
 
 
 def normalize_series(series):
-    return (series - series.min()) / (series.max() - series.min())
+    smax = series.max()
+    smin = series.min()
+
+    if smax == smin:
+        return pl.Series([0.0] * len(series))
+
+    return (series - smin) / (smax - smin)
 
 
 def mean_score_default(compare_df, default=0):

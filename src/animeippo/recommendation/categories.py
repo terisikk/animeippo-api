@@ -117,7 +117,7 @@ class YourTopPicksCategory:
 
     def categorize(self, dataset, max_items=25):
         mask = (
-            (pl.col(scoring.ContinuationScorer.name) == scoring.ContinuationScorer.DEFAULT_SCORE)
+            (pl.col(scoring.ContinuationScorer.name) == 0)
             & (pl.col("user_status").is_null())
             & (pl.col("status").is_in(["releasing", "finished"]))
         )

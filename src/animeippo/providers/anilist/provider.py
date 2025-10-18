@@ -260,7 +260,7 @@ class AniListProvider(abstract_provider.AbstractAnimeProvider):
             cached_tags = self.cache.get_json("anilist:nsfw_tags")
             if cached_tags:
                 return set(cached_tags)
-        # Fallback to static data
+
         return data.NSFW_TAGS
 
     def get_genres(self):
@@ -269,7 +269,7 @@ class AniListProvider(abstract_provider.AbstractAnimeProvider):
             cached_genres = self.cache.get_json("anilist:genres")
             if cached_genres:
                 return set(cached_genres)
-        # Fallback to static data
+
         return data.ALL_GENRES
 
     def get_tag_lookup(self):
@@ -277,7 +277,6 @@ class AniListProvider(abstract_provider.AbstractAnimeProvider):
         if self.cache and self.cache.is_available():
             tag_lookup = self.cache.get_json("anilist:tag_lookup")
             if tag_lookup:
-                # Convert string keys to int
                 return {int(k): v for k, v in tag_lookup.items()}
-        # Fallback to static data - ALL_TAGS is already in dict format with IDs as keys
+
         return data.ALL_TAGS

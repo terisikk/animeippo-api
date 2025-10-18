@@ -305,6 +305,42 @@ def test_anilist_get_nsfw_tags_fallback_to_static_when_cache_empty(mocker):
     assert 246 in tags  # Bondage (ID 246) from static data
 
 
+def test_anilist_get_tag_lookup_from_cache(mocker):
+    """Test that tag lookup is fetched from cache and string keys are converted to int."""
+    mock_cache = mocker.Mock()
+    mock_cache.is_available.return_value = True
+    # Cache stores keys as strings (JSON limitation)
+    mock_cache.get_json.return_value = {
+        "206": {"name": "4-koma", "category": "Technical", "isAdult": False},
+        "710": {"name": "Achromatic", "category": "Technical", "isAdult": False},
+    }
+
+    provider = anilist.AniListProvider(cache=mock_cache)
+    tag_lookup = provider.get_tag_lookup()
+
+    mock_cache.get_json.assert_called_once_with("anilist:tag_lookup")
+    # Verify keys are converted to int
+    assert 206 in tag_lookup
+    assert 710 in tag_lookup
+    assert tag_lookup[206]["name"] == "4-koma"
+    assert tag_lookup[710]["category"] == "Technical"
+
+
+def test_anilist_get_tag_lookup_fallback_to_static_when_cache_empty(mocker):
+    """Test that tag lookup fallbacks to static data when cache returns None."""
+    mock_cache = mocker.Mock()
+    mock_cache.is_available.return_value = True
+    mock_cache.get_json.return_value = None
+
+    provider = anilist.AniListProvider(cache=mock_cache)
+    tag_lookup = provider.get_tag_lookup()
+
+    mock_cache.get_json.assert_called_once_with("anilist:tag_lookup")
+    # Verify we get static data
+    assert 206 in tag_lookup  # 4-koma from static data
+    assert tag_lookup[206]["name"] == "4-koma"
+
+
 @pytest.mark.asyncio
 async def test_get_session_creates_session():
     connection = animeippo.providers.anilist.AnilistConnection()

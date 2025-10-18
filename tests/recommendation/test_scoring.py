@@ -275,7 +275,7 @@ def test_continuation_scorer():
     uprofile = UserProfile("Test", compare)
     actual = scorer.score(RecommendationModel(uprofile, original))
 
-    assert [round(a, 1) for a in actual.to_list()] == [0.8, 0.0, 0.7, 0.0]
+    assert [round(a, 1) for a in actual.to_list()] == [1.0, 0.0, 0.9, 0.0]
 
 
 def test_continuation_scorer_scores_nan_with_zero():
@@ -284,7 +284,7 @@ def test_continuation_scorer_scores_nan_with_zero():
             "id": [1, 2, 3, 4],
             "title": ["Anime A", "Anime B", "Anime B Spinoff", "Anime C"],
             "user_status": ["completed", "completed", "completed", "completed"],
-            "score": [None, 6, 7, 8],
+            "score": [None, 3, 2, 8],
         }
     )
 
@@ -301,7 +301,7 @@ def test_continuation_scorer_scores_nan_with_zero():
     uprofile = UserProfile("Test", compare)
     actual = scorer.score(RecommendationModel(uprofile, original))
 
-    assert [round(a, 1) for a in actual.to_list()] == [0.7, 0.0, 0.7, 0.0]
+    assert [round(a, 1) for a in actual.to_list()] == [1.0, 0.0, 0.8, 0.0]
 
 
 def test_continuation_scorer_takes_max_of_duplicate_relations():
@@ -316,9 +316,9 @@ def test_continuation_scorer_takes_max_of_duplicate_relations():
 
     original = pl.DataFrame(
         {
-            "id": [5],
-            "title": ["Anime A Season 2"],
-            "continuation_to": [[1, 2]],
+            "id": [5, 6],
+            "title": ["Anime A Season 2", "Unrelated Anime"],
+            "continuation_to": [[1, 2], []],
         }
     )
 
@@ -327,7 +327,7 @@ def test_continuation_scorer_takes_max_of_duplicate_relations():
     uprofile = UserProfile("Test", compare)
     actual = scorer.score(RecommendationModel(uprofile, original))
 
-    assert actual.to_list() == [0.8]
+    assert actual.to_list() == [1.0, 0.0]
 
 
 def test_direct_similarity_scorer():

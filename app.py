@@ -1,6 +1,5 @@
 import asyncio
 import atexit
-import datetime
 
 from aiohttp.client_exceptions import ClientError
 from flask import Flask, Response, request
@@ -20,7 +19,9 @@ profiler = analyser.ProfileAnalyser(recommender.provider)
 
 def cleanup_connections():
     """Close provider connections on app shutdown."""
-    if hasattr(recommender.provider, "connection") and hasattr(recommender.provider.connection, "close"):
+    if hasattr(recommender.provider, "connection") and hasattr(
+        recommender.provider.connection, "close"
+    ):
         # Close the connection synchronously at shutdown
         asyncio.run(recommender.provider.connection.close())
 

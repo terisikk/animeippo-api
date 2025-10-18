@@ -43,6 +43,7 @@ def test_web_view_can_render_profile_characteristics():
 
 def test_console_view_prints_stuff(capfd):
     df = pl.DataFrame(test_data.FORMATTED_MAL_SEASONAL_LIST)
+    df = df.with_columns(final_score=[8.5, 7.0, 9.0])
 
     views.console_view(df)
 
