@@ -170,8 +170,13 @@ async def main():
     return 0
 
 
-if __name__ == "__main__":
+def cli():
+    """CLI entry point for the preload cache script."""
     import sys
 
     exit_code = asyncio.run(main())
     sys.exit(exit_code)
+
+
+if __name__ == "__main__":
+    cli()

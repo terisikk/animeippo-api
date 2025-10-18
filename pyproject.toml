@@ -26,6 +26,9 @@ version = "0.1.0"
 description = ""
 readme = "README.md"
 
+[project.scripts]
+animeippo-preload-cache = "animeippo.scripts.preload_cache:cli"
+
 [dependency-groups]
 dev = [
     "ipykernel<7.0.0,>=6.21.3",
@@ -55,7 +58,7 @@ source = ["animeippo"]
 branch = true
 command_line = "-m pytest tests"
 data_file = ".coverage"
-omit = ["src/animeippo/util/**"]
+omit = ["src/animeippo/scripts/**"]
 
 [tool.coverage.report]
 fail_under = 100
