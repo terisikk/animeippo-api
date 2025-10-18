@@ -9,17 +9,32 @@ from .recommender import AnimeRecommender
 
 
 def get_default_scorers():
+    """Get default scorers with optimized weights.
+
+    Weights are tuned to balance different recommendation signals:
+    - Direct similarity (0.25): Strongest signal for similar anime
+    - Feature correlation (0.15): User's preference patterns
+    - Cluster similarity (0.15): Similar viewing clusters
+    - Continuation (0.15): Strong signal for sequels
+    - Adaptation (0.10): Source material preferences
+    - Popularity (0.10): Community consensus
+    - Genre average (0.05): Basic genre preferences
+    - Format (0.03): Format preferences (TV/Movie/etc)
+    - Studio/Director (0.02 each): Production team correlation
+
+    Total weight: 1.02 (intentionally slightly over 1.0 to boost strong signals)
+    """
     return [
-        scoring.FeatureCorrelationScorer(),
-        scoring.GenreAverageScorer(),
-        scoring.ClusterSimilarityScorer(weighted=True),
-        scoring.StudioCorrelationScorer(),
-        scoring.PopularityScorer(),
-        scoring.ContinuationScorer(),
-        scoring.AdaptationScorer(),
-        scoring.DirectSimilarityScorer(),
-        scoring.FormatScorer(),
-        scoring.DirectorCorrelationScorer(),
+        scoring.DirectSimilarityScorer(weight=0.25),
+        scoring.FeatureCorrelationScorer(weight=0.15),
+        scoring.ClusterSimilarityScorer(weighted=True, weight=0.15),
+        scoring.ContinuationScorer(weight=0.15),
+        scoring.AdaptationScorer(weight=0.10),
+        scoring.PopularityScorer(weight=0.10),
+        scoring.GenreAverageScorer(weight=0.05),
+        scoring.FormatScorer(weight=0.03),
+        scoring.StudioCorrelationScorer(weight=0.02),
+        scoring.DirectorCorrelationScorer(weight=0.02),
     ]
 
 

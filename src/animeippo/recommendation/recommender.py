@@ -63,6 +63,11 @@ class AnimeRecommender:
 
         return data
 
+    async def _databuilder_with_context(self, year, season, user):
+        """Wrapper that ensures provider context is managed in the correct event loop."""
+        async with self.provider:
+            return await self.databuilder(year, season, user)
+
     def async_get_dataset(self, year, season, user=None):
         # If we run from jupyter, loop is already running and we need
         # to act differently. If the loop is not running,
@@ -74,10 +79,10 @@ class AnimeRecommender:
                 print("using threading")
 
                 return pool.submit(
-                    lambda: asyncio.run(self.databuilder(year, season, user))
+                    lambda: asyncio.run(self._databuilder_with_context(year, season, user))
                 ).result()
         except RuntimeError:
-            return asyncio.run(self.databuilder(year, season, user))
+            return asyncio.run(self._databuilder_with_context(year, season, user))
 
     def recommend_seasonal_anime(self, year, season, user=None):
         dataset = self.async_get_dataset(year, season, user)

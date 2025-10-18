@@ -20,6 +20,14 @@ class ProviderStub:
         self.user = user
         self.cache = cache
 
+    async def __aenter__(self):
+        """Async context manager entry."""
+        return self
+
+    async def __aexit__(self, exc_type, exc_val, exc_tb):
+        """Async context manager exit."""
+        return False
+
     async def get_seasonal_anime_list(self, *args, **kwargs):
         return pl.DataFrame(
             self.seasonal,

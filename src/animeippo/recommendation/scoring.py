@@ -6,6 +6,9 @@ from animeippo.analysis import statistics
 
 
 class AbstractScorer(abc.ABC):
+    def __init__(self, weight=1.0):
+        self.weight = weight
+
     @abc.abstractmethod
     def score(self, scoring_target_df, compare_df):
         pass
@@ -71,7 +74,7 @@ class GenreAverageScorer(AbstractScorer):
         return statistics.rank_series(scores)
 
 
-class StudioCorrelationScorer:
+class StudioCorrelationScorer(AbstractScorer):
     name = "studiocorrelationscore"
 
     def score(self, data):
@@ -89,7 +92,8 @@ class StudioCorrelationScorer:
 class ClusterSimilarityScorer(AbstractScorer):
     name = "clusterscore"
 
-    def __init__(self, weighted=False):
+    def __init__(self, weighted=False, weight=1.0):
+        super().__init__(weight=weight)
         self.weighted = weighted
 
     def score(self, data):
@@ -222,7 +226,7 @@ class ContinuationScorer(AbstractScorer):
             .agg(pl.col("continuationscore").max())
         )
 
-        return statistics.rank_series(rdf["continuationscore"].fill_null(0.0))
+        return rdf["continuationscore"].fill_null(0.0).clip(0, 10) / 10
 
 
 class AdaptationScorer(AbstractScorer):
@@ -306,7 +310,7 @@ class FormatScorer(AbstractScorer):
         return statistics.rank_series(scores)
 
 
-class DirectorCorrelationScorer:
+class DirectorCorrelationScorer(AbstractScorer):
     name = "directorcorrelationscore"
 
     def score(self, data):

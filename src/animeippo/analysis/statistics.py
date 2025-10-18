@@ -93,7 +93,7 @@ def weight_categoricals_correlation(dataframe, column):
 
 
 def rank_series(series):
-    return series.rank(method="average") - 1 / pl.lit(max(len(series) - 1, 1))  # Normalize to 0-1
+    return (series.rank(method="average") - 1) / max(len(series) - 1, 1)  # Normalize to 0-1
 
 
 def mean_score_default(compare_df, default=0):
