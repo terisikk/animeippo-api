@@ -18,35 +18,94 @@ from animeippo.providers.mappers import (
 from .. import util
 
 
-def transform_seasonal_data(data, feature_names):
+def get_anilist_mapping(tag_lookup):
+    """Get ANILIST_MAPPING with tag enrichment based on tag_lookup."""
+    tag_lookup_df = pl.DataFrame(
+        [
+            {"tag_id": tag_id, "tag_name": info["name"], "tag_category": info["category"]}
+            for tag_id, info in tag_lookup.items()
+        ]
+    )
+
+    def enrich_tags_for_names(df):
+        """Enrich tags and extract names for the tags column"""
+        return (
+            df.select([pl.col("id").alias("anime_id"), "tags"])
+            .explode("tags")
+            .unnest("tags")
+            .join(tag_lookup_df, left_on="id", right_on="tag_id", how="left")
+            .with_columns(
+                pl.when(pl.col("tag_name").is_null())
+                .then(pl.lit("Unknown"))
+                .otherwise(pl.col("tag_name"))
+                .alias("name")
+            )
+            .group_by("anime_id", maintain_order=True)
+            .agg(pl.col("name"))
+            .select("name")
+            .to_series()
+        )
+
+    def enrich_tags_for_ranks(df):
+        """Enrich tags with name, rank, and category for the temp_ranks column"""
+        return (
+            df.select([pl.col("id").alias("anime_id"), "tags"])
+            .explode("tags")
+            .unnest("tags")
+            .join(tag_lookup_df, left_on="id", right_on="tag_id", how="left")
+            .with_columns(
+                [
+                    pl.when(pl.col("tag_name").is_null())
+                    .then(pl.lit("Unknown"))
+                    .otherwise(pl.col("tag_name"))
+                    .alias("name"),
+                    pl.when(pl.col("tag_category").is_null())
+                    .then(pl.lit("Theme-Other"))
+                    .otherwise(pl.col("tag_category"))
+                    .alias("category"),
+                ]
+            )
+            .group_by("anime_id", maintain_order=True)
+            .agg(pl.struct(["name", "rank", "category"]))
+            .select("tags")
+            .to_series()
+        )
+
+    ANILIST_MAPPING[Columns.TAGS] = QueryMapper(enrich_tags_for_names)
+    ANILIST_MAPPING[Columns.TEMP_RANKS] = QueryMapper(enrich_tags_for_ranks)
+
+    return ANILIST_MAPPING
+
+
+def transform_seasonal_data(data, feature_names, tag_lookup):
     # Believe me, with polars 1.12 this is way faster than
     # original = pl.json_normalize(data["data"]["media"])
     original = pl.from_pandas(fast_json_normalize(data["data"]["media"]))
 
     return util.transform_to_animeippo_format(
-        original, feature_names, ANI_SEASONAL_SCHEMA, ANILIST_MAPPING
+        original, feature_names, ANI_SEASONAL_SCHEMA, get_anilist_mapping(tag_lookup)
     )
 
 
-def transform_watchlist_data(data, feature_names):
+def transform_watchlist_data(data, feature_names, tag_lookup):
     original = fast_json_normalize(data["data"])
     original.columns = [x.removeprefix("media.") for x in original.columns]
 
     original = pl.from_pandas(original)
 
     return util.transform_to_animeippo_format(
-        original, feature_names, ANI_WATCHLIST_SCHEMA, ANILIST_MAPPING
+        original, feature_names, ANI_WATCHLIST_SCHEMA, get_anilist_mapping(tag_lookup)
     )
 
 
-def transform_user_manga_list_data(data, feature_names):
+def transform_user_manga_list_data(data, feature_names, tag_lookup):
     original = fast_json_normalize(data["data"])
     original.columns = [x.removeprefix("media.") for x in original.columns]
 
     original = pl.from_pandas(original)
 
     return util.transform_to_animeippo_format(
-        original, feature_names, ANI_MANGA_SCHEMA, ANILIST_MAPPING
+        original, feature_names, ANI_MANGA_SCHEMA, get_anilist_mapping(tag_lookup)
     )
 
 
@@ -136,7 +195,7 @@ ANILIST_MAPPING = {
                                 ),
     Columns.TAGS:               SelectorMapper(
                                     pl.col("tags").list.eval(
-                                        pl.element().struct.field("name")
+                                        pl.element().struct.field("id")
                                     )
                                 ),
     Columns.CONTINUATION_TO:    QueryMapper(get_continuation),

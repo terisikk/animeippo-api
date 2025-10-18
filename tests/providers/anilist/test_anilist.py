@@ -236,8 +236,10 @@ def test_anilist_nsfw_tags_function_returns_nsfw_tags():
     tags = provider.get_nsfw_tags()
 
     assert tags is not None
-    assert "Mystery" not in tags
-    assert "Bondage" in tags
+    assert 246 in tags  # Bondage (ID 246 is an NSFW tag)
+    # Mystery is not an NSFW tag, but we need to check by ID or ensure no genre IDs are in NSFW tags
+    # Since Mystery is a genre (not a tag with an ID in our system), we just verify it's not there
+    assert "Mystery" not in tags  # Genres are strings, not IDs
 
 
 def test_anilist_get_genres_returns_genres():
@@ -247,6 +249,60 @@ def test_anilist_get_genres_returns_genres():
 
     assert genres is not None
     assert "Action" in genres
+
+
+def test_anilist_get_genres_from_cache(mocker):
+    """Test that genres are fetched from cache when available."""
+    mock_cache = mocker.Mock()
+    mock_cache.is_available.return_value = True
+    mock_cache.get_json.return_value = ["Action", "Comedy", "Drama"]
+
+    provider = anilist.AniListProvider(cache=mock_cache)
+    genres = provider.get_genres()
+
+    mock_cache.get_json.assert_called_once_with("anilist:genres")
+    assert genres == {"Action", "Comedy", "Drama"}
+
+
+def test_anilist_get_genres_fallback_to_static_when_cache_empty(mocker):
+    """Test that genres fallback to static data when cache returns None."""
+    mock_cache = mocker.Mock()
+    mock_cache.is_available.return_value = True
+    mock_cache.get_json.return_value = None
+
+    provider = anilist.AniListProvider(cache=mock_cache)
+    genres = provider.get_genres()
+
+    mock_cache.get_json.assert_called_once_with("anilist:genres")
+    assert "Action" in genres  # From static data
+
+
+def test_anilist_get_nsfw_tags_from_cache(mocker):
+    """Test that NSFW tags are fetched from cache when available."""
+    mock_cache = mocker.Mock()
+    mock_cache.is_available.return_value = True
+    # Note: The pre-loading script stores tag names in cache for NSFW tags
+    # But the code converts them to a set, so they remain as names
+    mock_cache.get_json.return_value = ["Bondage", "Nudity"]
+
+    provider = anilist.AniListProvider(cache=mock_cache)
+    tags = provider.get_nsfw_tags()
+
+    mock_cache.get_json.assert_called_once_with("anilist:nsfw_tags")
+    assert tags == {"Bondage", "Nudity"}
+
+
+def test_anilist_get_nsfw_tags_fallback_to_static_when_cache_empty(mocker):
+    """Test that NSFW tags fallback to static data when cache returns None."""
+    mock_cache = mocker.Mock()
+    mock_cache.is_available.return_value = True
+    mock_cache.get_json.return_value = None
+
+    provider = anilist.AniListProvider(cache=mock_cache)
+    tags = provider.get_nsfw_tags()
+
+    mock_cache.get_json.assert_called_once_with("anilist:nsfw_tags")
+    assert 246 in tags  # Bondage (ID 246) from static data
 
 
 @pytest.mark.asyncio

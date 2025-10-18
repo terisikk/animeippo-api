@@ -64,9 +64,8 @@ class AniListProvider(abstract_provider.AbstractAnimeProvider):
                             format
                             genres
                             tags {
-                                name
+                                id
                                 rank
-                                category
                             }
                             meanScore
                             duration
@@ -94,7 +93,9 @@ class AniListProvider(abstract_provider.AbstractAnimeProvider):
                 for entry in coll["entries"]:
                     anime_list["data"].append(entry)
 
-        return formatter.transform_watchlist_data(anime_list, self.get_feature_fields())
+        return formatter.transform_watchlist_data(
+            anime_list, self.get_feature_fields(), self.get_tag_lookup()
+        )
 
     @async_cached(
         TTLCache(
@@ -116,7 +117,7 @@ class AniListProvider(abstract_provider.AbstractAnimeProvider):
             query ($seasonYear: Int, $season: MediaSeason, $page: Int) {
                 Page(page: $page, perPage: 50) {
                     pageInfo { hasNextPage currentPage lastPage total perPage }
-                    media(seasonYear: $seasonYear, season: $season, type: ANIME, 
+                    media(seasonYear: $seasonYear, season: $season, type: ANIME,
                         isAdult: false, tag_not_in: ["Kids"]) {
                             id
                             idMal
@@ -125,9 +126,8 @@ class AniListProvider(abstract_provider.AbstractAnimeProvider):
                             format
                             genres
                             tags {
-                                name
+                                id
                                 rank
-                                category
                             }
                             meanScore
                             duration
@@ -153,7 +153,7 @@ class AniListProvider(abstract_provider.AbstractAnimeProvider):
             query ($seasonYear: Int, $page: Int) {
                 Page(page: $page, perPage: 50) {
                     pageInfo { hasNextPage currentPage lastPage total perPage }
-                    media(seasonYear: $seasonYear, type: ANIME, isAdult: false, 
+                    media(seasonYear: $seasonYear, type: ANIME, isAdult: false,
                         tag_not_in: ["Kids"]) {
                             id
                             idMal
@@ -162,9 +162,8 @@ class AniListProvider(abstract_provider.AbstractAnimeProvider):
                             format
                             genres
                             tags {
-                                name
+                                id
                                 rank
-                                category
                             }
                             meanScore
                             duration
@@ -187,7 +186,9 @@ class AniListProvider(abstract_provider.AbstractAnimeProvider):
 
         anime_list = await self.connection.request_paginated(query, variables)
 
-        return formatter.transform_seasonal_data(anime_list, self.get_feature_fields())
+        return formatter.transform_seasonal_data(
+            anime_list, self.get_feature_fields(), self.get_tag_lookup()
+        )
 
     @async_cached(
         TTLCache(
@@ -223,9 +224,8 @@ class AniListProvider(abstract_provider.AbstractAnimeProvider):
                             title { romaji }
                             genres
                             tags {
-                                name
+                                id
                                 rank
-                                category
                             }
                             meanScore
                         }
@@ -244,7 +244,9 @@ class AniListProvider(abstract_provider.AbstractAnimeProvider):
                 for entry in coll["entries"]:
                     manga_list["data"].append(entry)
 
-        return formatter.transform_user_manga_list_data(manga_list, self.get_feature_fields())
+        return formatter.transform_user_manga_list_data(
+            manga_list, self.get_feature_fields(), self.get_tag_lookup()
+        )
 
     def get_feature_fields(self):
         return ["genres", "tags"]
@@ -253,7 +255,29 @@ class AniListProvider(abstract_provider.AbstractAnimeProvider):
         pass
 
     def get_nsfw_tags(self):
+        """Get NSFW tags from cache if available, otherwise use static data."""
+        if self.cache and self.cache.is_available():
+            cached_tags = self.cache.get_json("anilist:nsfw_tags")
+            if cached_tags:
+                return set(cached_tags)
+        # Fallback to static data
         return data.NSFW_TAGS
 
     def get_genres(self):
+        """Get genres from cache if available, otherwise use static data."""
+        if self.cache and self.cache.is_available():
+            cached_genres = self.cache.get_json("anilist:genres")
+            if cached_genres:
+                return set(cached_genres)
+        # Fallback to static data
         return data.ALL_GENRES
+
+    def get_tag_lookup(self):
+        """Get tag lookup dict (id -> {name, category, isAdult}) from cache or static data."""
+        if self.cache and self.cache.is_available():
+            tag_lookup = self.cache.get_json("anilist:tag_lookup")
+            if tag_lookup:
+                # Convert string keys to int
+                return {int(k): v for k, v in tag_lookup.items()}
+        # Fallback to static data - ALL_TAGS is already in dict format with IDs as keys
+        return data.ALL_TAGS

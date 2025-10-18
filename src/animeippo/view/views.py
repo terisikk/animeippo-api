@@ -19,9 +19,7 @@ def recommendations_web_view(dataframe, categories=None, tags_and_genres=None):
     filtered_fields = list(set(dataframe.columns).intersection(fields))
     df_json = dataframe.select(filtered_fields).to_dicts()
 
-    return json.dumps(
-        {"data": {"shows": df_json, "categories": categories, "tags": sorted(tags_and_genres)}}
-    )
+    return json.dumps({"data": {"shows": df_json, "categories": categories, "tags": sorted(tags_and_genres)}})
 
 
 def profile_cluster_web_view(watchlist, categories):
@@ -55,7 +53,7 @@ def profile_characteristics_web_view(profile):
 
 def console_view(dataframe):
     with pl.Config(tbl_rows=40):
-        print(dataframe.head(25).select(["title", "genres"]))
+        print(dataframe.head(25).select(["title", "genres", "tags"]))
 
     # For debug purposes
     # dataframe.sort("id").write_excel()

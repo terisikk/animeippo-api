@@ -32,3 +32,41 @@ and run redis with
 and add the container to the correct network with
 
 `docker network connect animeippo-network [redis-stack-server]`.
+
+# Cache Pre-loading (Production)
+
+For optimal performance, the cache should be pre-loaded with upcoming anime data. This is especially important in production to ensure users get instant responses.
+
+## Pre-loading Script
+
+The pre-loading script fetches and caches:
+- Full year of anime for previous, current, and next year
+- Genre and tag collections from AniList API
+
+### Running in Docker Container
+
+Since production runs in a Docker container, execute the script inside the container:
+
+```bash
+# One-time manual execution
+docker exec -it <container-name> python scripts/preload_cache.py
+
+# Skip genre/tag collections (only pre-load yearly anime)
+docker exec -it <container-name> python scripts/preload_cache.py --skip-static
+```
+
+### Automated Nightly Pre-loading
+
+Set up a cron job on the Docker host to run the script nightly:
+
+```bash
+# Edit crontab on the host machine
+crontab -e
+
+# Add this line to run at 2 AM daily
+0 2 * * * docker exec <container-name> python scripts/preload_cache.py >> /var/log/animeippo-preload.log 2>&1
+```
+
+Replace `<container-name>` with your actual container name.
+
+**Note**: The script requires Redis to be running and will exit with error code 1 if Redis is not available.

@@ -17,16 +17,10 @@ cors = CORS(app, origins="http://localhost:3000")
 recommender = recommender_builder.build_recommender("anilist")
 profiler = analyser.ProfileAnalyser(recommender.provider)
 
-# Pre-fetch the current year anime to cache
-current_year = datetime.datetime.now().year
-recommender.recommend_seasonal_anime(current_year, None, None)
-
 
 def cleanup_connections():
     """Close provider connections on app shutdown."""
-    if hasattr(recommender.provider, "connection") and hasattr(
-        recommender.provider.connection, "close"
-    ):
+    if hasattr(recommender.provider, "connection") and hasattr(recommender.provider.connection, "close"):
         # Close the connection synchronously at shutdown
         asyncio.run(recommender.provider.connection.close())
 
