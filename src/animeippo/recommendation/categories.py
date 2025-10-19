@@ -22,7 +22,7 @@ class ContinueWatchingCategory:
             & (pl.col("user_status").ne_missing("completed"))
         ) | (pl.col("user_status") == "paused")
 
-        return dataset.recommendations.filter(mask).sort("final_score", descending=True)[
+        return dataset.recommendations.filter(mask).sort("recommend_score", descending=True)[
             0:max_items
         ]
 
@@ -66,7 +66,7 @@ class SourceCategory:
             case _:
                 self.description = "Based on a " + str.title(best_source)
 
-        return dataset.recommendations.filter(mask).sort("final_score", descending=True)[
+        return dataset.recommendations.filter(mask).sort("adjusted_score", descending=True)[
             0:max_items
         ]
 
@@ -82,7 +82,7 @@ class StudioCategory:
         )
 
         return dataset.recommendations.filter(mask).sort(
-            [scoring.StudioCorrelationScorer.name, "final_score"], descending=[True, True]
+            [scoring.StudioCorrelationScorer.name, "recommend_score"], descending=[True, True]
         )[0:max_items]
 
 
@@ -105,7 +105,7 @@ class GenreCategory:
 
             self.description = genre
 
-            return dataset.recommendations.filter(mask).sort("final_score", descending=True)[
+            return dataset.recommendations.filter(mask).sort("adjusted_score", descending=True)[
                 0:max_items
             ]
 
@@ -122,7 +122,7 @@ class YourTopPicksCategory:
             & (pl.col("status").is_in(["releasing", "finished"]))
         )
 
-        return dataset.recommendations.filter(mask).sort("final_score", descending=True)[
+        return dataset.recommendations.filter(mask).sort("recommend_score", descending=True)[
             0:max_items
         ]
 
@@ -138,7 +138,7 @@ class TopUpcomingCategory:
         )
 
         return dataset.recommendations.filter(mask).sort(
-            by=["season_year", "season", "final_score"], descending=[False, False, True]
+            by=["season_year", "season", "recommend_score"], descending=[False, False, True]
         )[0:max_items]
 
 
@@ -186,7 +186,7 @@ class SimulcastsCategory:
         year, season = meta.get_current_anime_season()
         mask = (pl.col("season_year") == year) & (pl.col("season") == season)
 
-        return dataset.recommendations.filter(mask).sort(by=["final_score"], descending=[True])[
+        return dataset.recommendations.filter(mask).sort(by=["recommend_score"], descending=[True])[
             0:max_items
         ]
 
@@ -197,12 +197,12 @@ class PlanningCategory:
     def categorize(self, dataset, max_items=30):
         mask = pl.col("user_status") == "planning"
 
-        return dataset.recommendations.filter(mask).sort(by=["final_score"], descending=[True])[
+        return dataset.recommendations.filter(mask).sort(by=["recommend_score"], descending=[True])[
             0:max_items
         ]
 
 
-class DiscouragingWrapper:
+class DiversityAdjuster:
     DISCOURAGE_AMOUNT = 0.25
 
     def __init__(self, category):
@@ -210,7 +210,7 @@ class DiscouragingWrapper:
 
     def categorize(self, dataset, **kwargs):
         dataset.recommendations = dataset.recommendations.with_columns(
-            final_score=pl.col("recommend_score") * pl.col("discourage_score")
+            adjusted_score=pl.col("recommend_score") * pl.col("discourage_score")
         )
 
         result = self.category.categorize(dataset, **kwargs)
@@ -230,4 +230,4 @@ class DebugCategory:
     description = "Debug"
 
     def categorize(self, dataset, max_items=50):
-        return dataset.recommendations.sort("final_score", descending=True)[0:max_items]
+        return dataset.recommendations.sort("recommend_score", descending=True)[0:max_items]

@@ -33,21 +33,17 @@ class AnimeRecommendationEngine:
 
         if len(self.scorers) > 0:
             scoring_target_df = scoring_target_df.with_columns(
-                **{scorer.name: self.run_scorer(scorer, dataset) for scorer in self.scorers}
+                **{
+                    scorer.name: self.run_scorer(scorer, dataset) * getattr(scorer, "weight", 1.0)
+                    for scorer in self.scorers
+                }
             )
 
-            # Calculate weighted score
-            names = [scorer.name for scorer in self.scorers]
-            weights = [getattr(scorer, "weight", 1.0) for scorer in self.scorers]
-
-            # Weighted sum: multiply each score by its weight and sum
-            weighted_score = sum(
-                pl.col(name) * weight for name, weight in zip(names, weights, strict=True)
-            )
+            recommend_score = sum(scoring_target_df[scorer.name] for scorer in self.scorers)
 
             scoring_target_df = scoring_target_df.with_columns(
-                recommend_score=weighted_score,
-                final_score=weighted_score,
+                recommend_score=recommend_score,
+                adjusted_score=recommend_score,
                 discourage_score=1.0,
             )
 

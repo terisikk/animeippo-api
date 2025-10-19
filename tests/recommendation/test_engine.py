@@ -167,7 +167,7 @@ def test_categorize():
             "score": [123],
             "user_status": [None],
             "recommend_score": [1],
-            "final_score": [1],
+            "adjusted_score": [1],
         }
     )
 

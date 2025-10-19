@@ -1,3 +1,5 @@
+import os
+
 from animeippo.profiling.model import UserProfile
 from animeippo.recommendation.model import RecommendationModel
 
@@ -39,28 +41,32 @@ def get_default_scorers():
 
 
 def get_default_categorizers(distance_metric="jaccard"):
-    return [
+    categorizer_list = [
         categories.MostPopularCategory(),
         categories.SimulcastsCategory(),
         categories.ContinueWatchingCategory(),
         categories.YourTopPicksCategory(),
-        # categories.DebugCategory(),
         categories.TopUpcomingCategory(),
-        categories.DiscouragingWrapper(categories.GenreCategory(0)),
+        categories.DiversityAdjuster(categories.GenreCategory(0)),
         categories.AdaptationCategory(),
-        categories.DiscouragingWrapper(categories.GenreCategory(1)),
+        categories.DiversityAdjuster(categories.GenreCategory(1)),
         categories.PlanningCategory(),
-        categories.DiscouragingWrapper(categories.GenreCategory(2)),
+        categories.DiversityAdjuster(categories.GenreCategory(2)),
         categories.SourceCategory(),
-        categories.DiscouragingWrapper(categories.GenreCategory(3)),
+        categories.DiversityAdjuster(categories.GenreCategory(3)),
         categories.StudioCategory(),
-        categories.DiscouragingWrapper(categories.GenreCategory(4)),
+        categories.DiversityAdjuster(categories.GenreCategory(4)),
         categories.BecauseYouLikedCategory(0, distance_metric),
-        categories.DiscouragingWrapper(categories.GenreCategory(5)),
+        categories.DiversityAdjuster(categories.GenreCategory(5)),
         categories.BecauseYouLikedCategory(1, distance_metric),
-        categories.DiscouragingWrapper(categories.GenreCategory(6)),
+        categories.DiversityAdjuster(categories.GenreCategory(6)),
         categories.BecauseYouLikedCategory(2, distance_metric),
     ]
+
+    if os.getenv("DEBUG", "false").lower() == "true":
+        categorizer_list.insert(0, categories.DebugCategory())
+
+    return categorizer_list
 
 
 def build_recommender(providername):

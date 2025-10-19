@@ -22,11 +22,18 @@ def recommendations_web_view(dataframe, categories=None, tags_and_genres=None, d
     if debug:
         # Common scorer names
         scorer_fields = [
-            "recommend_score", "final_score",
-            "directscore", "featurecorrelationscore", "clusterscore",
-            "continuationscore", "adaptationscore", "popularityscore",
-            "genreaverage", "formatscore", "studiocorrelationscore",
-            "directorcorrelationscore"
+            "recommend_score",
+            "adjusted_score",
+            "directscore",
+            "featurecorrelationscore",
+            "clusterscore",
+            "continuationscore",
+            "adaptationscore",
+            "popularityscore",
+            "genreaverage",
+            "formatscore",
+            "studiocorrelationscore",
+            "directorcorrelationscore",
         ]
         fields.extend(scorer_fields)
 
@@ -69,7 +76,7 @@ def profile_characteristics_web_view(profile):
 
 def console_view(dataframe):
     with pl.Config(tbl_rows=40):
-        print(dataframe.sort("final_score", descending=True).head(25).select(["title"]))
+        print(dataframe.sort("recommend_score", descending=True).head(25).select(["title"]))
 
     # For debug purposes
     # dataframe.sort("id").write_excel()

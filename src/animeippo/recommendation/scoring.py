@@ -128,12 +128,7 @@ class FeatureCorrelationScorer(AbstractScorer):
         raw_score = positive_signal - negative_signal - self.LAMBDA * catalogue_baseline
         clamped_score = raw_score.clip(lower_bound=0.0)
 
-        # === 5. RANK NORMALIZATION ===
-        # If no variance (all zeros or all same), return clamped scores
-        if float((clamped_score > 0).mean()) == 0.0 or clamped_score.n_unique() <= 1:
-            return clamped_score
-
-        # Otherwise return percentile ranks: score_i = (rank(r+_i) - 1) / (N - 1)
+        # Return percentile ranks: score_i = (rank(r+_i) - 1) / (N - 1)
         return statistics.rank_series(clamped_score)
 
 

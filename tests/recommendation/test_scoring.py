@@ -430,7 +430,7 @@ def test_format_scorer():
         )
     ).sort("recommend_score", descending=True)
 
-    assert recommendations["title"].to_list() == ["Anime B", "Anime C", "Anime A"]
+    assert recommendations["title"].to_list() == ["Anime A", "Anime B", "Anime C"]
 
 
 def test_director_correlation_scorer():

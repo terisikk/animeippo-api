@@ -16,6 +16,24 @@ class EngineStub:
         return [[1, 2, 3]]
 
 
+class SimpleProviderStub:
+    """Provider stub without async context manager methods."""
+    def __init__(self):
+        pass
+
+    async def get_seasonal_anime_list(self, *args, **kwargs):
+        return pl.DataFrame(test_data.FORMATTED_MAL_SEASONAL_LIST)
+
+    async def get_user_anime_list(self, *args, **kwargs):
+        return pl.DataFrame(test_data.FORMATTED_MAL_USER_LIST)
+
+    async def get_user_manga_list(self, *args, **kwargs):
+        return pl.DataFrame()
+
+    def get_nsfw_tags(self):
+        return []
+
+
 def test_recommender_can_return_plain_seasonal_data():
     seasonal = pl.DataFrame(test_data.FORMATTED_MAL_SEASONAL_LIST)
 
@@ -165,3 +183,26 @@ async def test_recommender_context_manager_with_provider_cleanup():
 
     # After exiting, provider's __aexit__ should have been called
     assert provider.exited is True
+
+
+@pytest.mark.asyncio
+async def test_recommender_context_manager_without_provider_context_manager():
+    """Test that AnimeRecommender works when provider lacks async context manager methods.
+
+    This covers the case for MyAnimeListProvider and MixedProvider which don't
+    implement __aenter__ and __aexit__.
+    """
+    provider = SimpleProviderStub()
+    engine = EngineStub()
+
+    # Should work even though provider doesn't have __aenter__/__aexit__
+    async with recommender.AnimeRecommender(
+        provider=provider,
+        engine=engine,
+        recommendation_model_cls=RecommendationModel,
+        profile_model_cls=UserProfile,
+    ) as rec:
+        assert rec.provider is not None
+        assert rec.engine is not None
+
+    # No errors should occur - the hasattr checks should handle this gracefully

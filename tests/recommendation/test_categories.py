@@ -26,7 +26,7 @@ def test_continue_watching_category():
     recommendations = pl.DataFrame(
         {
             "continuationscore": [0, 0, 1],
-            "final_score": [0, 0, 1],
+            "recommend_score": [0, 0, 1],
             "user_status": ["in_progress", "completed", "in_progress"],
             "title": ["Test 1", "Test 2", "Test 3"],
         }
@@ -48,7 +48,7 @@ def test_source_category():
     recommendations = pl.DataFrame(
         {
             "directscore": [1, 2, 3],
-            "final_score": [1, 2, 3],
+            "adjusted_score": [1, 2, 3],
             "title": ["Test 1", "Test 2", "Test 3"],
             "source": ["manga", "manga", "ligh_novel"],
             "user_status": [None, None, None],
@@ -74,7 +74,7 @@ def test_source_category_defaults_to_manga_without_scores():
     recommendations = pl.DataFrame(
         {
             "directscore": [1, 2, 3],
-            "final_score": [1, 2, 3],
+            "adjusted_score": [1, 2, 3],
             "title": ["Test 1", "Test 2", "Test 3"],
             "source": ["manga", "manga", "ligh_novel"],
             "user_status": [None, None, None],
@@ -98,7 +98,7 @@ def test_source_category_descriptions():
     recommendations = pl.DataFrame(
         {
             "directscore": [1, 2, 3],
-            "final_score": [1, 2, 3],
+            "adjusted_score": [1, 2, 3],
             "title": ["Test 1", "Test 2", "Test 3"],
             "source": ["manga", "other", "original"],
             "user_status": [None, None, None],
@@ -131,7 +131,7 @@ def test_studio_category():
         {
             "studiocorrelationscore": [1, 3, 2],
             "formatscore": [1, 3, 2],
-            "final_score": [1, 3, 2],
+            "recommend_score": [1, 3, 2],
             "title": ["Test 1", "Test 2", "Test 3"],
             "user_status": [None, None, None],
         }
@@ -154,7 +154,7 @@ def test_your_top_picks_category():
             "user_status": [None, None, None],
             "status": ["releasing", "releasing", "releasing"],
             "continuationscore": [0, 0, 10],
-            "final_score": [2, 3, 1],
+            "recommend_score": [2, 3, 1],
         }
     )
 
@@ -182,7 +182,7 @@ def test_top_upcoming_category(mocker):
             "season_year": [2022, 2022, 2022, 2023],
             "season": ["summer", "winter", "summer", "spring"],
             "title": ["Test 1", "Test 2", "Test 3", "Test 4"],
-            "final_score": [0, 1, 2, 3],
+            "recommend_score": [0, 1, 2, 3],
             "continuationscore": [0, 0, 0, 0],
         }
     )
@@ -295,7 +295,7 @@ def test_simulcastscategory(mocker):
             "season_year": [2022, 2022, 2022],
             "season": ["summer", "summer", "winter"],
             "title": ["Test 1", "Test 2", "Test 3"],
-            "final_score": [0, 1, 2],
+            "recommend_score": [0, 1, 2],
             "continuationscore": [0, 0, 0],
         }
     )
@@ -319,7 +319,7 @@ def test_adapatation_category():
     recommendations = pl.DataFrame(
         {
             "adaptationscore": [0, 1, 1],
-            "final_score": [0, 0, 1],
+            "recommend_score": [0, 0, 1],
             "user_status": ["in_progress", "completed", "in_progress"],
             "title": ["Test 1", "Test 2", "Test 3"],
         }
@@ -352,7 +352,7 @@ def test_genre_category():
         {
             "genres": [["Action", "Fantasy"], ["Drama"], ["Action"]],
             "discourage_score": [1, 1, 1],
-            "final_score": [1, 1, 1],
+            "adjusted_score": [1, 1, 1],
             "title": ["Test 1", "Test 2", "Test 3"],
             "user_status": [None, None, None],
         }
@@ -398,7 +398,7 @@ def test_genre_category_can_cache_values():
         {
             "genres": [["Action", "Fantasy"], ["Drama"], ["Action"]],
             "discourage_score": [1, 1, 1],
-            "final_score": [1, 1, 1],
+            "adjusted_score": [1, 1, 1],
             "title": ["Test 1", "Test 2", "Test 3"],
             "user_status": [None, None, None],
         }
@@ -416,9 +416,16 @@ def test_genre_category_can_cache_values():
     assert cat.description == "Action"
 
 
-def test_discourage_wrapper():
-    cat = categories.YourTopPicksCategory()
-    dcat = categories.DiscouragingWrapper(cat)
+def test_diversity_adjuster():
+    class TestCategory:
+        description = "Test Category"
+
+        def categorize(self, dataset, max_items=None):
+            return dataset.recommendations.sort("adjusted_score", descending=True)[0:max_items]
+
+    cat = TestCategory()
+
+    dcat = categories.DiversityAdjuster(cat)
 
     recommendations = pl.DataFrame(
         {
@@ -428,8 +435,9 @@ def test_discourage_wrapper():
             "status": ["releasing", "releasing", "releasing"],
             "continuationscore": [0.0, 0.0, 0.0],
             "recommend_score": [2.0, 2.1, 1.99],
-            "final_score": [2.0, 2.1, 1.99],
+            "adjusted_score": [2.0, 2.1, 1.99],
             "discourage_score": [1.0, 1.0, 1.0],
+            "source": ["manga", "manga", "manga"],
         }
     )
 
@@ -455,7 +463,7 @@ def test_debug_category_returns_all_recommendations():
     recommendations = pl.DataFrame(
         {
             "title": ["Test 1", "Test 2", "Test 3"],
-            "final_score": [2.0, 2.1, 1.99],
+            "recommend_score": [2.0, 2.1, 1.99],
         }
     )
 
@@ -472,7 +480,7 @@ def test_planning_category():
         {
             "title": ["Test 1", "Test 2", "Test 3"],
             "user_status": [None, "planning", "in_progress"],
-            "final_score": [1, 1, 1],
+            "recommend_score": [1, 1, 1],
         }
     )
 
