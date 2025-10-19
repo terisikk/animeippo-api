@@ -1,7 +1,10 @@
 import asyncio
 import atexit
+import logging
+import os
 
 from aiohttp.client_exceptions import ClientError
+from dotenv import load_dotenv
 from flask import Flask, Response, request
 from flask_cors import CORS
 
@@ -9,9 +12,20 @@ from animeippo.profiling import analyser
 from animeippo.recommendation import recommender_builder
 from animeippo.view import views
 
+# Load environment variables from .env file
+load_dotenv("conf/prod.env")
+
 app = Flask(__name__)
 app.config["JSON_AS_ASCII"] = False
 cors = CORS(app, origins="http://localhost:3000")
+
+# Read debug mode from environment
+DEBUG = os.getenv("DEBUG", "false").lower() == "true"
+
+logging.basicConfig(level=logging.DEBUG if DEBUG else logging.INFO)
+logger = logging.getLogger(__name__)
+
+logger.info(f"Starting AnimeIppo in {'DEBUG' if DEBUG else 'PRODUCTION'} mode.")
 
 recommender = recommender_builder.build_recommender("anilist")
 profiler = analyser.ProfileAnalyser(recommender.provider)
@@ -71,6 +85,7 @@ def recommend_anime():
             None if only_categories else dataset.recommendations,
             categories,
             list(set(dataset.all_features) - set(dataset.nsfw_tags)),
+            debug=DEBUG,
         ),
         mimetype="application/json",
     )

@@ -1,5 +1,9 @@
 import polars as pl
 
+import logging
+
+logger = logging.getLogger(__name__)
+
 
 class AnimeRecommendationEngine:
     """Generates recommendations based on given scorers and categorizers. Optionally accepts
@@ -56,7 +60,7 @@ class AnimeRecommendationEngine:
         try:
             return scorer.score(dataset).fill_nan(0.0)
         except Exception as e:
-            print(f"Error in scorer {scorer.name}: {e}")
+            logger.exception(f"Error in scorer {scorer.name}: {e}")
             return 0.0
 
     def categorize_anime(self, data):

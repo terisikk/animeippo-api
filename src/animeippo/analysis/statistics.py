@@ -51,7 +51,9 @@ def weight_categoricals(dataframe, column):
     )
 
 
-def weight_encoded_categoricals_correlation(dataframe, column, features, against="score"):
+def weight_encoded_categoricals_correlation(
+    dataframe, column, features, against="score", header_name="name"
+):
     return (
         dataframe.filter(pl.col(against).is_not_null())
         .select(
@@ -61,7 +63,7 @@ def weight_encoded_categoricals_correlation(dataframe, column, features, against
         # One would think that .struct.unnest() would be faster, but it is not
         .unnest(column)
         .select(pl.corr(pl.exclude("score"), pl.col("score"), method="spearman"))
-        .transpose(include_header=True, header_name="name", column_names=["weight"])
+        .transpose(include_header=True, header_name=header_name, column_names=["weight"])
         .fill_nan(0.0)
     )
 
@@ -161,4 +163,21 @@ def get_descriptive_features(dataframe, feature_column, cluster_column, n_featur
             )  # Hack with top_k_by to get unique column names
         )
         .transpose(include_header=True, header_name="cluster")
+    )
+
+
+def catalogue_frequency(df: pl.DataFrame, list_col: str, value_col: str = "value") -> pl.DataFrame:
+    """
+    df[list_col] is a list column (e.g. 'genres' or 'features').
+    Returns: value, pc (catalogue share in current season, in [0,1])
+    """
+    total = df.height
+    return (
+        df.select(list_col)
+        .explode(list_col)
+        .group_by(list_col)
+        .count()
+        .rename({list_col: value_col, "count": "cnt"})
+        .with_columns((pl.col("cnt") / pl.lit(total)).alias("pc"))
+        .select([value_col, "pc"])
     )

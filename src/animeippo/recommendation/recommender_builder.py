@@ -32,7 +32,7 @@ def get_default_scorers():
         scoring.AdaptationScorer(weight=0.10),
         scoring.PopularityScorer(weight=0.10),
         scoring.GenreAverageScorer(weight=0.05),
-        scoring.FormatScorer(weight=0.03),
+        scoring.FormatScorer(weight=-0.3),  # Negative weight to penalize less preferred formats
         scoring.StudioCorrelationScorer(weight=0.02),
         scoring.DirectorCorrelationScorer(weight=0.02),
     ]

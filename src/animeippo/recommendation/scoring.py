@@ -20,37 +20,121 @@ class AbstractScorer(abc.ABC):
 
 
 class FeatureCorrelationScorer(AbstractScorer):
+    """Score items based on user feature correlations with debiasing.
+
+    Uses matrix formulation:
+    - Debiases common features via catalogue frequency
+    - Applies diminishing returns to long feature lists
+    - Combines positive signal, negative signal (dropped/paused), and catalogue baseline
+    - Returns rank-normalized scores in [0, 1]
+    """
+
     name = "featurecorrelationscore"
+
+    # Hyperparameters
+    BETA = 0.7  # Debias strength for common features (higher = more debiasing)
+    LAMBDA = 0.25  # Catalogue baseline strength (residual penalty for common features)
+    GAMMA = 0.5  # Diminishing returns exponent for long feature lists
+    EPSILON = 1e-6  # Numerical stability constant
 
     def score(self, data):
         scoring_target_df = data.seasonal
         compare_df = data.watchlist
 
-        score_correlations = statistics.weight_encoded_categoricals_correlation(
-            compare_df, "encoded", data.all_features
+        # Get user feature weights (positive signal from correlations)
+        user_positive_weights = statistics.weight_encoded_categoricals_correlation(
+            compare_df, "encoded", data.all_features, header_name="features"
         )
 
-        drop_correlations = statistics.weight_encoded_categoricals_correlation(
+        # Get negative signal from dropped/paused features
+        user_negative_weights = statistics.weight_encoded_categoricals_correlation(
             compare_df.with_columns(
                 dropped_or_paused=pl.col("user_status").is_in(["dropped", "paused"])
             ),
             "encoded",
             data.all_features,
-            "dropped_or_paused",
+            against="dropped_or_paused",
+            header_name="features",
         )
 
-        fdf = data.seasonal_explode_cached("features")
-
-        scores = (
-            statistics.weighted_sum_for_categorical_values(fdf, "features", score_correlations)
-            / scoring_target_df["features"].list.len().sqrt()
+        # Compute catalogue frequency c ∈ [0,1]^M
+        catalogue_frequency = statistics.catalogue_frequency(
+            scoring_target_df, "features", value_col="features"
         )
 
-        scores = scores - (
-            statistics.weighted_mean_for_categorical_values(fdf, "features", drop_correlations)
+        # === 1. DEBIAS POSITIVE WEIGHTS: w_tilde = w / (c^β + ε) ===
+        debiased_weights = (
+            user_positive_weights.join(
+                catalogue_frequency.with_columns(pl.col("features").cast(pl.Utf8)),
+                on="features",
+                how="left",
+            )
+            .with_columns(
+                pl.col("pc").fill_null(self.EPSILON),
+                debiased_weight=(pl.col("weight") / (pl.col("pc") ** self.BETA + self.EPSILON)),
+            )
+            .select(["features", "debiased_weight"])
+            .rename({"debiased_weight": "weight", "features": "name"})
         )
 
-        return statistics.rank_series(scores)
+        # === 2. COMPUTE DENOMINATORS ===
+        # n = number of features per item (vector of length N)
+        feature_count_per_item = scoring_target_df["features"].list.len().fill_null(0)
+
+        # d_pos = max(1, n^γ) -- diminishing returns for positive signal
+        denominator_positive = (
+            feature_count_per_item**self.GAMMA
+            if self.GAMMA != 0.5
+            else feature_count_per_item.sqrt()
+        ).replace(0, 1.0)
+
+        # d_mean = max(1, n) -- ensures baseline is a mean, not sum
+        denominator_mean = feature_count_per_item.replace(0, 1.0)
+
+        # Exploded features for aggregation (X matrix implicit in this representation)
+        features_exploded = data.seasonal_explode_cached("features")
+
+        # === 3. AGGREGATE SIGNALS ===
+        # p = (X @ w_tilde) / d_pos
+        positive_signal = (
+            statistics.weighted_sum_for_categorical_values(
+                features_exploded, "features", debiased_weights
+            )
+            / denominator_positive
+        )
+
+        # ng = (X @ d) / d_mean
+        negative_signal = (
+            statistics.weighted_sum_for_categorical_values(
+                features_exploded,
+                "features",
+                user_negative_weights.rename({"features": "name"}),
+                fillna=0.0,
+            )
+            / denominator_mean
+        )
+
+        # b = (X @ c) / d_mean -- catalogue baseline (expected mass from common features)
+        catalogue_baseline = (
+            statistics.weighted_sum_for_categorical_values(
+                features_exploded,
+                "features",
+                catalogue_frequency.rename({"pc": "weight", "features": "name"}),
+            )
+            / denominator_mean
+        )
+
+        # === 4. COMBINE AND CLAMP: r = p - ng - λ*b, r+ = max(0, r) ===
+        raw_score = positive_signal - negative_signal - self.LAMBDA * catalogue_baseline
+        clamped_score = raw_score.clip(lower_bound=0.0)
+
+        # === 5. RANK NORMALIZATION ===
+        # If no variance (all zeros or all same), return clamped scores
+        if float((clamped_score > 0).mean()) == 0.0 or clamped_score.n_unique() <= 1:
+            return clamped_score
+
+        # Otherwise return percentile ranks: score_i = (rank(r+_i) - 1) / (N - 1)
+        return statistics.rank_series(clamped_score)
 
 
 class GenreAverageScorer(AbstractScorer):
@@ -70,6 +154,9 @@ class GenreAverageScorer(AbstractScorer):
             )
             / scoring_target_df["genres"].list.len().sqrt()
         )
+
+        # Penalize scores with no genres
+        scores = scores - 0.05 * (scoring_target_df["genres"].list.len() == 0)
 
         return statistics.rank_series(scores)
 
@@ -152,9 +239,9 @@ class DirectSimilarityScorer(AbstractScorer):
             compare_df.select("id", "directscore"), left_on="idymax", right_on="id", how="left"
         )
 
-        return statistics.rank_series(
-            scores.select(pl.col("directscore") * pl.col("max"))["directscore"]
-        )
+        scores = scores.select(pl.col("directscore") * pl.col("max"))
+
+        return statistics.rank_series(scores["directscore"])
 
 
 class PopularityScorer(AbstractScorer):
@@ -274,40 +361,49 @@ class FormatScorer(AbstractScorer):
     def score(self, data):
         scoring_target_df = data.seasonal
 
-        FORMAT_MAPPING = {
-            "TV": 1.0,
-            "TV_SHORT": 0.8,
-            "MOVIE": 1.0,
-            "SPECIAL": 0.8,
-            "OVA": 1.0,
-            "ONA": 1.0,
-            "MUSIC": 0.2,
-            "MANGA": 1.0,
-            "NOVEL": 1.0,
-            "ONE_SHOT": 0.2,
+        BASE_PENALTY = {
+            "TV": 0.0,
+            "MOVIE": 0.0,
+            "OVA": 0.05,
+            "ONA": 0.05,
+            "SPECIAL": 0.25,
+            "TV_SHORT": 0.25,
+            "MUSIC": 0.80,
+            "ONE_SHOT": 0.50,
+            "MANGA": 0.0,  # if these appear in 'seasonal'
+            "NOVEL": 0.0,  # if these appear in 'seasonal'
         }
 
         CUTOFF = 0.75
+        EP50 = scoring_target_df["episodes"].median() or 12
+        DU50 = scoring_target_df["duration"].median() or 24
+        SHORTNESS_PENALTY = 0.2
 
-        scores = scoring_target_df.with_columns(
-            formatscore=pl.col("format").replace_strict(FORMAT_MAPPING, default=1)
+        out = (
+            scoring_target_df.with_columns(
+                penalty_base=pl.col("format")
+                .replace_strict(BASE_PENALTY, default=0.05)
+                .cast(pl.Float64),
+            )
+            .with_columns(
+                penalty=(
+                    pl.col("penalty_base")
+                    + pl.when(
+                        (
+                            (pl.col("episodes") < CUTOFF * EP50) & (pl.col("format") != "MOVIE")
+                        ).fill_null(False)
+                    )
+                    .then(SHORTNESS_PENALTY)
+                    .otherwise(0.0)
+                    + pl.when((pl.col("duration") < CUTOFF * DU50).fill_null(False))
+                    .then(SHORTNESS_PENALTY)
+                    .otherwise(0.0)
+                ).cast(pl.Float64)
+            )
+            .select(pl.col("penalty").clip(lower_bound=0.0, upper_bound=1.0))
         )
 
-        episodes_median = scoring_target_df["episodes"].median()
-        episodes_median = episodes_median if episodes_median is not None else 12
-
-        duration_median = scoring_target_df["duration"].median()
-        duration_median = duration_median if duration_median is not None else 24
-
-        scores = scores.with_columns(
-            formatscore=pl.when((pl.col("episodes") < (CUTOFF * episodes_median)))
-            .then(pl.col("formatscore") * 0.5)
-            .when(pl.col("duration") < (CUTOFF * duration_median))
-            .then(pl.col("formatscore") * 0.5)
-            .otherwise(pl.col("formatscore"))
-        )["formatscore"]
-
-        return statistics.rank_series(scores)
+        return out.get_column("penalty")
 
 
 class DirectorCorrelationScorer(AbstractScorer):

@@ -3,7 +3,7 @@ import json
 import polars as pl
 
 
-def recommendations_web_view(dataframe, categories=None, tags_and_genres=None):
+def recommendations_web_view(dataframe, categories=None, tags_and_genres=None, debug=False):
     tags_and_genres = tags_and_genres or []
 
     if dataframe is None:
@@ -15,7 +15,21 @@ def recommendations_web_view(dataframe, categories=None, tags_and_genres=None):
             }
         )
 
+    # Base fields to always include
     fields = ["id", "title", "cover_image", "genres", "tags", "status", "season_year", "season"]
+
+    # In debug mode, include all scorer columns and final scores
+    if debug:
+        # Common scorer names
+        scorer_fields = [
+            "recommend_score", "final_score",
+            "directscore", "featurecorrelationscore", "clusterscore",
+            "continuationscore", "adaptationscore", "popularityscore",
+            "genreaverage", "formatscore", "studiocorrelationscore",
+            "directorcorrelationscore"
+        ]
+        fields.extend(scorer_fields)
+
     filtered_fields = list(set(dataframe.columns).intersection(fields))
     df_json = dataframe.select(filtered_fields).to_dicts()
 
