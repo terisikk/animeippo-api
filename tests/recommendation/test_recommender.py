@@ -18,6 +18,7 @@ class EngineStub:
 
 class SimpleProviderStub:
     """Provider stub without async context manager methods."""
+
     def __init__(self):
         pass
 

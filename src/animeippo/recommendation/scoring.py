@@ -22,7 +22,6 @@ class AbstractScorer(abc.ABC):
 class FeatureCorrelationScorer(AbstractScorer):
     """Score items based on user feature correlations with debiasing.
 
-    Uses matrix formulation:
     - Debiases common features via catalogue frequency
     - Applies diminishing returns to long feature lists
     - Combines positive signal, negative signal (dropped/paused), and catalogue baseline
@@ -31,11 +30,17 @@ class FeatureCorrelationScorer(AbstractScorer):
 
     name = "featurecorrelationscore"
 
-    # Hyperparameters
     BETA = 0.7  # Debias strength for common features (higher = more debiasing)
     LAMBDA = 0.25  # Catalogue baseline strength (residual penalty for common features)
-    GAMMA = 0.5  # Diminishing returns exponent for long feature lists
-    EPSILON = 1e-6  # Numerical stability constant
+
+    # Diminishing returns exponent for long feature lists.
+    # Set GAMMA to < 0.5 for stronger diminishing returns for long lists
+    # or > 0.5 for weaker diminishing returns
+    GAMMA = 0.5
+
+    # Numerical stability constant for avoiding division by zero
+    # and stabilizing effect on very rare features
+    EPSILON = 1e-6
 
     def score(self, data):
         scoring_target_df = data.seasonal
@@ -57,12 +62,12 @@ class FeatureCorrelationScorer(AbstractScorer):
             header_name="features",
         )
 
-        # Compute catalogue frequency c ∈ [0,1]^M
+        # Compute catalogue frequency, i.e. P(feature)
         catalogue_frequency = statistics.catalogue_frequency(
             scoring_target_df, "features", value_col="features"
         )
 
-        # === 1. DEBIAS POSITIVE WEIGHTS: w_tilde = w / (c^β + ε) ===
+        # === 1. DEBIAS POSITIVE WEIGHTS  ===
         debiased_weights = (
             user_positive_weights.join(
                 catalogue_frequency.with_columns(pl.col("features").cast(pl.Utf8)),
@@ -78,24 +83,20 @@ class FeatureCorrelationScorer(AbstractScorer):
         )
 
         # === 2. COMPUTE DENOMINATORS ===
-        # n = number of features per item (vector of length N)
         feature_count_per_item = scoring_target_df["features"].list.len().fill_null(0)
 
-        # d_pos = max(1, n^γ) -- diminishing returns for positive signal
+        # diminishing returns for positive signal
         denominator_positive = (
             feature_count_per_item**self.GAMMA
-            if self.GAMMA != 0.5
+            if self.GAMMA != 0.5  # noqa: PLR2004 Use sqrt method for square root
             else feature_count_per_item.sqrt()
         ).replace(0, 1.0)
 
-        # d_mean = max(1, n) -- ensures baseline is a mean, not sum
         denominator_mean = feature_count_per_item.replace(0, 1.0)
 
-        # Exploded features for aggregation (X matrix implicit in this representation)
         features_exploded = data.seasonal_explode_cached("features")
 
         # === 3. AGGREGATE SIGNALS ===
-        # p = (X @ w_tilde) / d_pos
         positive_signal = (
             statistics.weighted_sum_for_categorical_values(
                 features_exploded, "features", debiased_weights
@@ -103,7 +104,6 @@ class FeatureCorrelationScorer(AbstractScorer):
             / denominator_positive
         )
 
-        # ng = (X @ d) / d_mean
         negative_signal = (
             statistics.weighted_sum_for_categorical_values(
                 features_exploded,
@@ -114,7 +114,7 @@ class FeatureCorrelationScorer(AbstractScorer):
             / denominator_mean
         )
 
-        # b = (X @ c) / d_mean -- catalogue baseline (expected mass from common features)
+        # catalogue baseline (expected mass from common features)
         catalogue_baseline = (
             statistics.weighted_sum_for_categorical_values(
                 features_exploded,
@@ -124,11 +124,10 @@ class FeatureCorrelationScorer(AbstractScorer):
             / denominator_mean
         )
 
-        # === 4. COMBINE AND CLAMP: r = p - ng - λ*b, r+ = max(0, r) ===
+        # === 4. COMBINE AND CLAMP ===
         raw_score = positive_signal - negative_signal - self.LAMBDA * catalogue_baseline
         clamped_score = raw_score.clip(lower_bound=0.0)
 
-        # Return percentile ranks: score_i = (rank(r+_i) - 1) / (N - 1)
         return statistics.rank_series(clamped_score)
 
 

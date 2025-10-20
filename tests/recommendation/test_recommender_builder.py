@@ -1,5 +1,3 @@
-import os
-
 from animeippo import providers
 from animeippo.recommendation import categories, recommender_builder
 
