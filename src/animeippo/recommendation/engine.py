@@ -2,6 +2,8 @@ import logging
 
 import polars as pl
 
+from animeippo.recommendation.ranking import RankingOrchestrator
+
 logger = logging.getLogger(__name__)
 
 
@@ -60,16 +62,8 @@ class AnimeRecommendationEngine:
             return 0.0
 
     def categorize_anime(self, data):
-        cats = []
-
-        for grouper in self.categorizers:
-            group = grouper.categorize(data)
-
-            if group is not None and len(group) > 0:
-                items = group["id"].to_list()
-                cats.append({"name": grouper.description, "items": items})
-
-        return cats
+        orchestrator = RankingOrchestrator()
+        return orchestrator.render(data, self.categorizers)
 
     def add_scorer(self, scorer):
         self.scorers.append(scorer)

@@ -42,25 +42,25 @@ def get_default_scorers():
 
 def get_default_categorizers(distance_metric="jaccard"):
     categorizer_list = [
-        categories.MostPopularCategory(),
-        categories.SimulcastsCategory(),
-        categories.ContinueWatchingCategory(),
-        categories.YourTopPicksCategory(),
-        categories.TopUpcomingCategory(),
-        categories.DiversityAdjuster(categories.GenreCategory(0)),
-        categories.AdaptationCategory(),
-        categories.DiversityAdjuster(categories.GenreCategory(1)),
-        categories.PlanningCategory(),
-        categories.DiversityAdjuster(categories.GenreCategory(2)),
-        categories.SourceCategory(),
-        categories.DiversityAdjuster(categories.GenreCategory(3)),
-        categories.StudioCategory(),
-        categories.DiversityAdjuster(categories.GenreCategory(4)),
-        categories.BecauseYouLikedCategory(0, distance_metric),
-        categories.DiversityAdjuster(categories.GenreCategory(5)),
-        categories.BecauseYouLikedCategory(1, distance_metric),
-        categories.DiversityAdjuster(categories.GenreCategory(6)),
-        categories.BecauseYouLikedCategory(2, distance_metric),
+        categories.MostPopularCategory(),  # 20
+        categories.SimulcastsCategory(),  # 30
+        categories.ContinueWatchingCategory(),  # all
+        categories.YourTopPicksCategory(),  # 25
+        categories.TopUpcomingCategory(),  # 25
+        categories.GenreCategory(0),  # all
+        categories.AdaptationCategory(),  # all
+        categories.GenreCategory(1),  # all
+        categories.PlanningCategory(),  # 30
+        categories.GenreCategory(2),  # all
+        categories.SourceCategory(),  # 25
+        categories.GenreCategory(3),  # all
+        categories.StudioCategory(),  # 25
+        categories.GenreCategory(4),  # all
+        categories.BecauseYouLikedCategory(0, distance_metric),  # 20
+        categories.GenreCategory(5),  # all
+        categories.BecauseYouLikedCategory(1, distance_metric),  # 20
+        categories.GenreCategory(6),  # all
+        categories.BecauseYouLikedCategory(2, distance_metric),  # 20
     ]
 
     if os.getenv("DEBUG", "false").lower() == "true":

@@ -15,9 +15,10 @@ def test_most_popular_category():
     data = RecommendationModel(None, None, None)
     data.recommendations = recommendations
 
-    actual = cat.categorize(data)
+    mask, sorting_info = cat.categorize(data)
 
-    assert actual["title"].to_list() == ["Test 2", "Test 1", "Test 3"]
+    result = recommendations.filter(mask).sort(**sorting_info)
+    assert result["title"].to_list() == ["Test 2", "Test 1", "Test 3"]
 
 
 def test_continue_watching_category():
@@ -35,9 +36,10 @@ def test_continue_watching_category():
     data = RecommendationModel(None, None, None)
     data.recommendations = recommendations
 
-    actual = cat.categorize(data)
+    mask, sorting_info = cat.categorize(data)
 
-    assert actual["title"].to_list() == ["Test 3"]
+    result = recommendations.filter(mask).sort(**sorting_info)
+    assert result["title"].to_list() == ["Test 3"]
 
 
 def test_source_category():
@@ -59,9 +61,10 @@ def test_source_category():
     data = RecommendationModel(uprofile, None, None)
     data.recommendations = recommendations
 
-    actual = cat.categorize(data)
+    mask, sorting_info = cat.categorize(data)
 
-    assert actual["title"].to_list() == ["Test 2", "Test 1"]
+    result = recommendations.filter(mask).sort(**sorting_info)
+    assert result["title"].to_list() == ["Test 2", "Test 1"]
 
 
 def test_source_category_defaults_to_manga_without_scores():
@@ -85,9 +88,10 @@ def test_source_category_defaults_to_manga_without_scores():
     data = RecommendationModel(uprofile, None, None)
     data.recommendations = recommendations
 
-    actual = cat.categorize(data)
+    mask, sorting_info = cat.categorize(data)
 
-    assert actual["title"].to_list() == ["Test 2", "Test 1"]
+    result = recommendations.filter(mask).sort(**sorting_info)
+    assert result["title"].to_list() == ["Test 2", "Test 1"]
 
 
 def test_source_category_descriptions():
@@ -140,9 +144,10 @@ def test_studio_category():
     data = RecommendationModel(None, None, None)
     data.recommendations = recommendations
 
-    actual = cat.categorize(data)
+    mask, sorting_info = cat.categorize(data)
 
-    assert actual["title"].to_list() == ["Test 2", "Test 3", "Test 1"]
+    result = recommendations.filter(mask).sort(**sorting_info)
+    assert result["title"].to_list() == ["Test 2", "Test 3", "Test 1"]
 
 
 def test_your_top_picks_category():
@@ -161,9 +166,10 @@ def test_your_top_picks_category():
     data = RecommendationModel(None, None, None)
     data.recommendations = recommendations
 
-    actual = cat.categorize(data)
+    mask, sorting_info = cat.categorize(data)
 
-    assert actual["title"].to_list() == ["Test 2", "Test 1"]
+    result = recommendations.filter(mask).sort(**sorting_info)
+    assert result["title"].to_list() == ["Test 2", "Test 1"]
 
 
 def test_top_upcoming_category(mocker):
@@ -190,9 +196,10 @@ def test_top_upcoming_category(mocker):
     data = RecommendationModel(None, None, None)
     data.recommendations = recommendations
 
-    actual = cat.categorize(data)
+    mask, sorting_info = cat.categorize(data)
 
-    assert actual["title"].to_list() == ["Test 1", "Test 4"]
+    result = recommendations.filter(mask).sort(**sorting_info)
+    assert result["title"].to_list() == ["Test 1", "Test 4"]
 
 
 def test_because_you_liked():
@@ -235,9 +242,10 @@ def test_because_you_liked():
         }
     )
 
-    actual = cat.categorize(data)["id"].to_list()
+    mask, sorting_info = cat.categorize(data)
 
-    assert actual == [3, 5, 4]
+    result = recommendations.filter(mask).sort(**sorting_info)
+    assert result["id"].to_list() == [3, 5, 4]
     assert cat.description == "Because You Liked W2"
 
 
@@ -252,9 +260,10 @@ def test_because_you_liked_does_not_raise_error_with_empty_likes():
     data = RecommendationModel(uprofile, None, None)
     data.recommendations = watchlist
 
-    actual = cat.categorize(data)
+    mask, sorting_info = cat.categorize(data)
 
-    assert actual is None
+    assert mask is False
+    assert sorting_info == {}
 
 
 def test_because_you_liked_does_not_raise_error_with_missing_similarity():
@@ -282,9 +291,10 @@ def test_because_you_liked_does_not_raise_error_with_missing_similarity():
         }
     )
 
-    actual = cat.categorize(data)
+    mask, sorting_info = cat.categorize(data)
 
-    assert actual is None
+    assert mask is False
+    assert sorting_info == {}
 
 
 def test_simulcastscategory(mocker):
@@ -308,9 +318,10 @@ def test_simulcastscategory(mocker):
     data = RecommendationModel(None, None, None)
     data.recommendations = recommendations
 
-    actual = cat.categorize(data)
+    mask, sorting_info = cat.categorize(data)
 
-    assert actual["title"].to_list() == ["Test 2", "Test 1"]
+    result = recommendations.filter(mask).sort(**sorting_info)
+    assert result["title"].to_list() == ["Test 2", "Test 1"]
 
 
 def test_adapatation_category():
@@ -328,9 +339,10 @@ def test_adapatation_category():
     data = RecommendationModel(None, None, None)
     data.recommendations = recommendations
 
-    actual = cat.categorize(data)
+    mask, sorting_info = cat.categorize(data)
 
-    assert actual["title"].to_list() == ["Test 3"]
+    result = recommendations.filter(mask).sort(**sorting_info)
+    assert result["title"].to_list() == ["Test 3"]
 
 
 def test_genre_category():
@@ -353,6 +365,7 @@ def test_genre_category():
             "genres": [["Action", "Fantasy"], ["Drama"], ["Action"]],
             "discourage_score": [1, 1, 1],
             "adjusted_score": [1, 1, 1],
+            "recommend_score": [1, 1, 1],
             "title": ["Test 1", "Test 2", "Test 3"],
             "user_status": [None, None, None],
         }
@@ -362,9 +375,10 @@ def test_genre_category():
     data = RecommendationModel(uprofile, None, None)
     data.recommendations = recommendations
 
-    actual = cat.categorize(data)
+    mask, sorting_info = cat.categorize(data)
 
-    assert actual["title"].to_list() == ["Test 1", "Test 3"]
+    result = recommendations.filter(mask).sort(**sorting_info)
+    assert result["title"].to_list() == ["Test 1", "Test 3"]
     assert cat.description == "Action"
 
 
@@ -386,9 +400,10 @@ def test_genre_category_returns_none_for_too_big_genre_number():
     uprofile = UserProfile("Test", watchlist)
     data = RecommendationModel(uprofile, None, None)
 
-    actual = cat.categorize(data)
+    mask, sorting_info = cat.categorize(data)
 
-    assert actual is None
+    assert mask is False
+    assert sorting_info == {}
 
 
 def test_genre_category_can_cache_values():
@@ -399,6 +414,7 @@ def test_genre_category_can_cache_values():
             "genres": [["Action", "Fantasy"], ["Drama"], ["Action"]],
             "discourage_score": [1, 1, 1],
             "adjusted_score": [1, 1, 1],
+            "recommend_score": [1, 1, 1],
             "title": ["Test 1", "Test 2", "Test 3"],
             "user_status": [None, None, None],
         }
@@ -410,51 +426,148 @@ def test_genre_category_can_cache_values():
     data = RecommendationModel(uprofile, None, None)
     data.recommendations = recommendations
 
-    actual = cat.categorize(data)
+    mask, sorting_info = cat.categorize(data)
 
-    assert actual["title"].to_list() == ["Test 1", "Test 3"]
+    result = recommendations.filter(mask).sort(**sorting_info)
+    assert result["title"].to_list() == ["Test 1", "Test 3"]
     assert cat.description == "Action"
 
 
-def test_diversity_adjuster():
-    class TestCategory:
-        description = "Test Category"
-
-        def categorize(self, dataset, max_items=None):
-            return dataset.recommendations.sort("adjusted_score", descending=True)[0:max_items]
-
-    cat = TestCategory()
-
-    dcat = categories.DiversityAdjuster(cat)
+def test_ranking_orchestrator_diversity_adjustment():
+    from animeippo.recommendation.ranking import RankingOrchestrator
 
     recommendations = pl.DataFrame(
         {
             "id": [1, 2, 3],
             "title": ["Test 1", "Test 2", "Test 3"],
-            "user_status": [None, None, None],
-            "status": ["releasing", "releasing", "releasing"],
-            "continuationscore": [0.0, 0.0, 0.0],
             "recommend_score": [2.0, 2.1, 1.99],
-            "adjusted_score": [2.0, 2.1, 1.99],
-            "discourage_score": [1.0, 1.0, 1.0],
-            "source": ["manga", "manga", "manga"],
+        }
+    )
+
+    orchestrator = RankingOrchestrator()
+
+    # Initialize diversity adjustment
+    orchestrator.diversity_adjustment = pl.DataFrame(
+        {
+            "id": recommendations["id"],
+            "diversity_adjustment": 0,
+        }
+    )
+
+    # First call - should return items in order of recommend_score
+    result_ids = orchestrator.adjust_by_diversity(recommendations, top_n=2)
+
+    assert result_ids == [2, 1]  # IDs of Test 2 and Test 1
+    assert orchestrator.diversity_adjustment["diversity_adjustment"].to_list() == [0.25, 0.25, 0]
+
+    # Second call - items 1 and 2 are discouraged, so Test 3 should come up
+    result_ids = orchestrator.adjust_by_diversity(recommendations, top_n=2)
+
+    assert result_ids == [3, 2]  # Test 3 (id=3) now scores higher, Test 2 (id=2) still second
+    assert orchestrator.diversity_adjustment["diversity_adjustment"].to_list() == [0.25, 0.5, 0.25]
+
+
+def test_ranking_orchestrator_render_with_diversity_adjusted_categories():
+    from animeippo.recommendation.ranking import RankingOrchestrator
+
+    watchlist = pl.DataFrame(
+        {
+            "genres": [["Action", "Drama"], ["Action", "Comedy"], ["Action"]],
+            "user_status": ["completed", "completed", "completed"],
+            "score": [10, 9, 10],
+        }
+    )
+
+    recommendations = pl.DataFrame(
+        {
+            "id": [1, 2, 3, 4],
+            "title": ["Action 1", "Action 2", "Drama 1", "Comedy 1"],
+            "genres": [["Action"], ["Action"], ["Drama"], ["Comedy"]],
+            "recommend_score": [2.0, 1.9, 1.8, 1.7],
+            "user_status": [None, None, None, None],
+        }
+    )
+
+    uprofile = UserProfile("Test", watchlist)
+    data = RecommendationModel(uprofile, None, None)
+    data.recommendations = recommendations
+
+    # Create genre categories that will be diversity-adjusted
+    # GenreCategory picks genre by correlation score
+    genre_cat_1 = categories.GenreCategory(0)  # First genre
+    genre_cat_2 = categories.GenreCategory(0)  # Same genre again
+
+    orchestrator = RankingOrchestrator()
+    result = orchestrator.render(data, [genre_cat_1, genre_cat_2])
+
+    # Both categories should be rendered
+    assert len(result) == 2
+    assert result[0]["name"] == result[1]["name"]  # Same genre
+
+    # Both should have items (diversity adjustment applied)
+    assert len(result[0]["items"]) > 0
+    assert len(result[1]["items"]) > 0
+
+
+def test_ranking_orchestrator_render_with_non_diversity_adjusted_categories():
+    from animeippo.recommendation.ranking import RankingOrchestrator
+
+    recommendations = pl.DataFrame(
+        {
+            "id": [1, 2, 3],
+            "title": ["Test 1", "Test 2", "Test 3"],
+            "recommend_score": [2.0, 2.1, 1.99],
+            "popularityscore": [1.0, 2.0, 3.0],
         }
     )
 
     data = RecommendationModel(None, None, None)
     data.recommendations = recommendations
 
-    actual = dcat.categorize(data, max_items=2)
+    # MostPopularCategory is not in diversity_adjusted_categories
+    popular_cat = categories.MostPopularCategory()
 
-    assert actual["title"].to_list() == ["Test 2", "Test 1"]
-    assert data.recommendations["discourage_score"].to_list() == [0.75, 0.75, 1]
+    orchestrator = RankingOrchestrator()
+    result = orchestrator.render(data, [popular_cat])
 
-    actual = dcat.categorize(data, max_items=2)
+    assert len(result) == 1
+    assert result[0]["name"] == "Most Popular for This Year"
+    # Should return top 25 items (or all if less than 25)
+    assert result[0]["items"] == [3, 2, 1]  # Sorted by popularityscore descending
 
-    assert actual["title"].to_list() == ["Test 3", "Test 2"]
 
-    assert dcat.description == cat.description
-    assert data.recommendations["discourage_score"].to_list() == [0.75, 0.5, 0.75]
+def test_ranking_orchestrator_render_skips_empty_categories():
+    from animeippo.recommendation.ranking import RankingOrchestrator
+
+    watchlist = pl.DataFrame(
+        {
+            "id": [1, 2],
+            "score": [1, 1],
+            "user_complete_date": [1, 2],
+            "user_status": [None, None],
+        }
+    )
+
+    recommendations = pl.DataFrame(
+        {
+            "id": [3, 4],
+            "title": ["Test 1", "Test 2"],
+            "recommend_score": [2.0, 1.0],
+        }
+    )
+
+    uprofile = UserProfile("Test", watchlist)
+    data = RecommendationModel(uprofile, None, None)
+    data.recommendations = recommendations
+
+    # BecauseYouLikedCategory will return (False, {}) if no liked items
+    empty_cat = categories.BecauseYouLikedCategory(99)
+
+    orchestrator = RankingOrchestrator()
+    result = orchestrator.render(data, [empty_cat])
+
+    # Should skip the empty category
+    assert len(result) == 0
 
 
 def test_debug_category_returns_all_recommendations():
@@ -470,7 +583,10 @@ def test_debug_category_returns_all_recommendations():
     data = RecommendationModel(None, None, None)
     data.recommendations = recommendations
 
-    assert cat.categorize(data)["title"].to_list() == ["Test 2", "Test 1", "Test 3"]
+    mask, sorting_info = cat.categorize(data)
+
+    result = recommendations.filter(mask).sort(**sorting_info)
+    assert result["title"].to_list() == ["Test 2", "Test 1", "Test 3"]
 
 
 def test_planning_category():
@@ -487,6 +603,7 @@ def test_planning_category():
     data = RecommendationModel(None, None, None)
     data.recommendations = recommendations
 
-    actual = cat.categorize(data)
+    mask, sorting_info = cat.categorize(data)
 
-    assert actual["title"].to_list() == ["Test 2"]
+    result = recommendations.filter(mask).sort(**sorting_info)
+    assert result["title"].to_list() == ["Test 2"]
