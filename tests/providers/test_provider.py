@@ -34,10 +34,9 @@ def test_new_provider_can_be_instantiated():
 
 
 def test_new_provider_subclassing_fails_with_missing_methods():
+    class ConcreteAnimeProvider(abstract_provider.AbstractAnimeProvider):
+        def __init__(self):
+            pass
+
     with pytest.raises(TypeError):
-
-        class ConcreteAnimeProvider(abstract_provider.AbstractAnimeProvider):
-            def __init__(self):
-                pass
-
         ConcreteAnimeProvider()

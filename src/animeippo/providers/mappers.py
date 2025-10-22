@@ -60,7 +60,7 @@ class MultiMapper:
         self.default = default
 
     def map(self, dataframe):
-        if any((column not in dataframe.columns for column in self.columns)):
+        if any(column not in dataframe.columns for column in self.columns):
             return pl.lit(self.default)
 
         return dataframe.select(self.columns).map_rows(self.row_wrapper).to_series()

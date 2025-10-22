@@ -10,6 +10,7 @@ lint:
 
 .PHONY: format
 format:
+    uv run ruff check . --select I --fix
 	uv run ruff format .
 
 # Lcov report included for vscode coverage

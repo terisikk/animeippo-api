@@ -2,20 +2,20 @@ import logging
 
 import polars as pl
 
-from animeippo.recommendation.ranking import RankingOrchestrator
-
 logger = logging.getLogger(__name__)
 
 
 class AnimeRecommendationEngine:
-    """Generates recommendations based on given scorers and categorizers. Optionally accepts
-    a custom clustering model and feature encoder."""
+    """Generates recommendations based on given scorers and ranking orchestrator.
 
-    def __init__(self, clustering_model, encoder, scorers=None, categorizers=None):
+    Optionally accepts a custom clustering model and feature encoder.
+    """
+
+    def __init__(self, clustering_model, encoder, scorers=None, ranking_orchestrator=None):
         self.clustering_model = clustering_model
         self.encoder = encoder
         self.scorers = scorers or []
-        self.categorizers = categorizers or []
+        self.ranking_orchestrator = ranking_orchestrator
 
     def fit_predict(self, dataset):
         dataset.fit(self.encoder, self.clustering_model)
@@ -62,11 +62,9 @@ class AnimeRecommendationEngine:
             return 0.0
 
     def categorize_anime(self, data):
-        orchestrator = RankingOrchestrator()
-        return orchestrator.render(data, self.categorizers)
+        if self.ranking_orchestrator is None:
+            raise RuntimeError("No ranking orchestrator configured for engine.")
+        return self.ranking_orchestrator.render(data)
 
     def add_scorer(self, scorer):
         self.scorers.append(scorer)
-
-    def add_categorizer(self, categorizer):
-        self.categorizers.append(categorizer)

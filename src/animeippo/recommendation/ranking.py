@@ -13,11 +13,25 @@ class RankingOrchestrator:
     # FIXME: Maybe use a better syntax than type checking here?
     diversity_adjusted_categories = [categories.GenreCategory]  # noqa RUF012
 
-    def render(self, data, categories):
-        """Render the recommendations dataframe with adjusted scores."""
+    def __init__(self, categorizers_with_limits):
+        """Initialize with list of (category, top_n) tuples.
 
+        Args:
+            categorizers_with_limits: List of (category, top_n) tuples where
+                top_n is the maximum number of items to return (None for no limit)
+        """
+        self.categorizers_with_limits = categorizers_with_limits
+
+    def render(self, data):
+        """Render categories with their configured limits.
+
+        Args:
+            data: RecommendationModel with recommendations dataframe
+
+        Returns:
+            List of {"name": str, "items": [ids]} dicts
+        """
         rendered_categories = []
-
         recommendations_df = data.recommendations
 
         self.diversity_adjustment = pl.DataFrame(
@@ -27,21 +41,18 @@ class RankingOrchestrator:
             }
         )
 
-        for category in categories:
+        for category, top_n in self.categorizers_with_limits:
             mask, sorting_info = category.categorize(data)
 
-            # Skip categories that returned False (no results)
             if mask is False:
                 continue
 
+            filtered_sorted = recommendations_df.filter(mask).sort(**sorting_info)
+
             if type(category) in self.diversity_adjusted_categories:
-                item_ids = self.adjust_by_diversity(
-                    recommendations_df.filter(mask).sort(**sorting_info), top_n=None
-                )
+                item_ids = self.adjust_by_diversity(filtered_sorted, top_n=top_n)
             else:
-                item_ids = (
-                    recommendations_df.filter(mask).sort(**sorting_info)["id"][0:25].to_list()
-                )
+                item_ids = filtered_sorted["id"][0:top_n].to_list()
 
             rendered_categories.append({"name": category.description, "items": item_ids})
 

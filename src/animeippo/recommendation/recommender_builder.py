@@ -7,6 +7,7 @@ from .. import cache, providers
 from ..analysis import encoding
 from ..clustering import model
 from . import categories, engine, scoring
+from .ranking import RankingOrchestrator
 from .recommender import AnimeRecommender
 
 
@@ -41,30 +42,36 @@ def get_default_scorers():
 
 
 def get_default_categorizers(distance_metric="jaccard"):
+    """Get default categorizers with their top_n limits.
+
+    Returns list of (category, top_n) tuples where:
+    - top_n=None means no limit (diversity-adjusted categories)
+    - top_n=N means return top N items
+    """
     categorizer_list = [
-        categories.MostPopularCategory(),  # 20
-        categories.SimulcastsCategory(),  # 30
-        categories.ContinueWatchingCategory(),  # all
-        categories.YourTopPicksCategory(),  # 25
-        categories.TopUpcomingCategory(),  # 25
-        categories.GenreCategory(0),  # all
-        categories.AdaptationCategory(),  # all
-        categories.GenreCategory(1),  # all
-        categories.PlanningCategory(),  # 30
-        categories.GenreCategory(2),  # all
-        categories.SourceCategory(),  # 25
-        categories.GenreCategory(3),  # all
-        categories.StudioCategory(),  # 25
-        categories.GenreCategory(4),  # all
-        categories.BecauseYouLikedCategory(0, distance_metric),  # 20
-        categories.GenreCategory(5),  # all
-        categories.BecauseYouLikedCategory(1, distance_metric),  # 20
-        categories.GenreCategory(6),  # all
-        categories.BecauseYouLikedCategory(2, distance_metric),  # 20
+        (categories.MostPopularCategory(), 20),
+        (categories.SimulcastsCategory(), 30),
+        (categories.ContinueWatchingCategory(), None),
+        (categories.YourTopPicksCategory(), 25),
+        (categories.TopUpcomingCategory(), 25),
+        (categories.GenreCategory(0), None),
+        (categories.AdaptationCategory(), None),
+        (categories.GenreCategory(1), None),
+        (categories.PlanningCategory(), 30),
+        (categories.GenreCategory(2), None),
+        (categories.SourceCategory(), 25),
+        (categories.GenreCategory(3), None),
+        (categories.StudioCategory(), 25),
+        (categories.GenreCategory(4), None),
+        (categories.BecauseYouLikedCategory(0, distance_metric), 20),
+        (categories.GenreCategory(5), None),
+        (categories.BecauseYouLikedCategory(1, distance_metric), 20),
+        (categories.GenreCategory(6), None),
+        (categories.BecauseYouLikedCategory(2, distance_metric), 20),
     ]
 
     if os.getenv("DEBUG", "false").lower() == "true":
-        categorizer_list.insert(0, categories.DebugCategory())
+        categorizer_list.insert(0, (categories.DebugCategory(), None))
 
     return categorizer_list
 
@@ -101,7 +108,7 @@ def build_recommender(providername):
                     ),
                     encoding.WeightedCategoricalEncoder(),
                     get_default_scorers(),
-                    get_default_categorizers(metric),
+                    RankingOrchestrator(get_default_categorizers(metric)),
                 ),
                 recommendation_model_cls=default_recommendation_model_cls,
                 profile_model_cls=default_profile_model_cls,
@@ -115,7 +122,7 @@ def build_recommender(providername):
                     model.AnimeClustering(),
                     encoding.CategoricalEncoder(),
                     get_default_scorers(),
-                    get_default_categorizers(),
+                    RankingOrchestrator(get_default_categorizers()),
                 ),
                 recommendation_model_cls=default_recommendation_model_cls,
                 profile_model_cls=default_profile_model_cls,
@@ -132,7 +139,7 @@ def build_recommender(providername):
                     ),
                     encoding.WeightedCategoricalEncoder(),
                     get_default_scorers(),
-                    get_default_categorizers(metric),
+                    RankingOrchestrator(get_default_categorizers(metric)),
                 ),
                 recommendation_model_cls=default_recommendation_model_cls,
                 profile_model_cls=default_profile_model_cls,

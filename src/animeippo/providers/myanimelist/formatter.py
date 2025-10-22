@@ -126,9 +126,9 @@ MAL_MAPPING = {
                                     pl.when(pl.col("list_status.score") > 0)
                                     .then(pl.col("list_status.score"))
                                     .otherwise(None)
-                                ),    
+                                ),
     Columns.USER_COMPLETE_DATE: SingleMapper(
-                                    "list_status.finish_date", 
+                                    "list_status.finish_date",
                                     get_user_complete_date,
                                     None,
                                     datetime

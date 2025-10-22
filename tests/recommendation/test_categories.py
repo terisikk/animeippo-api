@@ -3,6 +3,7 @@ import polars as pl
 from animeippo.profiling.model import UserProfile
 from animeippo.recommendation import categories
 from animeippo.recommendation.model import RecommendationModel
+from animeippo.recommendation.ranking import RankingOrchestrator
 
 
 def test_most_popular_category():
@@ -434,8 +435,6 @@ def test_genre_category_can_cache_values():
 
 
 def test_ranking_orchestrator_diversity_adjustment():
-    from animeippo.recommendation.ranking import RankingOrchestrator
-
     recommendations = pl.DataFrame(
         {
             "id": [1, 2, 3],
@@ -444,7 +443,7 @@ def test_ranking_orchestrator_diversity_adjustment():
         }
     )
 
-    orchestrator = RankingOrchestrator()
+    orchestrator = RankingOrchestrator([])
 
     # Initialize diversity adjustment
     orchestrator.diversity_adjustment = pl.DataFrame(
@@ -468,8 +467,6 @@ def test_ranking_orchestrator_diversity_adjustment():
 
 
 def test_ranking_orchestrator_render_with_diversity_adjusted_categories():
-    from animeippo.recommendation.ranking import RankingOrchestrator
-
     watchlist = pl.DataFrame(
         {
             "genres": [["Action", "Drama"], ["Action", "Comedy"], ["Action"]],
@@ -497,8 +494,8 @@ def test_ranking_orchestrator_render_with_diversity_adjusted_categories():
     genre_cat_1 = categories.GenreCategory(0)  # First genre
     genre_cat_2 = categories.GenreCategory(0)  # Same genre again
 
-    orchestrator = RankingOrchestrator()
-    result = orchestrator.render(data, [genre_cat_1, genre_cat_2])
+    orchestrator = RankingOrchestrator([(genre_cat_1, None), (genre_cat_2, None)])
+    result = orchestrator.render(data)
 
     # Both categories should be rendered
     assert len(result) == 2
@@ -510,8 +507,6 @@ def test_ranking_orchestrator_render_with_diversity_adjusted_categories():
 
 
 def test_ranking_orchestrator_render_with_non_diversity_adjusted_categories():
-    from animeippo.recommendation.ranking import RankingOrchestrator
-
     recommendations = pl.DataFrame(
         {
             "id": [1, 2, 3],
@@ -527,8 +522,8 @@ def test_ranking_orchestrator_render_with_non_diversity_adjusted_categories():
     # MostPopularCategory is not in diversity_adjusted_categories
     popular_cat = categories.MostPopularCategory()
 
-    orchestrator = RankingOrchestrator()
-    result = orchestrator.render(data, [popular_cat])
+    orchestrator = RankingOrchestrator([(popular_cat, 25)])
+    result = orchestrator.render(data)
 
     assert len(result) == 1
     assert result[0]["name"] == "Most Popular for This Year"
@@ -537,8 +532,6 @@ def test_ranking_orchestrator_render_with_non_diversity_adjusted_categories():
 
 
 def test_ranking_orchestrator_render_skips_empty_categories():
-    from animeippo.recommendation.ranking import RankingOrchestrator
-
     watchlist = pl.DataFrame(
         {
             "id": [1, 2],
@@ -563,8 +556,8 @@ def test_ranking_orchestrator_render_skips_empty_categories():
     # BecauseYouLikedCategory will return (False, {}) if no liked items
     empty_cat = categories.BecauseYouLikedCategory(99)
 
-    orchestrator = RankingOrchestrator()
-    result = orchestrator.render(data, [empty_cat])
+    orchestrator = RankingOrchestrator([(empty_cat, 20)])
+    result = orchestrator.render(data)
 
     # Should skip the empty category
     assert len(result) == 0

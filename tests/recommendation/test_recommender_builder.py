@@ -40,16 +40,18 @@ def test_builder_passes_with_or_without_cache(mocker):
 def test_debug_category_is_included_when_debug_env_is_set(monkeypatch):
     """Test that DebugCategory is prepended when DEBUG=true."""
     monkeypatch.setenv("DEBUG", "true")
-    categorizers = recommender_builder.get_default_categorizers()
+    categorizers_with_limits = recommender_builder.get_default_categorizers()
 
-    # Verify DebugCategory is first
-    assert isinstance(categorizers[0], categories.DebugCategory)
+    # Verify DebugCategory is first (returns list of (category, top_n) tuples)
+    category, top_n = categorizers_with_limits[0]
+    assert isinstance(category, categories.DebugCategory)
+    assert top_n is None  # Debug category has no limit
 
 
 def test_debug_category_is_not_included_when_debug_env_is_false(monkeypatch):
     """Test that DebugCategory is not included when DEBUG=false."""
     monkeypatch.setenv("DEBUG", "false")
-    categorizers = recommender_builder.get_default_categorizers()
+    categorizers_with_limits = recommender_builder.get_default_categorizers()
 
-    # Verify DebugCategory is not in the list
-    assert not any(isinstance(cat, categories.DebugCategory) for cat in categorizers)
+    # Verify DebugCategory is not in the list (returns list of (category, top_n) tuples)
+    assert not any(isinstance(cat, categories.DebugCategory) for cat, _ in categorizers_with_limits)

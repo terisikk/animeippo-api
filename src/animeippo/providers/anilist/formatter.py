@@ -203,8 +203,8 @@ ANILIST_MAPPING = {
     Columns.STUDIOS:            SelectorMapper(get_studios()),
     Columns.USER_COMPLETE_DATE: SelectorMapper(
                                     pl.date(
-                                        pl.col("completedAt.year"), 
-                                        pl.col("completedAt.month"), 
+                                        pl.col("completedAt.year"),
+                                        pl.col("completedAt.month"),
                                         pl.col("completedAt.day")
                                     )
                                 ),

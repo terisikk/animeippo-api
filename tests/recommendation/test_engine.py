@@ -140,12 +140,19 @@ def test_runtime_error_is_raised_when_no_scorers_exist():
 
 
 def test_categorize():
+    from animeippo.recommendation.ranking import RankingOrchestrator
+
+    categorizers_with_limits = [
+        (categories.ContinueWatchingCategory(), None),
+        (categories.StudioCategory(), 25),
+        (categories.GenreCategory(100), None),
+    ]
+
     recengine = engine.AnimeRecommendationEngine(
-        clustering.AnimeClustering(), encoding.CategoricalEncoder()
+        clustering.AnimeClustering(),
+        encoding.CategoricalEncoder(),
+        ranking_orchestrator=RankingOrchestrator(categorizers_with_limits),
     )
-    recengine.add_categorizer(categories.ContinueWatchingCategory())
-    recengine.add_categorizer(categories.StudioCategory())
-    recengine.add_categorizer(categories.GenreCategory(100))
 
     data = RecommendationModel(
         UserProfile("Test", pl.DataFrame(test_data.FORMATTED_MAL_USER_LIST)), None, None
@@ -167,7 +174,6 @@ def test_categorize():
             "score": [123],
             "user_status": [None],
             "recommend_score": [1],
-            "adjusted_score": [1],
         }
     )
 
@@ -176,3 +182,15 @@ def test_categorize():
     assert len(cats) > 0
     assert cats[0].get("name", False)
     assert cats[1].get("items", False)
+
+
+def test_categorize_raises_error_without_ranking_orchestrator():
+    recengine = engine.AnimeRecommendationEngine(
+        clustering.AnimeClustering(), encoding.CategoricalEncoder()
+    )
+
+    data = RecommendationModel(None, None, None)
+    data.recommendations = pl.DataFrame({"id": [1], "recommend_score": [1]})
+
+    with pytest.raises(RuntimeError, match="No ranking orchestrator configured"):
+        recengine.categorize_anime(data)
