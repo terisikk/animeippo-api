@@ -31,6 +31,7 @@ def test_continue_watching_category():
             "recommend_score": [0, 0, 1],
             "user_status": ["in_progress", "completed", "in_progress"],
             "title": ["Test 1", "Test 2", "Test 3"],
+            "format": ["TV", "TV", "TV"],
         }
     )
 
@@ -43,18 +44,19 @@ def test_continue_watching_category():
     assert result["title"].to_list() == ["Test 3"]
 
 
-def test_source_category():
-    cat = categories.SourceCategory()
+def test_manga_category():
+    cat = categories.MangaCategory()
 
-    watchlist = pl.DataFrame({"source": ["manga", "light_novel", "other"], "score": [10, 9, 8]})
+    watchlist = pl.DataFrame({"source": ["MANGA", "LIGHT_NOVEL", "OTHER"], "score": [10, 9, 8]})
 
     recommendations = pl.DataFrame(
         {
             "directscore": [1, 2, 3],
-            "adjusted_score": [1, 2, 3],
+            "recommend_score": [1, 2, 3],
             "title": ["Test 1", "Test 2", "Test 3"],
-            "source": ["manga", "manga", "ligh_novel"],
+            "source": ["MANGA", "MANGA", "LIGHT_NOVEL"],
             "user_status": [None, None, None],
+            "format": ["TV", "TV", "TV"],
         }
     )
 
@@ -66,67 +68,6 @@ def test_source_category():
 
     result = recommendations.filter(mask).sort(**sorting_info)
     assert result["title"].to_list() == ["Test 2", "Test 1"]
-
-
-def test_source_category_defaults_to_manga_without_scores():
-    cat = categories.SourceCategory()
-
-    watchlist = pl.DataFrame(
-        {"source": ["manga", "light_novel", "other"], "score": [None, None, None]}
-    )
-
-    recommendations = pl.DataFrame(
-        {
-            "directscore": [1, 2, 3],
-            "adjusted_score": [1, 2, 3],
-            "title": ["Test 1", "Test 2", "Test 3"],
-            "source": ["manga", "manga", "ligh_novel"],
-            "user_status": [None, None, None],
-        }
-    )
-
-    uprofile = UserProfile("Test", watchlist)
-    data = RecommendationModel(uprofile, None, None)
-    data.recommendations = recommendations
-
-    mask, sorting_info = cat.categorize(data)
-
-    result = recommendations.filter(mask).sort(**sorting_info)
-    assert result["title"].to_list() == ["Test 2", "Test 1"]
-
-
-def test_source_category_descriptions():
-    cat = categories.SourceCategory()
-
-    watchlist = pl.DataFrame({"source": ["manga", "original", "other"], "score": [10, 9, 8]})
-
-    recommendations = pl.DataFrame(
-        {
-            "directscore": [1, 2, 3],
-            "adjusted_score": [1, 2, 3],
-            "title": ["Test 1", "Test 2", "Test 3"],
-            "source": ["manga", "other", "original"],
-            "user_status": [None, None, None],
-        }
-    )
-
-    uprofile = UserProfile("Test", watchlist)
-    data = RecommendationModel(uprofile, None, None)
-    data.recommendations = recommendations
-
-    cat.categorize(data)
-
-    assert cat.description == "Based on a Manga"
-
-    data.watchlist = pl.DataFrame({"source": ["manga", "original", "other"], "score": [9, 10, 8]})
-    cat.categorize(data)
-
-    assert cat.description == "Anime Originals"
-
-    data.watchlist = pl.DataFrame({"source": ["manga", "original", "other"], "score": [9, 8, 10]})
-    cat.categorize(data)
-
-    assert cat.description == "Unusual Sources"
 
 
 def test_studio_category():
@@ -139,6 +80,7 @@ def test_studio_category():
             "recommend_score": [1, 3, 2],
             "title": ["Test 1", "Test 2", "Test 3"],
             "user_status": [None, None, None],
+            "format": ["TV", "TV", "TV"],
         }
     )
 
@@ -334,6 +276,7 @@ def test_adapatation_category():
             "recommend_score": [0, 0, 1],
             "user_status": ["in_progress", "completed", "in_progress"],
             "title": ["Test 1", "Test 2", "Test 3"],
+            "format": ["TV", "TV", "TV"],
         }
     )
 
@@ -365,7 +308,6 @@ def test_genre_category():
         {
             "genres": [["Action", "Fantasy"], ["Drama"], ["Action"]],
             "discourage_score": [1, 1, 1],
-            "adjusted_score": [1, 1, 1],
             "recommend_score": [1, 1, 1],
             "title": ["Test 1", "Test 2", "Test 3"],
             "user_status": [None, None, None],
@@ -414,7 +356,6 @@ def test_genre_category_can_cache_values():
         {
             "genres": [["Action", "Fantasy"], ["Drama"], ["Action"]],
             "discourage_score": [1, 1, 1],
-            "adjusted_score": [1, 1, 1],
             "recommend_score": [1, 1, 1],
             "title": ["Test 1", "Test 2", "Test 3"],
             "user_status": [None, None, None],

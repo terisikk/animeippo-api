@@ -3,12 +3,30 @@ import polars as pl
 from ..meta import meta
 from . import scoring
 
+FORMAT_ENUM = pl.Enum(
+    [
+        "TV",
+        "MOVIE",
+        "OVA",
+        "ONA",
+        "SPECIAL",
+        "TV_SHORT",
+        "MANGA",
+        "ONE_SHOT",
+        "NOVEL",
+        "MUSIC",
+    ]
+)
+
 
 class MostPopularCategory:
     description = "Most Popular for This Year"
 
     def categorize(self, dataset):
-        return True, {"by": scoring.PopularityScorer.name, "descending": True}
+        mask = True
+        sorting = {"by": scoring.PopularityScorer.name, "descending": True}
+
+        return mask, sorting
 
 
 class ContinueWatchingCategory:
@@ -20,7 +38,13 @@ class ContinueWatchingCategory:
             & (pl.col("user_status").ne_missing("completed"))
         ) | (pl.col("user_status") == "paused")
 
-        return mask, {"by": "recommend_score", "descending": True}
+        # TODO: Cast format to enum already in the formatters
+        by = [pl.col("format").cast(FORMAT_ENUM), "recommend_score"]
+        descending = [False, True]
+
+        sorting = {"by": by, "descending": descending}
+
+        return mask, sorting
 
 
 class AdaptationCategory:
@@ -31,51 +55,45 @@ class AdaptationCategory:
             pl.col("user_status").ne_missing("completed")
         )
 
-        return mask, {"by": scoring.AdaptationScorer.name, "descending": True}
+        by = [pl.col("format").cast(FORMAT_ENUM), scoring.AdaptationScorer.name]
+        descending = [False, True]
+
+        sorting = {"by": by, "descending": descending}
+
+        return mask, sorting
 
 
-class SourceCategory:
-    description = "Based on a"
+class MangaCategory:
+    description = "Based on a Manga"
 
     def categorize(self, dataset):
-        best_source = (
-            dataset.watchlist.group_by("source")
-            .agg(pl.col("score").mean() * pl.col("source").count().sqrt())
-            .drop_nulls("score")
-            .sort("score", descending=True)
-            .select(pl.first("source"))
-            .item()
+        mask = (
+            (pl.col("user_status").is_null())
+            & (pl.col("source") == "MANGA")
+            & (pl.col("format").is_in(["TV", "MOVIE"]))
         )
 
-        if best_source is None:
-            best_source = "Manga"
+        sorting = {"by": "recommend_score", "descending": True}
 
-        mask = (pl.col("user_status").is_null()) & (pl.col("source") == best_source.lower())
-
-        match best_source.lower():
-            case "original":
-                self.description = "Anime Originals"
-            case "other":
-                self.description = "Unusual Sources"
-            case _:
-                self.description = "Based on a " + str.title(best_source)
-
-        return mask, {"by": "adjusted_score", "descending": True}
+        return mask, sorting
 
 
 class StudioCategory:
     description = "From Your Favourite Studios"
 
-    FORMAT_THRESHOLD = 0.5
-
     def categorize(self, dataset):
-        mask = (pl.col("user_status").is_null()) & (
-            pl.col(scoring.FormatScorer.name) > self.FORMAT_THRESHOLD
-        )
+        mask = pl.col("user_status").is_null()
+
+        by = [
+            scoring.StudioCorrelationScorer.name,
+            pl.col("format").cast(FORMAT_ENUM),
+            "recommend_score",
+        ]
+        descending = [True, False, True]
 
         return mask, {
-            "by": [scoring.StudioCorrelationScorer.name, "recommend_score"],
-            "descending": [True, True],
+            "by": by,
+            "descending": descending,
         }
 
 
@@ -98,7 +116,9 @@ class GenreCategory:
 
             self.description = genre
 
-            return mask, {"by": "recommend_score", "descending": True}
+            sorting = {"by": "recommend_score", "descending": True}
+
+            return mask, sorting
 
         return False, {}
 
@@ -113,7 +133,9 @@ class YourTopPicksCategory:
             & (pl.col("status").is_in(["releasing", "finished"]))
         )
 
-        return mask, {"by": "recommend_score", "descending": True}
+        sorting = {"by": "recommend_score", "descending": True}
+
+        return mask, sorting
 
 
 class TopUpcomingCategory:
@@ -126,10 +148,12 @@ class TopUpcomingCategory:
             (pl.col("season") > season) | (pl.col("season_year") > year)
         )
 
-        return mask, {
+        sorting = {
             "by": ["season_year", "season", "recommend_score"],
             "descending": [False, False, True],
         }
+
+        return mask, sorting
 
 
 class BecauseYouLikedCategory:
@@ -155,27 +179,27 @@ class BecauseYouLikedCategory:
                     pl.col(str(liked_item["id"].item())).alias("gscore"),
                 )
             except pl.exceptions.ColumnNotFoundError:
-                similarity = []
+                return False, {}
 
-            if len(similarity) > 0:
-                self.description = f"Because You Liked {liked_item['title'].item()}"
+            self.description = f"Because You Liked {liked_item['title'].item()}"
 
-                similar_anime = (
-                    dataset.recommendations.join(similarity, how="left", on="id")
-                    .filter(pl.col("user_status").is_null() & pl.col("gscore").is_not_nan())
-                    .sort(pl.col("gscore"), descending=True)
-                )
+            similar_anime = (
+                dataset.recommendations.join(similarity, how="left", on="id")
+                .filter(pl.col("user_status").is_null() & pl.col("gscore").is_not_nan())
+                .sort(pl.col("gscore"), descending=True)
+            )
 
-                ids = similar_anime["id"].to_list()
-                mask = pl.col("id").is_in(ids)
+            ids = similar_anime["id"].to_list()
+            mask = pl.col("id").is_in(ids)
 
-                order_map = {id_: index for index, id_ in enumerate(ids)}
+            # Sort by the id:s of similarity dataframe
+            order_map = {id_: index for index, id_ in enumerate(ids)}
+            sorting = {
+                "by": pl.col("id").replace(order_map),
+                "descending": False,
+            }
 
-                # Sort by the id:s of similarity dataframe
-                return mask, {
-                    "by": pl.col("id").replace(order_map),
-                    "descending": False,
-                }
+            return mask, sorting
 
         return False, {}
 
@@ -186,8 +210,9 @@ class SimulcastsCategory:
     def categorize(self, dataset):
         year, season = meta.get_current_anime_season()
         mask = (pl.col("season_year") == year) & (pl.col("season") == season)
+        sorting = {"by": "recommend_score", "descending": True}
 
-        return mask, {"by": "recommend_score", "descending": True}
+        return mask, sorting
 
 
 class PlanningCategory:
@@ -195,14 +220,16 @@ class PlanningCategory:
 
     def categorize(self, dataset):
         mask = pl.col("user_status") == "planning"
+        sorting = {"by": "recommend_score", "descending": True}
 
-        return mask, {"by": "recommend_score", "descending": True}
+        return mask, sorting
 
 
 class DebugCategory:
     description = "Debug"
 
     def categorize(self, dataset):
-        mask = True
+        mask = True  # Return all items
+        sorting = {"by": "recommend_score", "descending": True}
 
-        return mask, {"by": "recommend_score", "descending": True}
+        return mask, sorting

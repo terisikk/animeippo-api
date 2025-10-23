@@ -12,6 +12,7 @@ class UserProfile:
         self.genre_correlations = None
         self.director_correlations = None
         self.studio_correlations = None
+        self.favourite_source = None
 
         if self.watchlist is not None and "score" in self.watchlist.columns:
             self.fit()
@@ -22,6 +23,7 @@ class UserProfile:
         self.director_correlations = self.get_director_correlations()
         self.studio_correlations = self.get_studio_correlations()
         self.last_liked = self.get_last_liked()
+        self.favourite_source = self.get_favourite_source()
 
     def get_last_liked(self):
         if "user_complete_date" not in self.watchlist.columns:
@@ -62,3 +64,21 @@ class UserProfile:
         return statistics.weight_categoricals_correlation(gdf, "directors").sort(
             "weight", descending=True
         )
+
+    def get_favourite_source(self):
+        if "source" not in self.watchlist.columns:
+            return None
+
+        favourite_source = (
+            self.watchlist.group_by("source")
+            .agg(pl.col("score").mean() * pl.col("source").count().sqrt())
+            .drop_nulls("score")
+            .sort("score", descending=True)
+            .select(pl.first("source"))
+            .item()
+        )
+
+        if favourite_source is None:
+            favourite_source = "Manga"
+
+        return favourite_source.lower()

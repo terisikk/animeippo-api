@@ -10,7 +10,7 @@ lint:
 
 .PHONY: format
 format:
-    uv run ruff check . --select I --fix
+	uv run ruff check . --select I --fix
 	uv run ruff format .
 
 # Lcov report included for vscode coverage
@@ -25,7 +25,7 @@ coverage-lcov:
 
 # Requires @profile decorator with filename=".profiling/cprofile.pstats" 
 # in function from profilehooks
-.PHOY: profile 
+.PHONY: profile
 profile:
 	uv run python -m animeippo
 	uv run python -m gprof2dot -f pstats .profiling/cprofile.pstats > .profiling/cprofile.dot

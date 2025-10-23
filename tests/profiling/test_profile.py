@@ -123,3 +123,26 @@ def test_correlations_are_consistent():
         assert actual.item(0, "name") == previous.item(0, "name")
         assert actual is not None
         previous = actual
+
+
+def test_favourite_source_calculation():
+    data = pl.DataFrame(test_data.FORMATTED_ANI_USER_LIST)
+    data = data.with_columns(score=pl.Series([10.0, 8.0]))
+
+    uprofile = UserProfile("Test", data)
+
+    assert uprofile.get_favourite_source() == "original"
+
+
+def test_favourite_source_calculation_defaults_to_manga():
+    data = pl.DataFrame(
+        {
+            "title": ["Anime 1", "Anime 2", "Anime 3"],
+            "score": [9.0, 8.5, 8.0],
+            "source": [None, None, None],
+        }
+    )
+
+    uprofile = UserProfile("Test", data)
+
+    assert uprofile.get_favourite_source() == "manga"

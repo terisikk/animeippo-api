@@ -45,7 +45,6 @@ class AnimeRecommendationEngine:
 
             scoring_target_df = scoring_target_df.with_columns(
                 recommend_score=recommend_score,
-                adjusted_score=recommend_score,
                 discourage_score=1.0,
             )
 

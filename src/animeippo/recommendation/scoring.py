@@ -364,8 +364,8 @@ class FormatScorer(AbstractScorer):
             "TV_SHORT": 0.25,
             "MUSIC": 0.80,
             "ONE_SHOT": 0.50,
-            "MANGA": 0.0,  # if these appear in 'seasonal'
-            "NOVEL": 0.0,  # if these appear in 'seasonal'
+            "MANGA": 0.0,
+            "NOVEL": 0.0,
         }
 
         CUTOFF = 0.75

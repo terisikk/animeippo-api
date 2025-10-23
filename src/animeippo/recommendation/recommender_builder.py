@@ -35,7 +35,9 @@ def get_default_scorers():
         scoring.AdaptationScorer(weight=0.10),
         scoring.PopularityScorer(weight=0.10),
         scoring.GenreAverageScorer(weight=0.05),
-        scoring.FormatScorer(weight=-0.3),  # Negative weight to penalize less preferred formats
+        # Disabled as a test and moved to a post-processing step
+        # TODO: Just remove if performance is good without it
+        # scoring.FormatScorer(weight=-0.3),  # Negative weight to penalize less preferred formats
         scoring.StudioCorrelationScorer(weight=0.02),
         scoring.DirectorCorrelationScorer(weight=0.02),
     ]
@@ -59,7 +61,7 @@ def get_default_categorizers(distance_metric="jaccard"):
         (categories.GenreCategory(1), None),
         (categories.PlanningCategory(), 30),
         (categories.GenreCategory(2), None),
-        (categories.SourceCategory(), 25),
+        (categories.MangaCategory(), 25),
         (categories.GenreCategory(3), None),
         (categories.StudioCategory(), 25),
         (categories.GenreCategory(4), None),

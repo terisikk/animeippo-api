@@ -23,7 +23,6 @@ def recommendations_web_view(dataframe, categories=None, tags_and_genres=None, d
         # Common scorer names
         scorer_fields = [
             "recommend_score",
-            "adjusted_score",
             "directscore",
             "featurecorrelationscore",
             "clusterscore",
