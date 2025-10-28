@@ -1,7 +1,10 @@
 import asyncio
 import functools
+import logging
 import threading
 from concurrent.futures import ThreadPoolExecutor
+
+logger = logging.getLogger(__name__)
 
 
 def cached_query(ttl):
@@ -17,14 +20,14 @@ def cached_query(ttl):
                 data = await asyncio.to_thread(self.cache.get_json, cachekey)
 
             if data:
-                print(f"Cache hit for {cachekey}")
+                logger.debug(f"Cache hit for {cachekey}")
                 return data
             else:
-                print(f"Cache miss for {cachekey}")
+                logger.debug(f"Cache miss for {cachekey}")
                 data = await func(self, query, parameters)
 
                 if cache_available:
-                    print(f"Cache save for {cachekey}")
+                    logger.debug(f"Cache save for {cachekey}")
                     threading.Thread(
                         target=self.cache.set_json,
                         args=(
@@ -60,14 +63,14 @@ def cached_dataframe(ttl):
                 data = await asyncio.to_thread(self.cache.get_dataframe, cachekey)
 
             if data is not None:
-                print(f"Cache hit for {cachekey}")
+                logger.debug(f"Cache hit for {cachekey}")
                 return data
             else:
-                print(f"Cache miss for {cachekey}")
+                logger.debug(f"Cache miss for {cachekey}")
                 data = await func(self, *args)
 
                 if cache_available:
-                    print(f"Cache save for {cachekey}")
+                    logger.debug(f"Cache save for {cachekey}")
 
                     with ThreadPoolExecutor() as executor:
                         executor.submit(

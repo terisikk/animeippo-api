@@ -49,10 +49,10 @@ Since production runs in a Docker container, execute the script inside the conta
 
 ```bash
 # One-time manual execution
-docker exec -it <container-name> python scripts/preload_cache.py
+docker exec -it <container-name> .venv/bin/animeippo-preload-cache
 
 # Skip genre/tag collections (only pre-load yearly anime)
-docker exec -it <container-name> python scripts/preload_cache.py --skip-static
+docker exec -it <container-name> .venv/bin/animeippo-preload-cache --skip-static
 ```
 
 ### Automated Nightly Pre-loading
@@ -64,7 +64,7 @@ Set up a cron job on the Docker host to run the script nightly:
 crontab -e
 
 # Add this line to run at 2 AM daily
-0 2 * * * docker exec <container-name> python scripts/preload_cache.py >> /var/log/animeippo-preload.log 2>&1
+0 2 * * * docker exec <container-name> .venv/bin/animeippo-preload-cache >> /var/log/animeippo-preload.log 2>&1
 ```
 
 Replace `<container-name>` with your actual container name.

@@ -109,6 +109,40 @@ def test_clusters_can_be_categorized():
     assert len(categories) > 0
 
 
+def test_clusters_can_be_categorized_with_nsfw_filtering():
+    """Test that NSFW tags are correctly filtered when categorizing clusters.
+
+    This test ensures that get_nsfw_tags() returns string tag names (not IDs)
+    that can be properly filtered from the features column.
+    """
+
+    class ProviderStub:
+        def get_nsfw_tags(self):
+            # Must return tag names (strings), not IDs (integers)
+            return {"Bondage", "Hentai", "Explicit Sex"}
+
+    # Create data with features that include some NSFW tags
+    data = pl.DataFrame(
+        {
+            "id": [1, 2],
+            "title": ["Anime 1", "Anime 2"],
+            "features": [["Action", "Bondage", "Fantasy"], ["Comedy", "Romance"]],
+            "cluster": [0, 1],
+            "score": [8.0, 9.0],
+        }
+    )
+
+    uprofile = UserProfile("Test", data)
+    dset = RecommendationModel(uprofile, None)
+
+    profiler = analyser.ProfileAnalyser(ProviderStub())
+
+    # This should not raise a type error about List(Int64) vs Categorical
+    categories = profiler.get_cluster_categories(dset)
+
+    assert len(categories) > 0
+
+
 def test_correlations_are_consistent():
     data = pl.DataFrame(test_data.FORMATTED_ANI_SEASONAL_LIST)
     data = data.with_columns(score=pl.Series([10.0, 8.0]))

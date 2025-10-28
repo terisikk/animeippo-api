@@ -420,7 +420,7 @@ ALL_TAGS = {
 }
 # fmt: on
 
-NSFW_TAGS = {tag_id for tag_id, tag in ALL_TAGS.items() if tag["isAdult"]}
+NSFW_TAGS = {tag["name"] for _, tag in ALL_TAGS.items() if tag["isAdult"]}
 
 ALL_GENRES = {
     "Action",

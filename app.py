@@ -22,10 +22,24 @@ cors = CORS(app, origins="http://localhost:3000")
 # Read debug mode from environment
 DEBUG = os.getenv("DEBUG", "false").lower() == "true"
 
-logging.basicConfig(level=logging.DEBUG if DEBUG else logging.INFO)
+# Read log level from environment (defaults based on DEBUG mode)
+LOG_LEVEL = os.getenv("LOG_LEVEL", "DEBUG" if DEBUG else "INFO").upper()
+
+# Map string to logging level, with fallback to INFO for invalid values
+log_level_map = {
+    "DEBUG": logging.DEBUG,
+    "INFO": logging.INFO,
+    "WARNING": logging.WARNING,
+    "ERROR": logging.ERROR,
+    "CRITICAL": logging.CRITICAL,
+}
+log_level = log_level_map.get(LOG_LEVEL, logging.INFO)
+
+logging.basicConfig(level=log_level)
 logger = logging.getLogger(__name__)
 
-logger.info(f"Starting AnimeIppo in {'DEBUG' if DEBUG else 'PRODUCTION'} mode.")
+mode = "DEBUG" if DEBUG else "PRODUCTION"
+logger.info(f"Starting AnimeIppo in {mode} mode (log level: {LOG_LEVEL})")
 
 recommender = recommender_builder.build_recommender("anilist")
 profiler = analyser.ProfileAnalyser(recommender.provider)
@@ -42,6 +56,20 @@ def cleanup_connections():
 
 # Register cleanup to run when the Flask app shuts down
 atexit.register(cleanup_connections)
+
+
+@app.before_request
+def log_request():
+    """Log incoming requests with parameters."""
+    params = dict(request.args)
+    logger.info(f"{request.method} {request.path} - params: {params}")
+
+
+@app.after_request
+def log_response(response):
+    """Log response status."""
+    logger.info(f"{request.method} {request.path} - status: {response.status_code}")
+    return response
 
 
 @app.route("/seasonal")
@@ -123,7 +151,8 @@ def profile_characteristics():
 
     profiler.analyse(user)
 
-    print(profiler.profile.characteristics.genre_variance)
+    genre_variance = profiler.profile.characteristics.genre_variance
+    logger.debug(f"Profile genre variance for {user}: {genre_variance}")
 
     return Response(
         views.profile_characteristics_web_view(

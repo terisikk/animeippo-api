@@ -236,10 +236,9 @@ def test_anilist_nsfw_tags_function_returns_nsfw_tags():
     tags = provider.get_nsfw_tags()
 
     assert tags is not None
-    assert 246 in tags  # Bondage (ID 246 is an NSFW tag)
-    # Mystery is not an NSFW tag, but we need to check by ID or ensure no genre IDs are in NSFW tags
-    # Since Mystery is a genre (not a tag with an ID in our system), we just verify it's not there
-    assert "Mystery" not in tags  # Genres are strings, not IDs
+    assert "Bondage" in tags  # Bondage is an NSFW tag
+    # Mystery is not an NSFW tag
+    assert "Mystery" not in tags
 
 
 def test_anilist_get_genres_returns_genres():
@@ -302,7 +301,7 @@ def test_anilist_get_nsfw_tags_fallback_to_static_when_cache_empty(mocker):
     tags = provider.get_nsfw_tags()
 
     mock_cache.get_json.assert_called_once_with("anilist:nsfw_tags")
-    assert 246 in tags  # Bondage (ID 246) from static data
+    assert "Bondage" in tags  # Bondage from static data
 
 
 def test_anilist_get_tag_lookup_from_cache(mocker):
