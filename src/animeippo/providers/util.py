@@ -49,7 +49,7 @@ TAG_WEIGHTS = {
 
 def get_ranks(df):
     return (
-        df.select("id", pl.col("temp_ranks"))
+        df.select("id", "temp_ranks")
         .explode("temp_ranks")
         .unnest("temp_ranks")
         .select(
@@ -61,11 +61,11 @@ def get_ranks(df):
             .replace_strict(TAG_WEIGHTS, default=1.0),
         )
         .select(pl.exclude("rank"), pl.col("rank") * pl.col("category_weight"))
-        .pivot(index="id", values="rank", on="name")
+        .pivot(index="id", values="rank", on="name", aggregate_function="first")
         .join(
             df.explode("genres")
             .select("id", "genres", pl.lit(75).alias("rank"))
-            .pivot(index="id", values="rank", on="genres"),
+            .pivot(index="id", values="rank", on="genres", aggregate_function="first"),
             on="id",
             how="left",
         )

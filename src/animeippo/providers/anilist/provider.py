@@ -34,7 +34,7 @@ class AniListProvider(abstract_provider.AbstractAnimeProvider):
             ttl=timedelta(days=USER_DATA_TTL_DAYS).total_seconds(),
         )
     )
-    @animecache.cached_dataframe(ttl=timedelta(days=USER_DATA_TTL_DAYS))
+    # @animecache.cached_dataframe(ttl=timedelta(days=USER_DATA_TTL_DAYS))
     async def get_user_anime_list(self, user_id):
         if user_id is None:
             return None

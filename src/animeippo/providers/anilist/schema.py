@@ -16,7 +16,7 @@ ANI_WATCHLIST_SCHEMA = {
     Columns.EPISODES: pl.UInt16,
     Columns.SOURCE: pl.Utf8,
     Columns.TEMP_RANKS: pl.List(
-        pl.Struct({"isAdult": pl.Boolean, "name": pl.Utf8, "category": pl.Utf8, "rank": pl.UInt8})
+        pl.Struct({"name": pl.Utf8, "rank": pl.UInt8, "category": pl.Utf8})
     ),
     Columns.STUDIOS: pl.List(pl.Utf8),
     Columns.SEASON_YEAR: pl.UInt16,
@@ -43,7 +43,7 @@ ANI_SEASONAL_SCHEMA = {
     Columns.CONTINUATION_TO: pl.List(pl.UInt32),
     Columns.ADAPTATION_OF: pl.List(pl.UInt32),
     Columns.TEMP_RANKS: pl.List(
-        pl.Struct({"isAdult": pl.Boolean, "name": pl.Utf8, "category": pl.Utf8, "rank": pl.UInt8})
+        pl.Struct({"name": pl.Utf8, "rank": pl.UInt8, "category": pl.Utf8})
     ),
     Columns.STUDIOS: pl.List(pl.Utf8),
     Columns.SEASON_YEAR: pl.UInt16,

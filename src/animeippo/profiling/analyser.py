@@ -37,6 +37,8 @@ class ProfileAnalyser:
 
         all_features = user_profile.watchlist.explode("features")["features"].unique().drop_nulls()
 
+        print(all_features)
+
         self.encoder.fit(all_features)
         user_profile.watchlist = user_profile.watchlist.with_columns(
             encoded=self.encoder.encode(user_profile.watchlist)

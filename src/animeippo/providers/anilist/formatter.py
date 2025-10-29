@@ -34,11 +34,9 @@ def get_anilist_mapping(tag_lookup):
             .explode("tags")
             .unnest("tags")
             .join(tag_lookup_df, left_on="id", right_on="tag_id", how="left")
-            .with_columns(
-                pl.when(pl.col("tag_name").is_null())
-                .then(pl.lit("Unknown"))
-                .otherwise(pl.col("tag_name"))
-                .alias("name")
+            .select(
+                "anime_id",
+                pl.col("tag_name").fill_null("Unknown").alias("name"),
             )
             .group_by("anime_id", maintain_order=True)
             .agg(pl.col("name"))
@@ -53,21 +51,15 @@ def get_anilist_mapping(tag_lookup):
             .explode("tags")
             .unnest("tags")
             .join(tag_lookup_df, left_on="id", right_on="tag_id", how="left")
-            .with_columns(
-                [
-                    pl.when(pl.col("tag_name").is_null())
-                    .then(pl.lit("Unknown"))
-                    .otherwise(pl.col("tag_name"))
-                    .alias("name"),
-                    pl.when(pl.col("tag_category").is_null())
-                    .then(pl.lit("Theme-Other"))
-                    .otherwise(pl.col("tag_category"))
-                    .alias("category"),
-                ]
+            .select(
+                "anime_id",
+                pl.col("tag_name").fill_null("Unknown").alias("name"),
+                "rank",
+                pl.col("tag_category").fill_null("Unknown").alias("category"),
             )
             .group_by("anime_id", maintain_order=True)
-            .agg(pl.struct(["name", "rank", "category"]))
-            .select("tags")
+            .agg(pl.struct(["name", "rank", "category"]).alias("temp_ranks"))
+            .select("temp_ranks")
             .to_series()
         )
 
@@ -208,7 +200,7 @@ ANILIST_MAPPING = {
                                         pl.col("completedAt.day")
                                     )
                                 ),
-    Columns.TEMP_RANKS:         DefaultMapper("tags"),
+    # Columns.TEMP_RANKS:         DefaultMapper("tags"),
     Columns.DIRECTOR:           QueryMapper(get_staff),
 }
 # fmt: on
