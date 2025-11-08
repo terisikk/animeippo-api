@@ -48,7 +48,7 @@ class FeatureCorrelationScorer(AbstractScorer):
 
         # Get user feature weights (positive signal from correlations)
         user_positive_weights = statistics.weight_encoded_categoricals_correlation(
-            compare_df, "encoded", data.all_features, header_name="features"
+            compare_df, "encoded", header_name="features"
         )
 
         # Get negative signal from dropped/paused features
@@ -57,7 +57,6 @@ class FeatureCorrelationScorer(AbstractScorer):
                 dropped_or_paused=pl.col("user_status").is_in(["dropped", "paused"])
             ),
             "encoded",
-            data.all_features,
             against="dropped_or_paused",
             header_name="features",
         )

@@ -48,27 +48,31 @@ TAG_WEIGHTS = {
 
 
 def get_ranks(df):
-    return (
-        df.select("id", "temp_ranks")
+    # Process tags with category-based weights
+    tag_ranks = (
+        df.select("id", pl.col("temp_ranks"))
         .explode("temp_ranks")
         .unnest("temp_ranks")
-        .select(
-            pl.col("*"),
-            pl.col("category")
+        .with_columns(
+            weighted_rank=pl.col("rank")
+            * pl.col("category")
             .str.split("-")
-            .alias("category_weight")
             .list.first()
-            .replace_strict(TAG_WEIGHTS, default=1.0),
+            .replace_strict(TAG_WEIGHTS, default=1.0)
         )
-        .select(pl.exclude("rank"), pl.col("rank") * pl.col("category_weight"))
-        .pivot(index="id", values="rank", on="name", aggregate_function="first")
-        .join(
-            df.explode("genres")
-            .select("id", "genres", pl.lit(75).alias("rank"))
-            .pivot(index="id", values="rank", on="genres", aggregate_function="first"),
-            on="id",
-            how="left",
-        )
+        .pivot(index="id", values="weighted_rank", on="name", aggregate_function="first")
+    )
+
+    # Process genres with fixed weight
+    genre_ranks = (
+        df.select("id", pl.col("genres"))
+        .explode("genres")
+        .with_columns(rank=pl.lit(75))
+        .pivot(index="id", values="rank", on="genres", aggregate_function="first")
+    )
+
+    return (
+        tag_ranks.join(genre_ranks, on="id", how="left")
         .fill_null(0)
-        .select(pl.struct(pl.exclude("id", "fake", "null", "null_right")))
+        .select(pl.struct(pl.exclude("id")))
     )

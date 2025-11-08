@@ -38,7 +38,7 @@ class AnimeClustering:
         self.distance_metric = distance_metric
 
     def cluster_by_features(self, dataframe):
-        series = np.vstack(dataframe["encoded"].to_numpy())
+        series = dataframe["encoded"].struct.unnest().fill_null(0).to_numpy()
 
         if self.distance_metric == "cosine":
             # Cosine is undefined for zero-vectors, need to hack (or change metric)

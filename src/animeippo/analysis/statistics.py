@@ -51,13 +51,11 @@ def weight_categoricals(dataframe, column):
     )
 
 
-def weight_encoded_categoricals_correlation(
-    dataframe, column, features, against="score", header_name="name"
-):
+def weight_encoded_categoricals_correlation(dataframe, column, against="score", header_name="name"):
     return (
         dataframe.filter(pl.col(against).is_not_null())
         .select(
-            pl.col(column).list.to_struct(fields=sorted(features)),
+            pl.col(column),
             pl.col(against).alias("score"),
         )
         # One would think that .struct.unnest() would be faster, but it is not

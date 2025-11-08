@@ -1,4 +1,3 @@
-import numpy as np
 import polars as pl
 import scipy.spatial.distance as scdistance
 
@@ -22,8 +21,8 @@ def categorical_similarity(features1, features2, metric="jaccard", columns=None)
     that contains vector-encoded representation of features."""
     similarities = pl.DataFrame(
         similarity(
-            np.stack(features1.to_numpy()),
-            np.stack(features2.to_numpy()),
+            features1.struct.unnest().fill_null(0).to_numpy(),
+            features2.struct.unnest().fill_null(0).to_numpy(),
             metric=metric,
         )
     )
