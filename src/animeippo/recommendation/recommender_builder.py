@@ -55,14 +55,14 @@ def get_default_categorizers(distance_metric="jaccard"):
     """
     categorizer_list = [
         (categories.MostPopularCategory(), 20),
-        (categories.SimulcastsCategory(), 30),
+        (categories.SimulcastsCategory(), 40),
         (categories.ContinueWatchingCategory(), None),
-        (categories.YourTopPicksCategory(), 25),
-        (categories.TopUpcomingCategory(), 25),
+        (categories.YourTopPicksCategory(), 35),
+        (categories.TopUpcomingCategory(), 35),
         (categories.GenreCategory(0), None),
         (categories.AdaptationCategory(), None),
         (categories.GenreCategory(1), None),
-        (categories.PlanningCategory(), 30),
+        (categories.PlanningCategory(), None),
         (categories.GenreCategory(2), None),
         (categories.MangaCategory(), 25),
         (categories.GenreCategory(3), None),
