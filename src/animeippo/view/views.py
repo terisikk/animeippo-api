@@ -16,13 +16,21 @@ def recommendations_web_view(dataframe, categories=None, tags_and_genres=None, d
         )
 
     # Base fields to always include
-    fields = ["id", "title", "cover_image", "genres", "tags", "status", "season_year", "season"]
+    fields = [
+        "id",
+        "title",
+        "cover_image",
+        "genres",
+        "tags",
+        "status",
+        "season_year",
+        "season",
+        "recommend_score",
+    ]
 
-    # In debug mode, include all scorer columns and final scores
+    # In debug mode, include all scorer columns
     if debug:
-        # Common scorer names
         scorer_fields = [
-            "recommend_score",
             "directscore",
             "featurecorrelationscore",
             "clusterscore",

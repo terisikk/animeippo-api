@@ -87,6 +87,7 @@ def test_recommendations_web_view_excludes_scorer_columns_in_normal_mode():
     result = json.loads(views.recommendations_web_view(df, debug=False))
     shows = result["data"]["shows"]
 
-    # Verify scorer columns are NOT included in normal mode
-    assert "recommend_score" not in shows[0]
+    # recommend_score is always included
+    assert "recommend_score" in shows[0]
+    # Other scorer columns are NOT included in normal mode
     assert "directscore" not in shows[0]
