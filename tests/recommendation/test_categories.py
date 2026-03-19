@@ -115,6 +115,27 @@ def test_your_top_picks_category():
     assert result["title"].to_list() == ["Test 2", "Test 1"]
 
 
+def test_top_released_picks_category():
+    cat = categories.TopReleasedPicksCategory()
+
+    recommendations = pl.DataFrame(
+        {
+            "title": ["Test 1", "Test 2", "Test 3", "Test 4", "Test 5"],
+            "status": ["releasing", "finished", "not_yet_released", "finished", "releasing"],
+            "user_status": [None, None, None, "completed", "completed"],
+            "recommend_score": [3, 2, 1, 5, 4],
+        }
+    )
+
+    data = RecommendationModel(None, None, None)
+    data.recommendations = recommendations
+
+    mask, sorting_info = cat.categorize(data)
+
+    result = recommendations.filter(mask).sort(**sorting_info)
+    assert result["title"].to_list() == ["Test 1", "Test 2"]
+
+
 def test_top_upcoming_category(mocker):
     cat = categories.TopUpcomingCategory()
 

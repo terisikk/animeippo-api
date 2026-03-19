@@ -54,6 +54,7 @@ def get_default_categorizers(distance_metric="jaccard"):
     - top_n=N means return top N items
     """
     categorizer_list = [
+        (categories.TopReleasedPicksCategory(), 3),
         (categories.MostPopularCategory(), 20),
         (categories.SimulcastsCategory(), 30),
         (categories.ContinueWatchingCategory(), None),

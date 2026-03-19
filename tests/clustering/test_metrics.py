@@ -20,9 +20,10 @@ def test_jaccard_similarity():
 
 
 def test_categorical_uses_columns_if_given():
-    original1 = pl.Series([[1, 2, 3], [4, 5, 6]])
+    # Create struct series (matching encoder output format)
+    original1 = pl.Series([{"a": 1, "b": 2, "c": 3}, {"a": 4, "b": 5, "c": 6}])
 
-    original2 = pl.Series([[2, 3, 4], [1, 2, 3]])
+    original2 = pl.Series([{"a": 2, "b": 3, "c": 4}, {"a": 1, "b": 2, "c": 3}])
 
     similarity = animeippo.analysis.similarity.categorical_similarity(
         original1, original2, columns=["1a", "2b"]

@@ -10,9 +10,9 @@ def test_categorical_encoder():
     encoder.fit(classes)
 
     original = pl.DataFrame({"features": [["Test 3", "Test 2"]]})
-    expected = [False, True, True]
 
-    assert encoder.encode(original).tolist() == [expected]
+    actual = encoder.encode(original).struct.unnest().to_numpy()[0]
+    assert actual.tolist() == [0, 1, 1]
 
 
 def test_weighted_encoder():
@@ -24,8 +24,6 @@ def test_weighted_encoder():
     original = pl.DataFrame(
         {"features": [["Test 3", "Test 2"]], "ranks": [{"Test 3": 85, "Test 2": 50}]}
     )
-    expected = [0, 50, 85]
 
-    actual = encoder.encode(original)
-
-    assert list(actual[0]) == expected
+    actual = encoder.encode(original).struct.unnest().fill_null(0).to_numpy()[0]
+    assert actual.tolist() == [0, 50, 85]

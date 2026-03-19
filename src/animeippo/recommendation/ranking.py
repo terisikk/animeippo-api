@@ -63,19 +63,15 @@ class RankingOrchestrator:
         Calculate adjusted scores based on diversity_adjustment in dataframe.
         """
 
-        df = (
+        ids = (
             recommendations_df.join(self.diversity_adjustment, on="id", how="left")
             .select(
                 pl.col("id"),
                 (pl.col("recommend_score") - pl.col("diversity_adjustment")),
             )
-            .sort(by=["recommend_score"], descending=[True])
+            .sort(by=["recommend_score"], descending=[True])[0:top_n]["id"]
+            .to_list()
         )
-
-        if top_n is not None:
-            df = df[0:top_n]
-
-        ids = df["id"].to_list()
 
         self.diversity_adjustment = self.diversity_adjustment.with_columns(
             diversity_adjustment=pl.when(pl.col("id").is_in(ids))

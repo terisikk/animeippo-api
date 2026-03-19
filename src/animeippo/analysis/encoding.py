@@ -1,5 +1,4 @@
 import polars as pl
-import sklearn.preprocessing as skpre
 
 
 class CategoricalEncoder:
@@ -8,13 +7,26 @@ class CategoricalEncoder:
     """
 
     def fit(self, classes, class_field="features"):
-        self.classes = list(classes)
+        self.classes = sorted(classes)
         self.class_field = class_field
-        self.mlb = skpre.MultiLabelBinarizer(classes=self.classes)
-        self.mlb.fit(None)
+        self.dtype = pl.Struct(dict.fromkeys(self.classes, pl.UInt8))
 
-    def encode(self, dataframe, dtype=bool):
-        return self.mlb.transform(dataframe[self.class_field]).astype(dtype)
+    def encode(self, dataframe):
+        features_df = dataframe.select(
+            pl.col(self.class_field).list.eval(pl.element().cast(pl.Utf8)).alias(self.class_field)
+        )
+
+        binary_struct = pl.struct(
+            [
+                pl.when(pl.col(self.class_field).list.contains(feature))
+                .then(1)
+                .otherwise(0)
+                .alias(feature)
+                for feature in self.classes
+            ]
+        )
+
+        return features_df.select(binary_struct.cast(self.dtype)).to_series()
 
 
 class WeightedCategoricalEncoder:
@@ -29,6 +41,4 @@ class WeightedCategoricalEncoder:
         self.dtype = pl.Struct(dict.fromkeys(self.classes, pl.UInt8))
 
     def encode(self, dataframe):
-        return dataframe.select(
-            pl.col("ranks").cast(self.dtype)
-        ).to_series()
+        return dataframe.select(pl.col("ranks").cast(self.dtype)).to_series()

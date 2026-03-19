@@ -123,6 +123,19 @@ class GenreCategory:
         return False, {}
 
 
+class TopReleasedPicksCategory:
+    description = "Your Top 3"
+
+    def categorize(self, dataset):
+        mask = (pl.col("status").is_in(["releasing", "finished"])) & (
+            pl.col("user_status").ne_missing("completed")
+        )
+
+        sorting = {"by": "recommend_score", "descending": True}
+
+        return mask, sorting
+
+
 class YourTopPicksCategory:
     description = "Top New Picks for You"
 

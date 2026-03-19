@@ -26,7 +26,10 @@ def test_feature_correlation_scorer():
             "id": [1, 2],
             "features": [["Action", "Adventure"], ["Action", "Fantasy"]],
             "title": ["Bleach", "Fate/Zero"],
-            "encoded": [[1, 1, 0, 0, 0], [1, 0, 1, 0, 0]],
+            "encoded": [
+                {"Action": 1, "Adventure": 1, "Fantasy": 0, "Romance": 0, "Sci-fi": 0},
+                {"Action": 1, "Adventure": 0, "Fantasy": 1, "Romance": 0, "Sci-fi": 0},
+            ],
             "score": [5, 10],
             "user_status": ["completed", "completed"],
         },
@@ -37,7 +40,10 @@ def test_feature_correlation_scorer():
             "id": [3, 4],
             "features": [["Action", "Fantasy"], ["Action", "Adventure"]],
             "title": ["Fate/Grand Order", "Naruto"],
-            "encoded": [[1, 0, 1, 0, 0], [1, 1, 0, 0, 0]],
+            "encoded": [
+                {"Action": 1, "Adventure": 0, "Fantasy": 1, "Romance": 0, "Sci-fi": 0},
+                {"Action": 1, "Adventure": 1, "Fantasy": 0, "Romance": 0, "Sci-fi": 0},
+            ],
         }
     )
 
