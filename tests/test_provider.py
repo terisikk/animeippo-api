@@ -56,6 +56,9 @@ class AsyncProviderStub:
             "Thriller",
         ]
 
+    def get_tag_lookup(self):
+        return {}
+
 
 class FaultyProviderStub:
     def __init__(

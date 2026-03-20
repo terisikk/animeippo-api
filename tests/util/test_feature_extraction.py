@@ -36,6 +36,7 @@ def test_extract_features():
 
 
 def test_extract_features_without_feature_count():
+    """Test TF-IDF-based feature extraction returns all features ranked by distinctiveness."""
     df = pl.DataFrame(
         {
             "genres": [
@@ -53,8 +54,12 @@ def test_extract_features_without_feature_count():
 
     features = animeippo.analysis.statistics.get_descriptive_features(gdf, "genres", "cluster")
 
+    # TF-IDF ranks features by distinctiveness (rare across clusters but common within)
+    # Cluster 0: Action (in all 3 items), Comedy/Horror/Romance (distinctive)
+    # Cluster 1: Shounen (only in this cluster), Drama (shared)
+    # Cluster 2: Historical (mostly in this cluster), Drama (shared)
     assert features.select(pl.exclude("cluster")).rows() == [
         ("Action", "Comedy", "Horror", "Romance", "Historical", "Shounen", "Drama"),
-        ("Shounen", "Drama", "Comedy", "Horror", "Romance", "Historical", "Action"),
-        ("Historical", "Drama", "Comedy", "Horror", "Romance", "Shounen", "Action"),
+        ("Shounen", "Drama", "Action", "Comedy", "Historical", "Horror", "Romance"),
+        ("Historical", "Drama", "Action", "Comedy", "Horror", "Romance", "Shounen"),
     ]

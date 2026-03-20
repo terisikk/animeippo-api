@@ -164,10 +164,11 @@ def test_top_movies_category():
 
     recommendations = pl.DataFrame(
         {
-            "title": ["Test 1", "Test 2", "Test 3", "Test 4"],
-            "format": ["MOVIE", "TV", "MOVIE", "MOVIE"],
-            "user_status": [None, None, "completed", None],
-            "recommend_score": [8.0, 9.0, 10.0, 7.0],
+            "title": ["Test 1", "Test 2", "Test 3", "Test 4", "Test 5"],
+            "format": ["MOVIE", "TV", "MOVIE", "MOVIE", "MOVIE"],
+            "user_status": [None, None, "completed", None, None],
+            "status": ["finished", "finished", "finished", "not_yet_released", "finished"],
+            "recommend_score": [8.0, 9.0, 10.0, 11.0, 7.0],
         }
     )
 
@@ -177,7 +178,7 @@ def test_top_movies_category():
     mask, sorting_info = cat.categorize(data)
 
     result = recommendations.filter(mask).sort(**sorting_info)
-    assert result["title"].to_list() == ["Test 1", "Test 4"]
+    assert result["title"].to_list() == ["Test 1", "Test 5"]
 
 
 def test_top_upcoming_category(mocker):

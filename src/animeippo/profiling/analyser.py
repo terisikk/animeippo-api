@@ -1,5 +1,6 @@
 import asyncio
 from concurrent.futures import ThreadPoolExecutor
+from typing import ClassVar
 
 import polars as pl
 
@@ -99,6 +100,132 @@ class ProfileAnalyser:
 
         return categories
 
+    # Adjectival forms for terms that sound better as modifiers
+    ADJECTIVE_FORM: ClassVar[dict[str, str]] = {
+        # Genres with adjectival forms
+        "Romance": "Romantic",
+        "Tragedy": "Tragic",
+        "Comedy": "Comedic",
+        "Mystery": "Mysterious",
+        "Horror": "Horrific",
+        "Magic": "Magical",
+        # Plurals to singular (better as modifiers)
+        "Aliens": "Alien",
+        "Angels": "Angel",
+        "Animals": "Animal",
+        "Assassins": "Assassin",
+        "Cowboys": "Cowboy",
+        "Delinquents": "Delinquent",
+        "Demons": "Demon",
+        "Dinosaurs": "Dinosaur",
+        "Dragons": "Dragon",
+        "Firefighters": "Firefighter",
+        "Gangs": "Gang",
+        "Gods": "God",
+        "Guns": "Gun",
+        "Kids": "Kid",
+        "Maids": "Maid",
+        "Pirates": "Pirate",
+        "Robots": "Robot",
+        "Tanks": "Tank",
+        "Trains": "Train",
+        "Twins": "Twin",
+        "Vikings": "Viking",
+        "Witches": "Witch",
+        # Nouns with better adjectival forms
+        "Crime": "Criminal",
+        "Mythology": "Mythological",
+        "Politics": "Political",
+    }
+
+    # Modifier priority: lower number = placed first (modifier position)
+    # Higher number = core/noun position
+    MODIFIER_PRIORITY: ClassVar[dict[str, int]] = {
+        "Demographic": 1,
+        "Technical": 2,
+        "Setting": 3,
+        "Cast": 4,
+        "Theme": 5,
+        "Genre": 6,
+    }
+
+    def _get_feature_category(self, feature):
+        """Determine the category of a feature (Genre, Theme, Setting, Cast, etc.)."""
+        tag_lookup = self.provider.get_tag_lookup()
+        all_genres = self.provider.get_genres()
+        tag_by_name = {tag_info["name"]: tag_info for tag_info in tag_lookup.values()}
+
+        if feature in all_genres:
+            return "Genre", feature
+
+        if feature not in tag_by_name:
+            return None, feature
+
+        tag_info = tag_by_name[feature]
+        category_str = tag_info.get("category", "")
+
+        # Map tag category strings to simplified category names
+        category_map = {
+            "Theme-": "Theme",
+            "Setting-": "Setting",
+            "Cast-": "Cast",
+        }
+
+        for prefix, category_name in category_map.items():
+            if category_str.startswith(prefix):
+                return category_name, feature
+
+        if category_str in ("Technical", "Demographic"):
+            return category_str, feature
+
+        return None, feature
+
+    def _as_modifier(self, feature_name):
+        """Convert feature to its adjectival form when used as modifier."""
+        return self.ADJECTIVE_FORM.get(feature_name, feature_name)
+
+    def _generate_natural_cluster_name(self, features):
+        """Generate natural language cluster name using priority-based ordering.
+
+        Ordering principle: [Modifier] [Core]
+        - Core priority (rightmost/noun): Genre > Theme > Cast-Traits
+        - Modifier priority (leftmost/adjective): Setting > Demographic > Technical > Cast > Theme
+
+        Examples:
+        - "Shounen Action" (Demographic + Genre)
+        - "Historical Drama" (Setting + Genre)
+        - "School Romance" (Setting + Genre)
+        - "Vampire Fantasy" (Cast + Genre)
+        - "Isekai Cultivation" (Theme + Theme)
+        """
+        if not features:
+            return ""
+
+        # Categorize each feature
+        categorized_features = []
+        for feature in features[:2]:  # Only use first 2 descriptive features
+            category, name = self._get_feature_category(feature)
+            if category:
+                priority = self.MODIFIER_PRIORITY.get(category, 99)
+                categorized_features.append((priority, category, name))
+
+        if not categorized_features:
+            return " ".join(features[:2])
+
+        # Sort by priority (lower = modifier, higher = core)
+        categorized_features.sort(key=lambda x: x[0])
+
+        # Build name: apply adjectival transform to modifier position
+        if len(categorized_features) == 1:
+            name = categorized_features[0][2]
+        else:
+            modifier = self._as_modifier(categorized_features[0][2])
+            core = categorized_features[1][2]
+            name = f"{modifier} {core}"
+
+        # Capitalize first letter only, preserving rest (e.g., "CGI" stays "CGI")
+        return name[0].upper() + name[1:] if name else ""
+
     def get_cluster_categories(self, profile):
         target = profile.watchlist
 
@@ -110,14 +237,31 @@ class ProfileAnalyser:
             pl.col("cluster"), pl.concat_list(pl.exclude("cluster")).alias("description")
         )
 
+        cluster_stats = target.group_by("cluster").agg(
+            [
+                pl.col("id").count().alias("count"),
+                pl.col("score").mean().alias("mean_score"),
+                (pl.col("user_status") == "completed").sum().alias("completed_count"),
+            ]
+        )
+
+        cluster_stats = cluster_stats.with_columns(
+            completion_rate=(pl.col("completed_count") / pl.col("count") * 100).round(1)
+        ).with_columns(mean_score=pl.col("mean_score").round(1))
+
         clustergroups = target.sort("title").group_by(["cluster"])
 
         return [
             {
-                "name": " ".join(
-                    descriptions.filter(pl.col("cluster") == str(key[0]))["description"].item()
+                "name": self._generate_natural_cluster_name(
+                    list(
+                        descriptions.filter(pl.col("cluster") == str(key[0]))["description"].item()
+                    )
                 ),
                 "items": value["id"].to_list(),
+                "stats": cluster_stats.filter(pl.col("cluster") == key[0])
+                .select(["count", "mean_score", "completion_rate"])
+                .to_dicts()[0],
             }
             for key, value in clustergroups
         ]

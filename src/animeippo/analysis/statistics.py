@@ -1,6 +1,6 @@
 import numpy as np
 import polars as pl
-import scipy.stats as scstats
+from sklearn.feature_extraction.text import TfidfTransformer
 
 
 def weighted_mean_for_categorical_values(dataframe, column, weights, fillna=0.0):
@@ -124,41 +124,47 @@ def calculate_residuals(contingency_table, expected):
 
 def get_descriptive_features(dataframe, feature_column, cluster_column, n_features=None):
     """
-    Extracts the most correlated features from a categorical column.
-    Used to find the most correlated features for a given cluster.
+    Extracts the most distinctive features using TF-IDF scoring.
+
+    Uses sklearn's TfidfTransformer to score features by their distinctiveness to each cluster:
+    - TF (term frequency): how common the feature is within the cluster
+    - IDF (inverse document frequency): how rare the feature is across all clusters
+
+    This naturally produces names like "Isekai Fantasy" (distinctive) over "Action Comedy" (common).
     """
 
+    # Build term-document matrix: features by clusters
     contingency_table = dataframe.pivot(
         on=cluster_column, index=feature_column, values=cluster_column, aggregate_function="len"
-    ).fill_null(0)  # Approximately same as pd.crosstab
+    ).fill_null(0)
 
-    cet = contingency_table.select(pl.exclude(feature_column)).to_numpy()
+    count_matrix = contingency_table.select(pl.exclude(feature_column)).to_numpy()
 
-    _, _, _, expected = scstats.chi2_contingency(cet)
+    # Apply TF-IDF transformation
+    tfidf = TfidfTransformer()
+    tfidf_matrix = tfidf.fit_transform(count_matrix.T).T  # Transpose: clusters as documents
 
-    residuals = pl.concat(
+    # Convert back to Polars with TF-IDF scores (convert sparse matrix to dense)
+    tfidf_df = pl.concat(
         [
             contingency_table.select(pl.col(feature_column)),
-            pl.DataFrame(calculate_residuals(cet, expected)),
+            pl.DataFrame(tfidf_matrix.toarray(), schema=contingency_table.columns[1:]),
         ],
         how="horizontal",
     )
 
-    residuals.columns = contingency_table.columns
-
     if not n_features:
-        n_features = len(residuals)
+        n_features = len(tfidf_df)
 
-    column_iterator = (column for column in residuals.select(pl.exclude(feature_column)).columns)
+    # Select top N features per cluster
+    column_iterator = (column for column in tfidf_df.select(pl.exclude(feature_column)).columns)
 
     return (
-        residuals.sort(feature_column)
+        tfidf_df.sort(feature_column)
         .select(
             pl.col(feature_column)
             .top_k_by(pl.exclude(feature_column), n_features)
-            .name.map(
-                lambda c: str(next(column_iterator))
-            )  # Hack with top_k_by to get unique column names
+            .name.map(lambda _: str(next(column_iterator)))
         )
         .transpose(include_header=True, header_name="cluster")
     )

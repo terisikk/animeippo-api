@@ -161,7 +161,11 @@ class TopMoviesCategory:
     description = "Top Movies for You"
 
     def categorize(self, dataset):
-        mask = (pl.col("format") == "MOVIE") & (pl.col("user_status").ne_missing("completed"))
+        mask = (
+            (pl.col("format") == "MOVIE")
+            & (pl.col("user_status").ne_missing("completed"))
+            & (pl.col("status").is_in(["releasing", "finished"]))
+        )
 
         sorting = {"by": "recommend_score", "descending": True}
 
