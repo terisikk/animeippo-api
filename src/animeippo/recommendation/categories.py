@@ -136,6 +136,35 @@ class TopReleasedPicksCategory:
         return mask, sorting
 
 
+class HiddenGemsCategory:
+    description = "Hidden Gems for You"
+
+    def categorize(self, dataset):
+        mask = (
+            (pl.col("user_status").ne_missing("completed"))
+            & (pl.col("status").is_in(["releasing", "finished"]))
+            & (pl.col("format").is_in(["TV", "OVA"]))
+        )
+
+        sorting = {
+            "by": [pl.col("recommend_score") / (pl.col(scoring.PopularityScorer.name) + 0.01)],
+            "descending": True,
+        }
+
+        return mask, sorting
+
+
+class TopMoviesCategory:
+    description = "Top Movies for You"
+
+    def categorize(self, dataset):
+        mask = (pl.col("format") == "MOVIE") & (pl.col("user_status").ne_missing("completed"))
+
+        sorting = {"by": "recommend_score", "descending": True}
+
+        return mask, sorting
+
+
 class YourTopPicksCategory:
     description = "Top New Picks for You"
 

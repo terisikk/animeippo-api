@@ -136,6 +136,50 @@ def test_top_released_picks_category():
     assert result["title"].to_list() == ["Test 1", "Test 2"]
 
 
+def test_hidden_gems_category():
+    cat = categories.HiddenGemsCategory()
+
+    recommendations = pl.DataFrame(
+        {
+            "title": ["Test 1", "Test 2", "Test 3", "Test 4", "Test 5"],
+            "status": ["finished", "releasing", "finished", "finished", "finished"],
+            "user_status": [None, None, None, "completed", None],
+            "format": ["TV", "TV", "OVA", "TV", "MOVIE"],
+            "recommend_score": [8.0, 7.0, 6.0, 9.0, 10.0],
+            "popularityscore": [0.1, 0.8, 0.5, 0.2, 0.05],
+        }
+    )
+
+    data = RecommendationModel(None, None, None)
+    data.recommendations = recommendations
+
+    mask, sorting_info = cat.categorize(data)
+
+    result = recommendations.filter(mask).sort(**sorting_info)
+    assert result["title"].to_list() == ["Test 1", "Test 3", "Test 2"]
+
+
+def test_top_movies_category():
+    cat = categories.TopMoviesCategory()
+
+    recommendations = pl.DataFrame(
+        {
+            "title": ["Test 1", "Test 2", "Test 3", "Test 4"],
+            "format": ["MOVIE", "TV", "MOVIE", "MOVIE"],
+            "user_status": [None, None, "completed", None],
+            "recommend_score": [8.0, 9.0, 10.0, 7.0],
+        }
+    )
+
+    data = RecommendationModel(None, None, None)
+    data.recommendations = recommendations
+
+    mask, sorting_info = cat.categorize(data)
+
+    result = recommendations.filter(mask).sort(**sorting_info)
+    assert result["title"].to_list() == ["Test 1", "Test 4"]
+
+
 def test_top_upcoming_category(mocker):
     cat = categories.TopUpcomingCategory()
 
