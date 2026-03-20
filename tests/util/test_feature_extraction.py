@@ -26,7 +26,9 @@ def test_extract_features():
 
     gdf = df.explode("genres")
 
-    features = animeippo.analysis.statistics.get_descriptive_features(gdf, "genres", "cluster", 2)
+    features = animeippo.analysis.statistics.get_descriptive_features(
+        gdf, "genres", "cluster", 2, min_count=1
+    )
 
     assert features.select(pl.exclude("cluster")).rows() == [
         ("Action", "Comedy"),
@@ -52,7 +54,9 @@ def test_extract_features_without_feature_count():
 
     gdf = df.explode("genres")
 
-    features = animeippo.analysis.statistics.get_descriptive_features(gdf, "genres", "cluster")
+    features = animeippo.analysis.statistics.get_descriptive_features(
+        gdf, "genres", "cluster", min_count=1
+    )
 
     # TF-IDF ranks features by distinctiveness (rare across clusters but common within)
     # Cluster 0: Action (in all 3 items), Comedy/Horror/Romance (distinctive)

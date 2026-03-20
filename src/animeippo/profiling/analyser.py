@@ -141,12 +141,56 @@ class ProfileAnalyser:
     # Modifier priority: lower number = placed first (modifier position)
     # Higher number = core/noun position
     MODIFIER_PRIORITY: ClassVar[dict[str, int]] = {
-        "Demographic": 1,
-        "Technical": 2,
-        "Setting": 3,
-        "Cast": 4,
-        "Theme": 5,
-        "Genre": 6,
+        "Technical": 1,
+        "Setting": 2,
+        "Cast": 3,
+        "Theme": 4,
+        "Genre": 5,
+        "Demographic": 6,
+    }
+
+    # Features that only work as adjectives and can't anchor a name as a noun
+    ADJECTIVE_ONLY: ClassVar[set[str]] = {
+        "Rural",
+        "Urban",
+        "Coastal",
+        "Foreign",
+        "Historical",
+        "Dystopian",
+        "Medieval",
+        "Environmental",
+        "Educational",
+        "Autobiographical",
+        "Biographical",
+        "Post-Apocalyptic",
+        "Supernatural",
+    }
+
+    # Noun substitutes for adjective-only features when they'd otherwise be the core
+    PREFERRED_NOUN: ClassVar[dict[str, str]] = {
+        "Historical": "Period",
+        "Dystopian": "Dystopia",
+        "Medieval": "Fantasy",
+        "Post-Apocalyptic": "Wasteland",
+        "Environmental": "Nature",
+        "Rural": "Countryside",
+        "Urban": "City",
+        "Coastal": "Seaside",
+        "Educational": "Academy",
+        "Supernatural": "Occult",
+    }
+
+    # Fallback nouns per tag category when no preferred noun is available
+    CATEGORY_NOUNS: ClassVar[dict[str, str]] = {
+        "Setting-Scene": "World",
+        "Setting-Time": "Era",
+        "Setting-Universe": "World",
+        "Theme-Other": "Stories",
+        "Theme-Drama": "Drama",
+        "Theme-Action": "Action",
+        "Theme-Fantasy": "Fantasy",
+        "Theme-Romance": "Romance",
+        "Theme-Sci-Fi": "Sci-Fi",
     }
 
     def _get_feature_category(self, feature):
@@ -184,15 +228,76 @@ class ProfileAnalyser:
         """Convert feature to its adjectival form when used as modifier."""
         return self.ADJECTIVE_FORM.get(feature_name, feature_name)
 
+    def _select_diverse_features(self, features):
+        """Pick top 2 features from different categories, avoiding all-adjective pairs."""
+        categorized = []
+        for feature in features:
+            category, name = self._get_feature_category(feature)
+            if category:
+                priority = self.MODIFIER_PRIORITY.get(category, 99)
+                categorized.append((priority, category, name))
+
+        if len(categorized) <= 1:
+            return categorized
+
+        # Take the best feature, then the best remaining from a different category
+        best = categorized[0]
+        second = None
+        for candidate in categorized[1:]:
+            if candidate[1] != best[1]:
+                second = candidate
+                break
+
+        if second is None:
+            second = categorized[1]
+
+        pair = sorted([best, second], key=lambda x: x[0])
+
+        # If both are adjective-only, try to swap one for a noun-capable candidate
+        if pair[0][2] in self.ADJECTIVE_ONLY and pair[1][2] in self.ADJECTIVE_ONLY:
+            for candidate in categorized:
+                if candidate[2] not in self.ADJECTIVE_ONLY and candidate not in pair:
+                    pair[1] = candidate
+                    pair.sort(key=lambda x: x[0])
+                    break
+
+        return pair
+
+    def _get_tag_category_string(self, feature):
+        """Get the raw category string for a tag (e.g. 'Setting-Scene', 'Theme-Other')."""
+        tag_lookup = self.provider.get_tag_lookup()
+        tag_by_name = {tag_info["name"]: tag_info for tag_info in tag_lookup.values()}
+        if feature in tag_by_name:
+            return tag_by_name[feature].get("category", "")
+        return ""
+
+    def _resolve_adjective_core(self, modifier_name, core_name):
+        """Resolve both-adjective-only pairs by finding a suitable noun."""
+        # Try preferred noun for the core
+        if core_name in self.PREFERRED_NOUN:
+            return self._as_modifier(modifier_name), self.PREFERRED_NOUN[core_name]
+
+        # Try preferred noun for the modifier (swap roles)
+        if modifier_name in self.PREFERRED_NOUN:
+            return self._as_modifier(core_name), self.PREFERRED_NOUN[modifier_name]
+
+        # Try category noun for the core
+        core_category = self._get_tag_category_string(core_name)
+        if core_category in self.CATEGORY_NOUNS:
+            return self._as_modifier(modifier_name), self.CATEGORY_NOUNS[core_category]
+
+        # Last resort
+        return self._as_modifier(modifier_name), f"{core_name} Anime"
+
     def _generate_natural_cluster_name(self, features):
         """Generate natural language cluster name using priority-based ordering.
 
         Ordering principle: [Modifier] [Core]
-        - Core priority (rightmost/noun): Genre > Theme > Cast-Traits
-        - Modifier priority (leftmost/adjective): Setting > Demographic > Technical > Cast > Theme
+        - Core priority (rightmost/noun): Demographic > Genre > Theme > Cast
+        - Modifier priority (leftmost/adjective): Technical > Setting > Cast > Theme > Genre
 
         Examples:
-        - "Shounen Action" (Demographic + Genre)
+        - "Action Shounen" (Genre + Demographic)
         - "Historical Drama" (Setting + Genre)
         - "School Romance" (Setting + Genre)
         - "Vampire Fantasy" (Cast + Genre)
@@ -201,27 +306,36 @@ class ProfileAnalyser:
         if not features:
             return ""
 
-        # Categorize each feature
-        categorized_features = []
-        for feature in features[:2]:  # Only use first 2 descriptive features
-            category, name = self._get_feature_category(feature)
-            if category:
-                priority = self.MODIFIER_PRIORITY.get(category, 99)
-                categorized_features.append((priority, category, name))
+        categorized_features = self._select_diverse_features(features)
 
         if not categorized_features:
             return " ".join(features[:2])
 
-        # Sort by priority (lower = modifier, higher = core)
-        categorized_features.sort(key=lambda x: x[0])
-
-        # Build name: apply adjectival transform to modifier position
         if len(categorized_features) == 1:
             name = categorized_features[0][2]
         else:
-            modifier = self._as_modifier(categorized_features[0][2])
-            core = categorized_features[1][2]
-            name = f"{modifier} {core}"
+            modifier_name = categorized_features[0][2]
+            core_name = categorized_features[1][2]
+            core_cat = categorized_features[1][1]
+
+            # Swap if core is adjective-only but modifier is noun-capable
+            if core_name in self.ADJECTIVE_ONLY and modifier_name not in self.ADJECTIVE_ONLY:
+                modifier_name, core_name = core_name, modifier_name
+                core_cat = categorized_features[0][1]
+
+            # Check substring overlap — keep the longer/more specific one
+            mod_lower = modifier_name.lower()
+            core_lower = core_name.lower()
+            if mod_lower in core_lower or core_lower in mod_lower:
+                name = max(modifier_name, core_name, key=len)
+            elif modifier_name in self.ADJECTIVE_ONLY and core_name in self.ADJECTIVE_ONLY:
+                modifier, core = self._resolve_adjective_core(modifier_name, core_name)
+                name = f"{modifier} {core}"
+            elif core_cat == "Demographic":
+                name = f"{modifier_name} {core_name}"
+            else:
+                modifier = self._as_modifier(modifier_name)
+                name = f"{modifier} {core_name}"
 
         # Capitalize first letter only, preserving rest (e.g., "CGI" stays "CGI")
         return name[0].upper() + name[1:] if name else ""
@@ -233,9 +347,13 @@ class ProfileAnalyser:
 
         gdf = gdf.filter(~pl.col("features").is_in(self.provider.get_nsfw_tags()))
 
-        descriptions = statistics.get_descriptive_features(gdf, "features", "cluster", 2).select(
-            pl.col("cluster"), pl.concat_list(pl.exclude("cluster")).alias("description")
-        )
+        descriptions = statistics.get_descriptive_features(
+            gdf,
+            "features",
+            "cluster",
+            n_features=5,
+            boost_features=set(self.provider.get_genres()),
+        ).select(pl.col("cluster"), pl.concat_list(pl.exclude("cluster")).alias("description"))
 
         cluster_stats = target.group_by("cluster").agg(
             [

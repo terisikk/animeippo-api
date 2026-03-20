@@ -122,7 +122,15 @@ def calculate_residuals(contingency_table, expected):
     )
 
 
-def get_descriptive_features(dataframe, feature_column, cluster_column, n_features=None):
+def get_descriptive_features(  # noqa: PLR0913
+    dataframe,
+    feature_column,
+    cluster_column,
+    n_features=None,
+    min_count=2,
+    boost_features=None,
+    boost_factor=1.5,
+):
     """
     Extracts the most distinctive features using TF-IDF scoring.
 
@@ -138,6 +146,15 @@ def get_descriptive_features(dataframe, feature_column, cluster_column, n_featur
         on=cluster_column, index=feature_column, values=cluster_column, aggregate_function="len"
     ).fill_null(0)
 
+    # Filter features that don't appear enough in any single cluster
+    cluster_columns = contingency_table.columns[1:]
+    filtered = contingency_table.filter(
+        pl.max_horizontal(pl.col(col) for col in cluster_columns) >= min_count
+    )
+
+    if len(filtered) > 0:
+        contingency_table = filtered
+
     count_matrix = contingency_table.select(pl.exclude(feature_column)).to_numpy()
 
     # Apply TF-IDF transformation
@@ -148,10 +165,18 @@ def get_descriptive_features(dataframe, feature_column, cluster_column, n_featur
     tfidf_df = pl.concat(
         [
             contingency_table.select(pl.col(feature_column)),
-            pl.DataFrame(tfidf_matrix.toarray(), schema=contingency_table.columns[1:]),
+            pl.DataFrame(tfidf_matrix.toarray(), schema=cluster_columns),
         ],
         how="horizontal",
     )
+
+    # Boost preferred features (e.g. genres) so they win over tags when scores are close
+    if boost_features:
+        boost_mask = pl.col(feature_column).is_in(list(boost_features))
+        tfidf_df = tfidf_df.with_columns(
+            pl.when(boost_mask).then(pl.col(col) * boost_factor).otherwise(pl.col(col)).alias(col)
+            for col in cluster_columns
+        )
 
     if not n_features:
         n_features = len(tfidf_df)

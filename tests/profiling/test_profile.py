@@ -132,11 +132,11 @@ def test_cluster_name_generation_with_various_categories():
     """Test natural language generation using priority-based ordering.
 
     Ordering principle: [Modifier] [Core]
-    - Core priority (rightmost/noun): Genre > Theme > Cast-Traits
-    - Modifier priority (leftmost/adjective): Demographic > Technical > Setting > Cast > Theme
+    - Core priority (rightmost/noun): Demographic > Genre > Theme > Cast
+    - Modifier priority (leftmost/adjective): Technical > Setting > Cast > Theme > Genre
 
     Examples based on the specification:
-    - "Shounen Action" (Demographic + Genre)
+    - "Action Shounen" (Genre + Demographic)
     - "Historical Drama" (Setting + Genre)
     - "Vampire Fantasy" (Cast + Genre)
     - "Isekai Cultivation" (Theme + Theme)
@@ -175,9 +175,9 @@ def test_cluster_name_generation_with_various_categories():
     name = profiler._generate_natural_cluster_name(["Fantasy", "Vampire"])
     assert name == "Vampire Fantasy"
 
-    # Genre + Demographic: Demographic as modifier
+    # Genre + Demographic: Demographic as suffix
     name = profiler._generate_natural_cluster_name(["Action", "Shounen"])
-    assert name == "Shounen Action"
+    assert name == "Action Shounen"
 
     # Genre + Theme: Theme as modifier
     name = profiler._generate_natural_cluster_name(["Fantasy", "Isekai"])
@@ -259,6 +259,127 @@ def test_cluster_name_adjectival_transformations():
     # Noun to adjective: "Politics" → "Political"
     name = profiler._generate_natural_cluster_name(["Politics", "Drama"])
     assert name == "Political Drama"
+
+
+def test_cluster_name_edge_cases():
+    """Test edge cases: substring overlap, adjective-only pairs, role swapping."""
+    profiler = analyser.ProfileAnalyser(None)
+
+    class MockProvider:
+        def get_tag_lookup(self):
+            return {
+                1: {"name": "Space", "category": "Setting-Universe", "isAdult": False},
+                2: {"name": "Space Opera", "category": "Theme-Sci-Fi", "isAdult": False},
+                3: {"name": "Rural", "category": "Setting-Scene", "isAdult": False},
+                4: {"name": "Environmental", "category": "Theme-Other", "isAdult": False},
+                5: {"name": "Historical", "category": "Setting-Time", "isAdult": False},
+                6: {"name": "Urban Fantasy", "category": "Setting-Universe", "isAdult": False},
+                7: {"name": "Urban", "category": "Setting-Scene", "isAdult": False},
+                8: {"name": "Dystopian", "category": "Setting-Time", "isAdult": False},
+            }
+
+        def get_genres(self):
+            return {"Action", "Fantasy", "Drama", "Comedy"}
+
+    profiler.provider = MockProvider()
+
+    # Substring overlap: keep longer
+    name = profiler._generate_natural_cluster_name(["Space", "Space Opera"])
+    assert name == "Space Opera"
+
+    # Substring overlap: keep longer
+    name = profiler._generate_natural_cluster_name(["Urban", "Urban Fantasy"])
+    assert name == "Urban Fantasy"
+
+    # Both adjective-only with preferred noun
+    name = profiler._generate_natural_cluster_name(["Rural", "Environmental"])
+    assert name == "Rural Nature"
+
+    # Both adjective-only: "Historical" + "Dystopian" → preferred noun for core
+    name = profiler._generate_natural_cluster_name(["Historical", "Dystopian"])
+    assert name == "Historical Dystopia"
+
+    # Role swap: core is adjective-only, modifier is noun-capable → swap them
+    # If TF-IDF ranks "Action" first and "Historical" second with same category diversity,
+    # priority puts Setting(2) before Genre(5), so Historical=modifier, Action=core. Fine.
+    # But if both are themes and adjective-only one ends up as core, it should swap.
+    name = profiler._generate_natural_cluster_name(["Fantasy", "Historical"])
+    assert name == "Historical Fantasy"
+
+    # Adjective-only as modifier is fine (no swap needed)
+    name = profiler._generate_natural_cluster_name(["Action", "Dystopian"])
+    assert name == "Dystopian Action"
+
+    # Both adjective-only, core has no preferred noun but modifier does → swap roles
+    class MockProviderSwap:
+        def get_tag_lookup(self):
+            return {
+                1: {"name": "Biographical", "category": "Theme-Other", "isAdult": False},
+                2: {"name": "Rural", "category": "Setting-Scene", "isAdult": False},
+            }
+
+        def get_genres(self):
+            return set()
+
+    profiler.provider = MockProviderSwap()
+    name = profiler._generate_natural_cluster_name(["Biographical", "Rural"])
+    assert name == "Biographical Countryside"
+
+
+def test_cluster_name_adjective_only_fallbacks():
+    """Test fallback chain when both features are adjective-only."""
+    profiler = analyser.ProfileAnalyser(None)
+    analyser.ProfileAnalyser.ADJECTIVE_ONLY |= {"FakeAdj1", "FakeAdj2"}
+
+    # Category noun fallback
+    class MockProviderCatNoun:
+        def get_tag_lookup(self):
+            return {
+                1: {"name": "FakeAdj1", "category": "Theme-Drama", "isAdult": False},
+                2: {"name": "FakeAdj2", "category": "Setting-Time", "isAdult": False},
+            }
+
+        def get_genres(self):
+            return set()
+
+    profiler.provider = MockProviderCatNoun()
+    name = profiler._generate_natural_cluster_name(["FakeAdj1", "FakeAdj2"])
+    assert name == "FakeAdj2 Drama"
+
+    # Last resort: no preferred noun, no category noun → "Anime"
+    # FakeAdj1 is a genre (not in tag_lookup), so category string lookup returns ""
+    class MockProviderNoFallback:
+        def get_tag_lookup(self):
+            return {
+                1: {"name": "FakeAdj2", "category": "Cast-Traits", "isAdult": False},
+            }
+
+        def get_genres(self):
+            return {"FakeAdj1"}
+
+    profiler.provider = MockProviderNoFallback()
+    name = profiler._generate_natural_cluster_name(["FakeAdj1", "FakeAdj2"])
+    assert name == "FakeAdj2 FakeAdj1 Anime"
+
+    analyser.ProfileAnalyser.ADJECTIVE_ONLY -= {"FakeAdj1", "FakeAdj2"}
+
+    # Adjective-only pair from different categories with 3rd noun-capable candidate
+    class MockProviderDiversity:
+        def get_tag_lookup(self):
+            return {
+                1: {"name": "Historical", "category": "Setting-Time", "isAdult": False},
+                2: {"name": "Environmental", "category": "Theme-Other", "isAdult": False},
+                3: {"name": "Vampire", "category": "Cast-Traits", "isAdult": False},
+            }
+
+        def get_genres(self):
+            return set()
+
+    profiler.provider = MockProviderDiversity()
+    # Historical (Setting) + Environmental (Theme) are diverse but both adjective-only
+    # → swap Environmental for Vampire (noun-capable)
+    name = profiler._generate_natural_cluster_name(["Historical", "Environmental", "Vampire"])
+    assert name == "Historical Vampire"
 
 
 def test_clusters_can_be_categorized_with_nsfw_filtering():

@@ -21,3 +21,5 @@ conf/*
 *.xlsx
 *.lcov
 *.egg-info
+
+.claude/settings.local.json
