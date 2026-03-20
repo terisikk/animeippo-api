@@ -147,7 +147,10 @@ class HiddenGemsCategory:
         )
 
         sorting = {
-            "by": [pl.col("recommend_score") / (pl.col(scoring.PopularityScorer.name) + 0.01)],
+            "by": [
+                pl.col("recommend_score")
+                / (pl.col(scoring.PopularityScorer.name).fill_null(1.0) + 0.01)
+            ],
             "descending": True,
         }
 
