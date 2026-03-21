@@ -492,6 +492,7 @@ def test_ranking_orchestrator_render_with_diversity_adjusted_categories():
             "id": [1, 2, 3, 4],
             "title": ["Action 1", "Action 2", "Drama 1", "Comedy 1"],
             "genres": [["Action"], ["Action"], ["Drama"], ["Comedy"]],
+            "features": [["Action"], ["Action"], ["Drama"], ["Comedy"]],
             "recommend_score": [2.0, 1.9, 1.8, 1.7],
             "user_status": [None, None, None, None],
         }
@@ -525,6 +526,7 @@ def test_ranking_orchestrator_render_with_non_diversity_adjusted_categories():
             "title": ["Test 1", "Test 2", "Test 3"],
             "recommend_score": [2.0, 2.1, 1.99],
             "popularityscore": [1.0, 2.0, 3.0],
+            "features": [["A", "B"], ["A", "B"], ["A", "B"]],
         }
     )
 
@@ -558,6 +560,7 @@ def test_ranking_orchestrator_render_skips_empty_categories():
             "id": [3, 4],
             "title": ["Test 1", "Test 2"],
             "recommend_score": [2.0, 1.0],
+            "features": [["A", "B"], ["A", "B"]],
         }
     )
 

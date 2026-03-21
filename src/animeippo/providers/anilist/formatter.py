@@ -34,31 +34,38 @@ def get_anilist_mapping(tag_lookup):
             .explode("tags")
             .unnest("tags")
             .join(tag_lookup_df, left_on="id", right_on="tag_id", how="left")
-            .select(
-                "anime_id",
-                pl.col("tag_name").fill_null("Unknown").alias("name"),
-            )
+            .select("anime_id", pl.col("tag_name").alias("name"))
             .group_by("anime_id", maintain_order=True)
-            .agg(pl.col("name"))
+            .agg(pl.col("name").drop_nulls())
             .select("name")
             .to_series()
         )
 
     def enrich_tags_for_ranks(df):
         """Enrich tags with name, rank, and category for the temp_ranks column"""
-        return (
+        enriched = (
             df.select([pl.col("id").alias("anime_id"), "tags"])
             .explode("tags")
             .unnest("tags")
             .join(tag_lookup_df, left_on="id", right_on="tag_id", how="left")
             .select(
                 "anime_id",
-                pl.col("tag_name").fill_null("Unknown").alias("name"),
+                pl.col("tag_name").alias("name"),
                 "rank",
-                pl.col("tag_category").fill_null("Unknown").alias("category"),
+                pl.col("tag_category").alias("category"),
             )
+        )
+
+        # Drop unrecognized tags before building structs
+        return (
+            enriched.filter(pl.col("name").is_not_null())
             .group_by("anime_id", maintain_order=True)
             .agg(pl.struct(["name", "rank", "category"]).alias("temp_ranks"))
+            .join(
+                df.select(pl.col("id").alias("anime_id")),
+                on="anime_id",
+                how="right",
+            )
             .select("temp_ranks")
             .to_series()
         )
