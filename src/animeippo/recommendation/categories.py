@@ -125,7 +125,7 @@ class HiddenGemsCategory:
 
     def categorize(self, dataset):
         mask = (
-            (pl.col("user_status").ne_missing("COMPLETED"))
+            (pl.col("user_status").is_null() | (pl.col("user_status") == "PLANNING"))
             & (pl.col("status").is_in(["RELEASING", "FINISHED"]))
             & (pl.col("format").is_in(["TV", "OVA"]))
         )
@@ -133,7 +133,7 @@ class HiddenGemsCategory:
         sorting = {
             "by": [
                 pl.col("recommend_score")
-                / (pl.col(scoring.PopularityScorer.name).fill_null(1.0) + 0.01)
+                / (pl.col("popularity").rank() / pl.col("popularity").count())
             ],
             "descending": True,
         }

@@ -245,7 +245,7 @@ class PopularityScorer(AbstractScorer):
 
         scores = scoring_target_df["popularity"]
 
-        return statistics.rank_series(scores.rank())
+        return statistics.rank_series(scores)
 
 
 class ContinuationScorer(AbstractScorer):
