@@ -90,6 +90,6 @@ def test_get_user_complete_date():
 
 
 def test_get_status():
-    assert formatter.get_status("currently_airing") == "releasing"
+    assert formatter.get_status("currently_airing") == "RELEASING"
 
     assert formatter.get_status("invalid") == "invalid"

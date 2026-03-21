@@ -1,12 +1,19 @@
 import polars as pl
 
-from animeippo.providers.columns import Columns, Season
+from animeippo.providers.columns import (
+    Columns,
+    Format,
+    MediaSource,
+    MediaStatus,
+    Season,
+    UserStatus,
+)
 
 ANI_WATCHLIST_SCHEMA = {
     Columns.ID: pl.UInt32,
     Columns.ID_MAL: pl.UInt32,
     Columns.TITLE: pl.Utf8,
-    Columns.FORMAT: pl.Utf8,
+    Columns.FORMAT: Format,
     Columns.GENRES: pl.List(pl.Utf8),
     Columns.TAGS: pl.List(pl.Utf8),
     Columns.COVER_IMAGE: pl.Utf8,
@@ -14,7 +21,7 @@ ANI_WATCHLIST_SCHEMA = {
     Columns.MEAN_SCORE: pl.Float32,
     Columns.DURATION: pl.UInt32,
     Columns.EPISODES: pl.UInt16,
-    Columns.SOURCE: pl.Utf8,
+    Columns.SOURCE: MediaSource,
     Columns.TEMP_RANKS: pl.List(
         pl.Struct({"name": pl.Utf8, "rank": pl.UInt8, "category": pl.Utf8})
     ),
@@ -22,7 +29,7 @@ ANI_WATCHLIST_SCHEMA = {
     Columns.SEASON_YEAR: pl.UInt16,
     Columns.SEASON: Season,
     Columns.DIRECTOR: pl.List(pl.UInt32),
-    Columns.USER_STATUS: pl.Utf8,
+    Columns.USER_STATUS: UserStatus,
     Columns.USER_COMPLETE_DATE: pl.Date,
 }
 
@@ -30,8 +37,8 @@ ANI_SEASONAL_SCHEMA = {
     Columns.ID: pl.UInt32,
     Columns.ID_MAL: pl.UInt32,
     Columns.TITLE: pl.Utf8,
-    Columns.FORMAT: pl.Utf8,
-    Columns.STATUS: pl.Utf8,
+    Columns.FORMAT: Format,
+    Columns.STATUS: MediaStatus,
     Columns.GENRES: pl.List(pl.Utf8),
     Columns.TAGS: pl.List(pl.Utf8),
     Columns.COVER_IMAGE: pl.Utf8,
@@ -39,7 +46,7 @@ ANI_SEASONAL_SCHEMA = {
     Columns.POPULARITY: pl.UInt32,
     Columns.DURATION: pl.UInt32,
     Columns.EPISODES: pl.UInt16,
-    Columns.SOURCE: pl.Utf8,
+    Columns.SOURCE: MediaSource,
     Columns.CONTINUATION_TO: pl.List(pl.UInt32),
     Columns.ADAPTATION_OF: pl.List(pl.UInt32),
     Columns.TEMP_RANKS: pl.List(
@@ -60,7 +67,7 @@ ANI_MANGA_SCHEMA = {
     Columns.TAGS: pl.List(pl.Utf8),
     Columns.SCORE: pl.UInt8,
     Columns.MEAN_SCORE: pl.Float32,
-    Columns.STATUS: pl.Utf8,
-    Columns.USER_STATUS: pl.Utf8,
+    Columns.STATUS: UserStatus,
+    Columns.USER_STATUS: UserStatus,
     Columns.USER_COMPLETE_DATE: pl.Date,
 }

@@ -8,7 +8,7 @@ class Characteristics:
 
 def watchlist_genre_variance(watchlist, all_genres):
     user_unique_genres = (
-        watchlist.filter(pl.col("user_status").is_in(["completed", "watching"]))
+        watchlist.filter(pl.col("user_status").is_in(["COMPLETED", "CURRENT"]))
         .explode("genres")
         .unique("genres")["genres"]
         .to_list()

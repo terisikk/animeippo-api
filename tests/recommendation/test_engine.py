@@ -170,7 +170,7 @@ def test_categorize():
             "studiocorrelationscore": [6],
             "cluster": [1],
             "features": [["test"]],
-            "source": ["original"],
+            "source": ["ORIGINAL"],
             "score": [123],
             "user_status": [None],
             "recommend_score": [1],

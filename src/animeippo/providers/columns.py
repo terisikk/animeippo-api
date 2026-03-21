@@ -32,4 +32,39 @@ class Columns(StrEnum):
     DIRECTOR = "directors"
 
 
-Season = Enum(["winter", "spring", "summer", "fall"])
+Season = Enum(["WINTER", "SPRING", "SUMMER", "FALL"])
+UserStatus = Enum(["CURRENT", "REPEATING", "COMPLETED", "DROPPED", "PAUSED", "PLANNING"])
+MediaStatus = Enum(["FINISHED", "RELEASING", "NOT_YET_RELEASED", "CANCELLED", "HIATUS"])
+MediaSource = Enum(
+    [
+        "ORIGINAL",
+        "MANGA",
+        "LIGHT_NOVEL",
+        "VISUAL_NOVEL",
+        "VIDEO_GAME",
+        "OTHER",
+        "NOVEL",
+        "DOUJINSHI",
+        "ANIME",
+        "WEB_NOVEL",
+        "LIVE_ACTION",
+        "GAME",
+        "COMIC",
+        "MULTIMEDIA_PROJECT",
+        "PICTURE_BOOK",
+    ]
+)
+Format = Enum(
+    [
+        "TV",
+        "TV_SHORT",
+        "MOVIE",
+        "SPECIAL",
+        "OVA",
+        "ONA",
+        "MUSIC",
+        "MANGA",
+        "NOVEL",
+        "ONE_SHOT",
+    ]
+)

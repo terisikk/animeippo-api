@@ -93,12 +93,12 @@ def get_user_complete_date(finish_date):
 
 def get_status(status):
     mapping = {
-        "currently_airing": "releasing",
-        "finished_airing": "finished",
-        "not_yet_aired": "not_yet_released",
-        "finished": "finished",
-        "currently_publishing": "releasing",
-        "not_yet_published": "not_yet_released",
+        "currently_airing": "RELEASING",
+        "finished_airing": "FINISHED",
+        "not_yet_aired": "NOT_YET_RELEASED",
+        "finished": "FINISHED",
+        "currently_publishing": "RELEASING",
+        "not_yet_published": "NOT_YET_RELEASED",
     }
 
     return mapping.get(status, status)
@@ -108,17 +108,27 @@ def get_status(status):
 MAL_MAPPING = {
     Columns.ID:                 DefaultMapper("node.id"),
     Columns.TITLE:              DefaultMapper("node.title"),
-    Columns.FORMAT:             DefaultMapper("node.media_type"),
+    Columns.FORMAT:             SelectorMapper(pl.col("node.media_type").str.to_uppercase()),
     Columns.COVER_IMAGE:        DefaultMapper("node.main_picture.medium"),
     Columns.MEAN_SCORE:         DefaultMapper("node.mean"),
     Columns.POPULARITY:         DefaultMapper("node.num_list_users"),
     Columns.DURATION:           DefaultMapper("node.average_episode_duration"),
     Columns.EPISODES:           DefaultMapper("node.num_episodes"),
     Columns.RATING:             DefaultMapper("node.rating"),
-    Columns.SOURCE:             DefaultMapper("node.source"),
-    Columns.SEASON:             DefaultMapper("node.start_season.season"),
+    Columns.SOURCE:             SelectorMapper(
+                                    pl.col("node.source").str.to_uppercase()
+                                ),
+    Columns.SEASON:             SelectorMapper(
+                                    pl.col("node.start_season.season").str.to_uppercase()
+                                ),
     Columns.SEASON_YEAR:        DefaultMapper("node.start_season.year"),
-    Columns.USER_STATUS:        DefaultMapper("list_status.status"),
+    Columns.USER_STATUS:        SelectorMapper(
+                                    pl.col("list_status.status").replace(
+                                        {"watching": "CURRENT", "on_hold": "PAUSED",
+                                         "plan_to_watch": "PLANNING",
+                                         "completed": "COMPLETED", "dropped": "DROPPED"},
+                                    )
+                                ),
     Columns.GENRES:             SingleMapper("node.genres", split_id_name_field, [], pl.List),
     Columns.STUDIOS:            SingleMapper("node.studios", split_id_name_field, [], pl.List),
     Columns.STATUS:             SingleMapper("node.status", get_status),

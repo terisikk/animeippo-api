@@ -55,7 +55,7 @@ class RecommendationModel:
             Filter out all sequels unless they are a continuation from the user's watchlist.
             """
             previously_watched = self.watchlist.filter(
-                pl.col("user_status").is_in(["completed", "watching", "paused"])
+                pl.col("user_status").is_in(["COMPLETED", "CURRENT", "PAUSED"])
             )["id"]
 
             mask = (

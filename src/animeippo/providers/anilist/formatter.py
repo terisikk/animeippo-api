@@ -170,21 +170,15 @@ ANILIST_MAPPING = {
     Columns.DURATION:           DefaultMapper("duration"),
     Columns.EPISODES:           DefaultMapper("episodes"),
     Columns.SEASON_YEAR:        DefaultMapper("seasonYear"),
-    Columns.SEASON:             SelectorMapper(
-                                    pl.col("season").str.to_lowercase()
-                                ),
-    Columns.USER_STATUS:        SelectorMapper(pl.col("status").str.to_lowercase()),
-    Columns.STATUS:             SelectorMapper(pl.col("status").str.to_lowercase()),
+    Columns.SEASON:             DefaultMapper("season"),
+    Columns.USER_STATUS:        DefaultMapper("status"),
+    Columns.STATUS:             DefaultMapper("status"),
     Columns.SCORE:              SelectorMapper(
                                     pl.when(pl.col("score") > 0)
                                     .then(pl.col("score"))
                                     .otherwise(None)
                                 ),
-    Columns.SOURCE:             SelectorMapper(
-                                    pl.when(pl.col("source").is_not_null())
-                                    .then(pl.col("source").str.to_lowercase())
-                                    .otherwise(None)
-                                ),
+    Columns.SOURCE:             DefaultMapper("source"),
     Columns.TAGS:               SelectorMapper(
                                     pl.col("tags").list.eval(
                                         pl.element().struct.field("id")

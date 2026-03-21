@@ -54,7 +54,7 @@ class FeatureCorrelationScorer(AbstractScorer):
         # Get negative signal from dropped/paused features
         user_negative_weights = statistics.weight_encoded_categoricals_correlation(
             compare_df.with_columns(
-                dropped_or_paused=pl.col("user_status").is_in(["dropped", "paused"])
+                dropped_or_paused=pl.col("user_status").is_in(["DROPPED", "PAUSED"])
             ),
             "encoded",
             against="dropped_or_paused",
@@ -273,9 +273,9 @@ class ContinuationScorer(AbstractScorer):
                 [
                     # Track whether this was a valid continuation match (exists in watchlist)
                     pl.col("user_status").is_not_null().alias("has_continuation"),
-                    pl.when(pl.col("user_status") == "completed")
+                    pl.when(pl.col("user_status") == "COMPLETED")
                     .then(pl.lit(1.0))
-                    .when(pl.col("user_status").is_in(["watching", "paused"]))
+                    .when(pl.col("user_status").is_in(["CURRENT", "PAUSED"]))
                     .then(pl.lit(0.5))
                     .otherwise(pl.lit(0.2))
                     .alias("confidence"),
@@ -296,7 +296,7 @@ class ContinuationScorer(AbstractScorer):
                 .then(
                     pl.col("shrunk_score")
                     + self.BASE_CONTINUATION_BONUS
-                    + pl.when(pl.col("user_status") == "completed")
+                    + pl.when(pl.col("user_status") == "COMPLETED")
                     .then(pl.lit(self.COMPLETION_BONUS))
                     .otherwise(pl.lit(0.0))
                 )

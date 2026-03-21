@@ -75,7 +75,7 @@ class MyAnimeListProvider(abstract_provider.AbstractAnimeProvider):
 
             return transformed.filter(
                 (~pl.col("rating").is_in(["g", "rx"]))
-                & (pl.col("season") == season)
+                & (pl.col("season") == season.upper())
                 & (pl.col("season_year") == int(year))
             )
 

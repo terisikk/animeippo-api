@@ -3,21 +3,6 @@ import polars as pl
 from ..meta import meta
 from . import scoring
 
-FORMAT_ENUM = pl.Enum(
-    [
-        "TV",
-        "MOVIE",
-        "OVA",
-        "ONA",
-        "SPECIAL",
-        "TV_SHORT",
-        "MANGA",
-        "ONE_SHOT",
-        "NOVEL",
-        "MUSIC",
-    ]
-)
-
 
 class MostPopularCategory:
     description = "Most Popular for This Year"
@@ -35,11 +20,10 @@ class ContinueWatchingCategory:
     def categorize(self, dataset):
         mask = (
             (pl.col(scoring.ContinuationScorer.name) > 0)
-            & (pl.col("user_status").ne_missing("completed"))
-        ) | (pl.col("user_status") == "paused")
+            & (pl.col("user_status").ne_missing("COMPLETED"))
+        ) | (pl.col("user_status") == "PAUSED")
 
-        # TODO: Cast format to enum already in the formatters
-        by = [pl.col("format").cast(FORMAT_ENUM), "recommend_score"]
+        by = [pl.col("format"), "recommend_score"]
         descending = [False, True]
 
         sorting = {"by": by, "descending": descending}
@@ -52,10 +36,10 @@ class AdaptationCategory:
 
     def categorize(self, dataset):
         mask = (pl.col(scoring.AdaptationScorer.name) > 0) & (
-            pl.col("user_status").ne_missing("completed")
+            pl.col("user_status").ne_missing("COMPLETED")
         )
 
-        by = [pl.col("format").cast(FORMAT_ENUM), scoring.AdaptationScorer.name]
+        by = [pl.col("format"), scoring.AdaptationScorer.name]
         descending = [False, True]
 
         sorting = {"by": by, "descending": descending}
@@ -86,7 +70,7 @@ class StudioCategory:
 
         by = [
             scoring.StudioCorrelationScorer.name,
-            pl.col("format").cast(FORMAT_ENUM),
+            pl.col("format"),
             "recommend_score",
         ]
         descending = [True, False, True]
@@ -110,7 +94,7 @@ class GenreCategory:
             genre = genre_correlations[self.nth_genre]["name"].item()
 
             mask = (
-                ~(pl.col("user_status").is_in(["completed", "dropped"]))
+                ~(pl.col("user_status").is_in(["COMPLETED", "DROPPED"]))
                 | (pl.col("user_status").is_null())
             ) & (pl.col("genres").list.contains(genre))
 
@@ -127,8 +111,8 @@ class TopReleasedPicksCategory:
     description = "Your Top 3"
 
     def categorize(self, dataset):
-        mask = (pl.col("status").is_in(["releasing", "finished"])) & (
-            pl.col("user_status").ne_missing("completed")
+        mask = (pl.col("status").is_in(["RELEASING", "FINISHED"])) & (
+            pl.col("user_status").ne_missing("COMPLETED")
         )
 
         sorting = {"by": "recommend_score", "descending": True}
@@ -141,8 +125,8 @@ class HiddenGemsCategory:
 
     def categorize(self, dataset):
         mask = (
-            (pl.col("user_status").ne_missing("completed"))
-            & (pl.col("status").is_in(["releasing", "finished"]))
+            (pl.col("user_status").ne_missing("COMPLETED"))
+            & (pl.col("status").is_in(["RELEASING", "FINISHED"]))
             & (pl.col("format").is_in(["TV", "OVA"]))
         )
 
@@ -163,8 +147,8 @@ class TopMoviesCategory:
     def categorize(self, dataset):
         mask = (
             (pl.col("format") == "MOVIE")
-            & (pl.col("user_status").ne_missing("completed"))
-            & (pl.col("status").is_in(["releasing", "finished"]))
+            & (pl.col("user_status").ne_missing("COMPLETED"))
+            & (pl.col("status").is_in(["RELEASING", "FINISHED"]))
         )
 
         sorting = {"by": "recommend_score", "descending": True}
@@ -178,8 +162,8 @@ class YourTopPicksCategory:
     def categorize(self, dataset):
         mask = (
             (pl.col(scoring.ContinuationScorer.name) == 0)
-            & (pl.col("user_status").is_null() | (pl.col("user_status") == "planning"))
-            & (pl.col("status").is_in(["releasing", "finished"]))
+            & (pl.col("user_status").is_null() | (pl.col("user_status") == "PLANNING"))
+            & (pl.col("status").is_in(["RELEASING", "FINISHED"]))
         )
 
         sorting = {"by": "recommend_score", "descending": True}
@@ -193,7 +177,7 @@ class TopUpcomingCategory:
     def categorize(self, dataset):
         year, season = meta.get_current_anime_season()
 
-        mask = (pl.col("status") == "not_yet_released") & (
+        mask = (pl.col("status") == "NOT_YET_RELEASED") & (
             (pl.col("season") > season) | (pl.col("season_year") > year)
         )
 
@@ -268,7 +252,7 @@ class PlanningCategory:
     description = "From Your Plan to Watch List"
 
     def categorize(self, dataset):
-        mask = pl.col("user_status") == "planning"
+        mask = pl.col("user_status") == "PLANNING"
         sorting = {"by": "recommend_score", "descending": True}
 
         return mask, sorting

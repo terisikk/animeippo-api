@@ -31,7 +31,7 @@ def test_feature_correlation_scorer():
                 {"Action": 1, "Adventure": 0, "Fantasy": 1, "Romance": 0, "Sci-fi": 0},
             ],
             "score": [5, 10],
-            "user_status": ["completed", "completed"],
+            "user_status": ["COMPLETED", "COMPLETED"],
         },
     )
 
@@ -263,7 +263,7 @@ def test_continuation_scorer():
         {
             "id": [1, 2, 3, 4],
             "title": ["Anime A", "Anime B", "Anime B Spinoff", "Anime C"],
-            "user_status": ["completed", "completed", "completed", "completed"],
+            "user_status": ["COMPLETED", "COMPLETED", "COMPLETED", "COMPLETED"],
             "score": [8, 6, 7, 9],
         }
     )
@@ -289,7 +289,7 @@ def test_continuation_scorer_scores_nan_with_zero():
         {
             "id": [1, 2, 3, 4],
             "title": ["Anime A", "Anime B", "Anime B Spinoff", "Anime C"],
-            "user_status": ["completed", "completed", "completed", "completed"],
+            "user_status": ["COMPLETED", "COMPLETED", "COMPLETED", "COMPLETED"],
             "score": [None, 3, 2, 8],
         }
     )
@@ -315,7 +315,7 @@ def test_continuation_scorer_takes_max_of_duplicate_relations():
         {
             "id": [1, 2],
             "title": ["Anime A", "Anime A Spinoff"],
-            "user_status": ["completed", "completed"],
+            "user_status": ["COMPLETED", "COMPLETED"],
             "score": [2, 8],
         }
     )

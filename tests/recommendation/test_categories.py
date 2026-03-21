@@ -29,7 +29,7 @@ def test_continue_watching_category():
         {
             "continuationscore": [0, 0, 1],
             "recommend_score": [0, 0, 1],
-            "user_status": ["in_progress", "completed", "in_progress"],
+            "user_status": ["in_progress", "COMPLETED", "in_progress"],
             "title": ["Test 1", "Test 2", "Test 3"],
             "format": ["TV", "TV", "TV"],
         }
@@ -100,7 +100,7 @@ def test_your_top_picks_category():
         {
             "title": ["Test 1", "Test 2", "Test 3"],
             "user_status": [None, None, None],
-            "status": ["releasing", "releasing", "releasing"],
+            "status": ["RELEASING", "RELEASING", "RELEASING"],
             "continuationscore": [0, 0, 10],
             "recommend_score": [2, 3, 1],
         }
@@ -121,8 +121,8 @@ def test_top_released_picks_category():
     recommendations = pl.DataFrame(
         {
             "title": ["Test 1", "Test 2", "Test 3", "Test 4", "Test 5"],
-            "status": ["releasing", "finished", "not_yet_released", "finished", "releasing"],
-            "user_status": [None, None, None, "completed", "completed"],
+            "status": ["RELEASING", "FINISHED", "NOT_YET_RELEASED", "FINISHED", "RELEASING"],
+            "user_status": [None, None, None, "COMPLETED", "COMPLETED"],
             "recommend_score": [3, 2, 1, 5, 4],
         }
     )
@@ -142,8 +142,8 @@ def test_hidden_gems_category():
     recommendations = pl.DataFrame(
         {
             "title": ["Test 1", "Test 2", "Test 3", "Test 4", "Test 5"],
-            "status": ["finished", "releasing", "finished", "finished", "finished"],
-            "user_status": [None, None, None, "completed", None],
+            "status": ["FINISHED", "RELEASING", "FINISHED", "FINISHED", "FINISHED"],
+            "user_status": [None, None, None, "COMPLETED", None],
             "format": ["TV", "TV", "OVA", "TV", "MOVIE"],
             "recommend_score": [8.0, 7.0, 6.0, 9.0, 10.0],
             "popularityscore": [0.1, 0.8, 0.5, 0.2, 0.05],
@@ -166,8 +166,8 @@ def test_top_movies_category():
         {
             "title": ["Test 1", "Test 2", "Test 3", "Test 4", "Test 5"],
             "format": ["MOVIE", "TV", "MOVIE", "MOVIE", "MOVIE"],
-            "user_status": [None, None, "completed", None, None],
-            "status": ["finished", "finished", "finished", "not_yet_released", "finished"],
+            "user_status": [None, None, "COMPLETED", None, None],
+            "status": ["FINISHED", "FINISHED", "FINISHED", "NOT_YET_RELEASED", "FINISHED"],
             "recommend_score": [8.0, 9.0, 10.0, 11.0, 7.0],
         }
     )
@@ -187,15 +187,15 @@ def test_top_upcoming_category(mocker):
     # patch get_current_anime_season
     mocker.patch(
         "animeippo.meta.meta.get_current_anime_season",
-        return_value=(2022, "spring"),
+        return_value=(2022, "SPRING"),
     )
 
     recommendations = pl.DataFrame(
         {
-            "status": ["not_yet_released", "finished", "cancelled", "not_yet_released"],
+            "status": ["NOT_YET_RELEASED", "FINISHED", "CANCELLED", "NOT_YET_RELEASED"],
             "user_status": [None, None, None, None],
             "season_year": [2022, 2022, 2022, 2023],
-            "season": ["summer", "winter", "summer", "spring"],
+            "season": ["SUMMER", "WINTER", "SUMMER", "SPRING"],
             "title": ["Test 1", "Test 2", "Test 3", "Test 4"],
             "recommend_score": [0, 1, 2, 3],
             "continuationscore": [0, 0, 0, 0],
@@ -312,7 +312,7 @@ def test_simulcastscategory(mocker):
     recommendations = pl.DataFrame(
         {
             "season_year": [2022, 2022, 2022],
-            "season": ["summer", "summer", "winter"],
+            "season": ["SUMMER", "SUMMER", "WINTER"],
             "title": ["Test 1", "Test 2", "Test 3"],
             "recommend_score": [0, 1, 2],
             "continuationscore": [0, 0, 0],
@@ -321,7 +321,7 @@ def test_simulcastscategory(mocker):
 
     mocker.patch(
         "animeippo.meta.meta.get_current_anime_season",
-        return_value=(2022, "summer"),
+        return_value=(2022, "SUMMER"),
     )
 
     data = RecommendationModel(None, None, None)
@@ -340,7 +340,7 @@ def test_adapatation_category():
         {
             "adaptationscore": [0, 1, 1],
             "recommend_score": [0, 0, 1],
-            "user_status": ["in_progress", "completed", "in_progress"],
+            "user_status": ["in_progress", "COMPLETED", "in_progress"],
             "title": ["Test 1", "Test 2", "Test 3"],
             "format": ["TV", "TV", "TV"],
         }
@@ -477,7 +477,7 @@ def test_ranking_orchestrator_render_with_diversity_adjusted_categories():
     watchlist = pl.DataFrame(
         {
             "genres": [["Action", "Drama"], ["Action", "Comedy"], ["Action"]],
-            "user_status": ["completed", "completed", "completed"],
+            "user_status": ["COMPLETED", "COMPLETED", "COMPLETED"],
             "score": [10, 9, 10],
         }
     )
@@ -595,7 +595,7 @@ def test_planning_category():
     recommendations = pl.DataFrame(
         {
             "title": ["Test 1", "Test 2", "Test 3"],
-            "user_status": [None, "planning", "in_progress"],
+            "user_status": [None, "PLANNING", "in_progress"],
             "recommend_score": [1, 1, 1],
         }
     )
