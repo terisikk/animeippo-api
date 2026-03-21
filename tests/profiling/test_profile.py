@@ -429,6 +429,80 @@ def test_clusters_can_be_categorized_with_nsfw_filtering():
     assert len(categories) > 0
 
 
+def test_deprioritize_shared_features():
+    """Shared features are moved to the end of the list."""
+    profiler = analyser.ProfileAnalyser(None)
+
+    result = profiler._deprioritize_shared_features(
+        ["Action", "Drama", "Samurai", "Gore"], {"Action", "Drama"}
+    )
+    assert result == ["Samurai", "Gore", "Action", "Drama"]
+
+    # No shared features → unchanged
+    result = profiler._deprioritize_shared_features(["Action", "Drama"], set())
+    assert result == ["Action", "Drama"]
+
+
+def test_duplicate_cluster_names_are_resolved():
+    """When two clusters produce the same name, shared features are deprioritized."""
+    profiler = analyser.ProfileAnalyser(None)
+
+    class MockProvider:
+        def get_tag_lookup(self):
+            return {
+                1: {"name": "Samurai", "category": "Theme-Action", "isAdult": False},
+                2: {"name": "Detective", "category": "Theme-Other", "isAdult": False},
+                3: {"name": "Swordplay", "category": "Theme-Action", "isAdult": False},
+            }
+
+        def get_genres(self):
+            return {"Action", "Drama", "Fantasy"}
+
+    profiler.provider = MockProvider()
+
+    # Clusters 0 and 1 share the same top-2 but differ in later features
+    # Both initially produce "Samurai Action", but after dedup they diverge
+    cluster_features = {
+        "0": ["Action", "Samurai", "Drama"],
+        "1": ["Action", "Samurai", "Detective"],
+        "2": ["Fantasy", "Swordplay"],
+    }
+
+    names = profiler._deduplicate_cluster_names(cluster_features)
+
+    # Clusters 0 and 1 should no longer share a name
+    assert names["0"] != names["1"]
+    # Cluster 2 is unaffected
+    assert names["2"] == "Swordplay Fantasy"
+
+
+def test_deduplicate_no_duplicates_is_noop():
+    """When no names collide, all names are returned unchanged."""
+    profiler = analyser.ProfileAnalyser(None)
+
+    class MockProvider:
+        def get_tag_lookup(self):
+            return {
+                1: {"name": "Samurai", "category": "Theme-Action", "isAdult": False},
+                2: {"name": "Detective", "category": "Theme-Other", "isAdult": False},
+            }
+
+        def get_genres(self):
+            return {"Action", "Fantasy"}
+
+    profiler.provider = MockProvider()
+
+    cluster_features = {
+        "0": ["Action", "Samurai"],
+        "1": ["Fantasy", "Detective"],
+    }
+
+    names = profiler._deduplicate_cluster_names(cluster_features)
+
+    assert names["0"] == "Samurai Action"
+    assert names["1"] == "Detective Fantasy"
+
+
 def test_correlations_are_consistent():
     data = pl.DataFrame(test_data.FORMATTED_ANI_SEASONAL_LIST)
     data = data.with_columns(score=pl.Series([10.0, 8.0]))

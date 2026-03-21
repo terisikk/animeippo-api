@@ -38,8 +38,6 @@ class ProfileAnalyser:
 
         all_features = user_profile.watchlist.explode("features")["features"].unique().drop_nulls()
 
-        print(all_features)
-
         self.encoder.fit(all_features)
         user_profile.watchlist = user_profile.watchlist.with_columns(
             encoded=self.encoder.encode(user_profile.watchlist)
@@ -107,7 +105,6 @@ class ProfileAnalyser:
         "Tragedy": "Tragic",
         "Comedy": "Comedic",
         "Mystery": "Mysterious",
-        "Horror": "Horrific",
         "Magic": "Magical",
         # Plurals to singular (better as modifiers)
         "Aliens": "Alien",
@@ -132,10 +129,22 @@ class ProfileAnalyser:
         "Twins": "Twin",
         "Vikings": "Viking",
         "Witches": "Witch",
+        # More plurals to singular
+        "Cars": "Car",
+        "Curses": "Curse",
+        "Drugs": "Drug",
+        "Mopeds": "Moped",
+        "Motorcycles": "Motorcycle",
+        "Ships": "Ship",
+        "Triads": "Triad",
         # Nouns with better adjectival forms
+        "Agriculture": "Agricultural",
+        "Anthropomorphism": "Anthropomorphic",
+        "Cannibalism": "Cannibal",
         "Crime": "Criminal",
         "Mythology": "Mythological",
         "Politics": "Political",
+        "Terrorism": "Terrorist",
     }
 
     # Modifier priority: lower number = placed first (modifier position)
@@ -164,6 +173,7 @@ class ProfileAnalyser:
         "Biographical",
         "Post-Apocalyptic",
         "Supernatural",
+        "Psychological",
     }
 
     # Noun substitutes for adjective-only features when they'd otherwise be the core
@@ -340,6 +350,42 @@ class ProfileAnalyser:
         # Capitalize first letter only, preserving rest (e.g., "CGI" stays "CGI")
         return name[0].upper() + name[1:] if name else ""
 
+    def _deprioritize_shared_features(self, features, shared):
+        """Move shared features to the end so more distinctive ones get picked."""
+        return [f for f in features if f not in shared] + [f for f in features if f in shared]
+
+    def _deduplicate_cluster_names(self, cluster_features):
+        """Re-generate names for clusters that collide by penalizing shared features.
+
+        Takes a dict of {cluster_id: [features]}, returns {cluster_id: name}.
+        """
+        # First pass: generate all names
+        names = {
+            cid: self._generate_natural_cluster_name(feats)
+            for cid, feats in cluster_features.items()
+        }
+
+        # Group clusters by name to find collisions
+        name_to_clusters = {}
+        for cid, name in names.items():
+            name_to_clusters.setdefault(name, []).append(cid)
+
+        # Re-generate colliding names with shared features deprioritized
+        for _name, cluster_ids in name_to_clusters.items():
+            if len(cluster_ids) <= 1:
+                continue
+
+            for cid in cluster_ids:
+                features = cluster_features[cid]
+                sibling_features = {
+                    f for other in cluster_ids if other != cid for f in cluster_features[other]
+                }
+                shared = set(features) & sibling_features
+                reordered = self._deprioritize_shared_features(features, shared)
+                names[cid] = self._generate_natural_cluster_name(reordered)
+
+        return names
+
     def get_cluster_categories(self, profile):
         target = profile.watchlist
 
@@ -354,6 +400,11 @@ class ProfileAnalyser:
             n_features=5,
             boost_features=set(self.provider.get_genres()),
         ).select(pl.col("cluster"), pl.concat_list(pl.exclude("cluster")).alias("description"))
+
+        cluster_features = {
+            row["cluster"]: list(row["description"]) for row in descriptions.iter_rows(named=True)
+        }
+        cluster_names = self._deduplicate_cluster_names(cluster_features)
 
         cluster_stats = target.group_by("cluster").agg(
             [
@@ -371,11 +422,7 @@ class ProfileAnalyser:
 
         return [
             {
-                "name": self._generate_natural_cluster_name(
-                    list(
-                        descriptions.filter(pl.col("cluster") == str(key[0]))["description"].item()
-                    )
-                ),
+                "name": cluster_names.get(str(key[0]), ""),
                 "items": value["id"].to_list(),
                 "stats": cluster_stats.filter(pl.col("cluster") == key[0])
                 .select(["count", "mean_score", "completion_rate"])
