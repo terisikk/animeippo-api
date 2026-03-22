@@ -118,25 +118,18 @@ class AnimeClustering:
         unique, counts = np.unique(masked_labels, return_counts=True)
         count_map = dict(zip(unique, counts, strict=True))
 
-        small_labels = {lab for lab, cnt in count_map.items() if cnt < self.min_cluster_size}
-        large_labels = {lab for lab, cnt in count_map.items() if cnt >= self.min_cluster_size}
+        small_labels = [lab for lab, cnt in count_map.items() if cnt < self.min_cluster_size]
+        large_labels = [lab for lab, cnt in count_map.items() if cnt >= self.min_cluster_size]
 
         if not small_labels or not large_labels:
             return
 
+        large_indices = [np.where(masked_labels == lab)[0] for lab in large_labels]
+
         for small_label in small_labels:
             small_indices = np.where(masked_labels == small_label)[0]
-
-            best_label = None
-            best_dist = np.inf
-            for target_label in large_labels:
-                target_indices = np.where(masked_labels == target_label)[0]
-                avg_dist = dist_matrix[np.ix_(small_indices, target_indices)].mean()
-                if avg_dist < best_dist:
-                    best_dist = avg_dist
-                    best_label = target_label
-
-            masked_labels[small_indices] = best_label
+            avg_dists = [dist_matrix[np.ix_(small_indices, li)].mean() for li in large_indices]
+            masked_labels[small_indices] = large_labels[np.argmin(avg_dists)]
 
         clusters[mask] = masked_labels
 
