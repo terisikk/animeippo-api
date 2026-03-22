@@ -2,7 +2,7 @@ import polars as pl
 from fast_json_normalize import fast_json_normalize
 
 from animeippo.providers.columns import Columns
-from animeippo.providers.mappers import SingleMapper
+from animeippo.providers.mappers import SelectorMapper, SingleMapper
 
 from ..anilist.formatter import ANILIST_MAPPING
 from ..myanimelist.formatter import MAL_MAPPING
@@ -12,6 +12,22 @@ from .schema import (
     MIXED_ANI_WATCHLIST_SCHEMA,
     MIXED_MAL_WATCHLIST_SCHEMA,
 )
+
+# Mixed provider gets tags pre-enriched with name/category from AniList,
+# unlike the standard AniList path which gets tag IDs and enriches them
+MIXED_ANI_MAPPING = {
+    **ANILIST_MAPPING,
+    Columns.TAGS: SelectorMapper(pl.col("tags").list.eval(pl.element().struct.field("name"))),
+    Columns.TEMP_RANKS: SelectorMapper(
+        pl.col("tags").list.eval(
+            pl.struct(
+                pl.element().struct.field("name"),
+                pl.element().struct.field("rank"),
+                pl.element().struct.field("category"),
+            )
+        )
+    ),
+}
 
 
 def transform_mal_watchlist_data(data, feature_names):
@@ -29,7 +45,7 @@ def transform_ani_watchlist_data(data, feature_names, mal_df):
     original = pl.from_pandas(original)
 
     df = transform_to_animeippo_format(
-        original, feature_names, MIXED_ANI_WATCHLIST_SCHEMA, ANILIST_MAPPING
+        original, feature_names, MIXED_ANI_WATCHLIST_SCHEMA, MIXED_ANI_MAPPING
     )
 
     return df.join(
@@ -44,7 +60,7 @@ def transform_ani_seasonal_data(data, feature_names):
     original = pl.from_pandas(fast_json_normalize(data["data"]["media"]))
 
     ani_df = transform_to_animeippo_format(
-        original, feature_names, MIXED_ANI_SEASONAL_SCHEMA, ANILIST_MAPPING
+        original, feature_names, MIXED_ANI_SEASONAL_SCHEMA, MIXED_ANI_MAPPING
     )
 
     ani_df = ani_df.with_columns(

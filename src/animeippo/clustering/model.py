@@ -35,9 +35,18 @@ class AnimeClustering:
     cluster, and (4) provides a distance threshold that's easy to reason about.
 
     Franchise reduction modifies the precomputed distance matrix to pull related
-    anime closer before clustering. Singleton merging reassigns single-item
-    clusters to their nearest multi-member cluster as a post-clustering cleanup.
+    anime closer before clustering. Small cluster merging reassigns clusters
+    below min_cluster_size to their nearest larger cluster as a post-clustering
+    cleanup.
     """
+
+    DIRECT_SEQUEL_TYPES: ClassVar[set[str]] = {
+        "SEQUEL",
+        "PREQUEL",
+        "SUMMARY",
+        "COMPILATION",
+        "ALTERNATIVE",
+    }
 
     def __init__(  # noqa: PLR0913
         self,
@@ -47,70 +56,61 @@ class AnimeClustering:
         n_clusters=None,
         min_cluster_size=1,
         franchise_reduction=False,
+        direct_factor=0.4,
+        related_factor=0.6,
         **kwargs,
     ):
-        self.model = skcluster.AgglomerativeClustering(
-            n_clusters=n_clusters,
-            metric=distance_metric,
-            distance_threshold=distance_threshold,
-            linkage=linkage,
-            **kwargs,
-        )
-
         self.n_clusters = n_clusters
         self.distance_threshold = distance_threshold
         self.linkage = linkage
         self.min_cluster_size = min_cluster_size
         self.franchise_reduction = franchise_reduction
+        self.relation_tiers = {"direct": direct_factor, "related": related_factor}
         self.is_fit = False
         self.clustered_series = None
         self.distance_metric = distance_metric
 
-    # Tiered distance reduction: direct sequels get stronger boost than loose relations
-    DIRECT_SEQUEL_TYPES: ClassVar[set[str]] = {
-        "SEQUEL",
-        "PREQUEL",
-        "SUMMARY",
-        "COMPILATION",
-        "ALTERNATIVE",
-    }
-
-    RELATION_TIERS: ClassVar[dict] = {
-        "direct": 0.4,
-        "related": 0.6,
-    }
-
     def cluster_by_features(self, dataframe):
         series = dataframe["encoded"].struct.unnest().fill_null(0).to_numpy()
+        mask = self.get_valid_mask(series)
 
-        relation_pairs = self.get_relation_pairs(dataframe) if self.franchise_reduction else {}
+        dist_matrix = self.build_distance_matrix(series[mask], dataframe, mask)
+        clusters = self.fit_clusters(dist_matrix, len(series), mask)
+        self.postprocess_clusters(clusters, dist_matrix, mask)
 
-        if self.distance_metric == "cosine":
-            # Cosine is undefined for zero-vectors
-            clusters = np.full(len(series), -1)
-            mask = series.sum(axis=1) > 0
-
-            dist_matrix = pairwise_distances(series[mask], metric="cosine")
-            self.apply_franchise_reduction(dist_matrix, mask, relation_pairs)
-
-            precomputed_model = skcluster.AgglomerativeClustering(
-                n_clusters=self.n_clusters,
-                metric="precomputed",
-                distance_threshold=self.distance_threshold,
-                linkage=self.linkage,
-            )
-            clusters[mask] = precomputed_model.fit_predict(dist_matrix)
-            if self.min_cluster_size > 1:
-                self.merge_small_clusters(clusters, dist_matrix, mask)
-            self.model = precomputed_model
-        else:
-            clusters = self.model.fit_predict(series)
-
-        if clusters is not None:
-            self.is_fit = True
-            self.clustered_series = dataframe.with_columns(cluster=clusters)
+        self.is_fit = True
+        self.clustered_series = dataframe.with_columns(cluster=clusters)
 
         return clusters
+
+    def get_valid_mask(self, series):
+        """Cosine is undefined for zero-vectors; other metrics accept all."""
+        if self.distance_metric == "cosine":
+            return series.sum(axis=1) > 0
+        return np.ones(len(series), dtype=bool)
+
+    def build_distance_matrix(self, series, dataframe, mask):
+        dist_matrix = pairwise_distances(series, metric=self.distance_metric)
+        if self.franchise_reduction:
+            relation_pairs = self.get_relation_pairs(dataframe)
+            self.apply_franchise_reduction(dist_matrix, mask, relation_pairs)
+        return dist_matrix
+
+    def fit_clusters(self, dist_matrix, n_items, mask):
+        clusters = np.full(n_items, -1)
+        model = skcluster.AgglomerativeClustering(
+            n_clusters=self.n_clusters,
+            metric="precomputed",
+            distance_threshold=self.distance_threshold,
+            linkage=self.linkage,
+        )
+        clusters[mask] = model.fit_predict(dist_matrix)
+        self.model = model
+        return clusters
+
+    def postprocess_clusters(self, clusters, dist_matrix, mask):
+        if self.min_cluster_size > 1:
+            self.merge_small_clusters(clusters, dist_matrix, mask)
 
     def merge_small_clusters(self, clusters, dist_matrix, mask):
         """Merge entire small clusters into their nearest larger cluster as a group."""
@@ -197,7 +197,7 @@ class AnimeClustering:
             if mi is None or mj is None:
                 continue
 
-            factor = self.RELATION_TIERS[tier]
+            factor = self.relation_tiers[tier]
             dist_matrix[mi, mj] *= factor
             dist_matrix[mj, mi] *= factor
 

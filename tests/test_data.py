@@ -891,18 +891,40 @@ MIXED_USER_LIST_ANI = {
                 "idMal": 30,
                 "title": {"romaji": "Neon Genesis Evangelion"},
                 "genres": ["Action", "Adventure", "Drama", "Fantasy", "Supernatural"],
+                "tags": [{"name": "Gore", "rank": 95, "isAdult": False, "category": "Theme-Other"}],
                 "format": "TV",
+                "duration": 24,
+                "episodes": 26,
                 "season": "SPRING",
                 "seasonYear": 2023,
+                "meanScore": 82,
+                "source": "ORIGINAL",
+                "studios": {"edges": [{"node": {"name": "Gainax", "isAnimationStudio": True}}]},
+                "staff": {
+                    "edges": [{"role": "Director"}],
+                    "nodes": [{"id": 12345}],
+                },
+                "coverImage": {"large": "https://localhost/test.png"},
             },
             {
                 "id": 1270,
                 "idMal": 270,
                 "title": {"romaji": "Hellsingfårs"},
                 "genres": ["Action", "Adventure", "Drama", "Fantasy", "Supernatural"],
+                "tags": [{"name": "Gore", "rank": 80, "isAdult": False, "category": "Theme-Other"}],
                 "format": "TV",
+                "duration": 24,
+                "episodes": 13,
                 "season": "SPRING",
                 "seasonYear": 2023,
+                "meanScore": 75,
+                "source": "MANGA",
+                "studios": {"edges": [{"node": {"name": "Gonzo", "isAnimationStudio": True}}]},
+                "staff": {
+                    "edges": [{"role": "Director"}],
+                    "nodes": [{"id": 67890}],
+                },
+                "coverImage": {"large": "https://localhost/test.png"},
             },
         ],
     }
@@ -923,6 +945,7 @@ MIXED_ANI_SEASONAL_LIST = {
                     ]
                 },
                 "genres": ["Action", "Adventure", "Drama", "Fantasy", "Supernatural"],
+                "tags": [{"name": "Gore", "rank": 90, "isAdult": False, "category": "Theme-Other"}],
                 "coverImage": {"medium": "https://localhost/test.png"},
                 "popularity": 14090,
             },
@@ -938,6 +961,9 @@ MIXED_ANI_SEASONAL_LIST = {
                     ]
                 },
                 "genres": ["Action", "Adventure", "Comedy", "Fantasy", "Sci-Fi"],
+                "tags": [
+                    {"name": "Swordplay", "rank": 85, "isAdult": False, "category": "Theme-Action"}
+                ],
                 "coverImage": {"medium": "https://localhost/test.png"},
                 "popularity": 131620,
             },

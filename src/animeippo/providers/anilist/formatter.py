@@ -142,9 +142,6 @@ FRANCHISE_RELATION_TYPES = [
     "COMPILATION",
 ]
 
-# Direct continuations — strongest signal
-DIRECT_SEQUEL_TYPES = {"SEQUEL", "PREQUEL", "SUMMARY", "COMPILATION", "ALTERNATIVE"}
-
 
 def get_franchise_relations(dataframe):
     return filter_relations(dataframe, FRANCHISE_RELATION_TYPES)

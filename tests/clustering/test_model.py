@@ -4,22 +4,15 @@ import pytest
 from animeippo.clustering import model
 
 
-class FaultyClusterStub:
-    def fit_predict(self, series):
-        return None
-
-
 def test_clustering():
     ml = model.AnimeClustering(distance_threshold=0.33)
 
-    # Use struct format (matching encoder output)
     series = pl.DataFrame({"encoded": [{"a": 0, "b": 1, "c": 2}, {"a": 1, "b": 2, "c": 3}]})
     clusters = ml.cluster_by_features(series)
 
     assert clusters.tolist() == [1, 0]
 
 
-# Cosine is undefined for zero-vectors, so has a slightly different implementation
 def test_clustering_with_cosine():
     ml = model.AnimeClustering(distance_metric="cosine")
 
@@ -28,18 +21,12 @@ def test_clustering_with_cosine():
     )
     clusters = ml.cluster_by_features(series)
 
+    # Zero-vectors get cluster -1
     assert clusters.tolist() == [-1, 0, 0]
 
 
-def test_predict_cannot_be_called_when_clustering_fails():
-    ml = model.AnimeClustering(distance_metric="jaccard")
-
-    ml.model = FaultyClusterStub()
-
-    series = pl.DataFrame({"encoded": [{"a": 0, "b": 1, "c": 2}, {"a": 1, "b": 2, "c": 3}]})
-    clusters = ml.cluster_by_features(series)
-
-    assert clusters is None
+def test_predict_cannot_be_called_before_clustering():
+    ml = model.AnimeClustering()
 
     with pytest.raises(RuntimeError):
         ml.predict(pl.Series([{"a": 0, "b": 1, "c": 2}]))

@@ -1,3 +1,5 @@
+import math
+
 import polars as pl
 
 
@@ -118,7 +120,7 @@ def get_ranks(df):
     # get higher weight than ubiquitous ones like Action
     genre_counts = df.select("genres").explode("genres").group_by("genres").len()
 
-    max_idf = (pl.lit(len(df)) / genre_counts["len"].min()).log()
+    max_idf = math.log(len(df) / genre_counts["len"].min()) or 1.0
     genre_idf = genre_counts.with_columns(
         idf_weight=((pl.lit(len(df)) / pl.col("len")).log() / max_idf * GENRE_MAX_WEIGHT).cast(
             pl.UInt8
