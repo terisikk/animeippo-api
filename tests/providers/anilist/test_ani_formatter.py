@@ -35,3 +35,24 @@ def test_franchise_column_is_built_from_relations():
     franchises = data["franchise"].to_list()
     assert len(franchises[0]) == 1
     assert franchises[0] == franchises[1]
+
+
+def test_get_staff_extracts_directors():
+    original = pl.DataFrame(
+        {
+            "id": [1, 2],
+            "staff.edges": [
+                [{"role": "Director"}, {"role": "Animation Director"}],
+                [{"role": "Script"}, {"role": "Director"}],
+            ],
+            "staff.nodes": [
+                [{"id": 100}, {"id": 200}],
+                [{"id": 300}, {"id": 400}],
+            ],
+        }
+    )
+
+    result = formatter.get_staff(original)
+
+    assert result[0].to_list() == [100]
+    assert result[1].to_list() == [400]

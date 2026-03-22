@@ -28,7 +28,7 @@ ANI_WATCHLIST_SCHEMA = {
     Columns.STUDIOS: pl.List(pl.Utf8),
     Columns.SEASON_YEAR: pl.UInt16,
     Columns.SEASON: Season,
-    Columns.DIRECTOR: pl.List(pl.UInt32),
+    # Columns.DIRECTOR: pl.List(pl.UInt32),
     Columns.USER_STATUS: UserStatus,
     Columns.USER_COMPLETE_DATE: pl.Date,
     Columns.FRANCHISE: pl.List(pl.Utf8),
@@ -59,7 +59,7 @@ ANI_SEASONAL_SCHEMA = {
     Columns.STUDIOS: pl.List(pl.Utf8),
     Columns.SEASON_YEAR: pl.UInt16,
     Columns.SEASON: Season,
-    Columns.DIRECTOR: pl.List(pl.UInt32),
+    # Columns.DIRECTOR: pl.List(pl.UInt32),
     Columns.USER_COMPLETE_DATE: pl.Date,
 }
 

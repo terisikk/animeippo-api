@@ -1,10 +1,9 @@
 from typing import ClassVar
 
 import numpy as np
+import polars as pl
 import sklearn.cluster as skcluster
 from sklearn.metrics import pairwise_distances
-
-from animeippo.analysis import statistics
 
 from ..analysis import similarity
 
@@ -195,6 +194,7 @@ class AnimeClustering:
             dist_matrix[mj, mi] *= factor
 
     def predict(self, series, similarities=None):
+        """Assign each new item to the cluster with highest average similarity."""
         if not self.is_fit:
             raise RuntimeError("Cluster is not fitted yet. Please call cluster_by_features first.")
 
@@ -205,10 +205,20 @@ class AnimeClustering:
                 metric=self.distance_metric,
             ).with_columns(id=self.clustered_series["id"])
 
-        idymax = statistics.idymax(similarities)
+        sim_cols = [c for c in similarities.columns if c != "id"]
 
-        return idymax.join(
-            self.clustered_series.select("id", "cluster"),
-            left_on="idymax",
-            right_on="id",
-        )["cluster"]
+        return (
+            similarities.join(self.clustered_series.select("id", "cluster"), on="id")
+            .filter(pl.col("cluster") >= 0)
+            .group_by("cluster", maintain_order=True)
+            .agg(pl.col(sim_cols).mean())
+            .select(
+                "cluster",
+                pl.concat_list(pl.exclude("cluster")).alias("avg_sims"),
+            )
+            .explode("avg_sims")
+            .with_columns(idx=pl.int_range(pl.len()) % len(sim_cols))
+            .group_by("idx", maintain_order=True)
+            .agg(pl.col("cluster").sort_by("avg_sims", descending=True).first())
+            .sort("idx")["cluster"]
+        )

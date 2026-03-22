@@ -26,7 +26,7 @@ def get_default_scorers():
     - Popularity (0.10): Community consensus
     - Genre average (0.05): Basic genre preferences
     - Format (0.03): Format preferences (TV/Movie/etc)
-    - Studio/Director (0.02 each): Production team correlation
+    - Studio (0.02): Production team correlation
 
     Total weight: 1.02 (intentionally slightly over 1.0 to boost strong signals)
     """
@@ -35,14 +35,13 @@ def get_default_scorers():
         scoring.FeatureCorrelationScorer(weight=0.15),
         scoring.ClusterSimilarityScorer(weighted=True, weight=0.15),
         scoring.ContinuationScorer(weight=0.15),
-        scoring.AdaptationScorer(weight=0.10),
+        scoring.AdaptationScorer(weight=0.12),
         scoring.PopularityScorer(weight=0.10),
         scoring.GenreAverageScorer(weight=0.05),
-        # Disabled as a test and moved to a post-processing step
-        # TODO: Just remove if performance is good without it
-        # scoring.FormatScorer(weight=-0.3),  # Negative weight to penalize less preferred formats
         scoring.StudioCorrelationScorer(weight=0.02),
-        scoring.DirectorCorrelationScorer(weight=0.02),
+        # Disabled: negligible discrimination (0.001) at 0.02 weight,
+        # no category uses it, and staff parsing is expensive
+        # scoring.DirectorCorrelationScorer(weight=0.02),
     ]
 
 
