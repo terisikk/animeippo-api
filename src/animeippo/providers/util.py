@@ -87,6 +87,7 @@ TAG_WEIGHTS = {
     "Theme": 1.5,
     "Setting": 1.5,
     "Cast": 0.5,
+    "Cast-Main Cast": 1.5,
     "Demographic": 1.5,
     "Technical": 0.5,
     "Sexual Content": 0.5,
@@ -102,9 +103,13 @@ def get_ranks(df):
         .with_columns(
             weighted_rank=pl.col("rank")
             * pl.col("category")
-            .str.split("-")
-            .list.first()
-            .replace_strict(TAG_WEIGHTS, default=1.0)
+            .replace_strict(TAG_WEIGHTS, default=None)
+            .fill_null(
+                pl.col("category")
+                .str.split("-")
+                .list.first()
+                .replace_strict(TAG_WEIGHTS, default=1.0)
+            )
         )
         .pivot(index="id", values="weighted_rank", on="name", aggregate_function="first")
     )
