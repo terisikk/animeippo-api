@@ -1,6 +1,7 @@
 import polars as pl
 from fast_json_normalize import fast_json_normalize
 
+from animeippo.providers import util
 from animeippo.providers.anilist.schema import (
     ANI_MANGA_SCHEMA,
     ANI_SEASONAL_SCHEMA,
@@ -14,8 +15,6 @@ from animeippo.providers.mappers import (
     QueryMapper,
     SelectorMapper,
 )
-
-from .. import util
 
 
 def get_anilist_mapping(tag_lookup):
@@ -132,6 +131,47 @@ def get_adaptation(field):
     return filter_relations(field, meaningful_relations)
 
 
+FRANCHISE_RELATION_TYPES = [
+    "SEQUEL",
+    "PREQUEL",
+    "PARENT",
+    "SIDE_STORY",
+    "ALTERNATIVE",
+    "SPIN_OFF",
+    "SUMMARY",
+    "COMPILATION",
+]
+
+# Direct continuations — strongest signal
+DIRECT_SEQUEL_TYPES = {"SEQUEL", "PREQUEL", "SUMMARY", "COMPILATION", "ALTERNATIVE"}
+
+
+def get_franchise_relations(dataframe):
+    return filter_relations(dataframe, FRANCHISE_RELATION_TYPES)
+
+
+def build_typed_franchise_relations(df):
+    """Extract typed relation pairs for tiered distance reduction in clustering."""
+    return df.select(
+        pl.col("relations.edges")
+        .list.eval(
+            pl.when(pl.element().struct.field("relationType").is_in(FRANCHISE_RELATION_TYPES)).then(
+                pl.struct(
+                    pl.element().struct.field("node").struct.field("id").alias("related_id"),
+                    pl.element().struct.field("relationType").alias("relation_type"),
+                )
+            )
+        )
+        .list.drop_nulls()
+    ).to_series()
+
+
+def build_franchise_column(df):
+    relations = get_franchise_relations(df)
+    ids = df["id"]
+    return util.build_franchise_ids(ids, relations)
+
+
 def get_studios():
     return (
         pl.col("studios.edges")
@@ -203,5 +243,7 @@ ANILIST_MAPPING = {
                                 ),
     # Columns.TEMP_RANKS:         DefaultMapper("tags"),
     Columns.DIRECTOR:           QueryMapper(get_staff),
+    Columns.FRANCHISE:          QueryMapper(build_franchise_column),
+    Columns.FRANCHISE_RELATIONS: QueryMapper(build_typed_franchise_relations),
 }
 # fmt: on

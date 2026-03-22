@@ -29,6 +29,8 @@ class Columns(StrEnum):
     SEASON = "season"
     RATING = "rating"
     FEATURES = "features"
+    FRANCHISE = "franchise"
+    FRANCHISE_RELATIONS = "franchise_relations"
     DIRECTOR = "directors"
 
 

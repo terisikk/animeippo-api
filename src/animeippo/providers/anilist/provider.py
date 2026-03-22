@@ -75,6 +75,7 @@ class AniListProvider(abstract_provider.AbstractAnimeProvider):
                             seasonYear
                             season
                             coverImage { large }
+                            relations { edges { relationType, node { id, idMal }}}
                             staff { edges {role} nodes {id}}
                         }
                     }

@@ -112,7 +112,11 @@ def build_recommender(providername):
                 provider=providers.anilist.AniListProvider(rcache),
                 engine=engine.AnimeRecommendationEngine(
                     model.AnimeClustering(
-                        distance_metric=metric, distance_threshold=0.78, linkage="complete"
+                        distance_metric=metric,
+                        distance_threshold=0.63,
+                        linkage="average",
+                        min_cluster_size=3,
+                        franchise_reduction=True,
                     ),
                     encoding.WeightedCategoricalEncoder(),
                     get_default_scorers(),
@@ -143,7 +147,11 @@ def build_recommender(providername):
                 provider=providers.mixed.MixedProvider(rcache),
                 engine=engine.AnimeRecommendationEngine(
                     model.AnimeClustering(
-                        distance_metric=metric, distance_threshold=0.65, linkage="average"
+                        distance_metric=metric,
+                        distance_threshold=0.63,
+                        linkage="average",
+                        min_cluster_size=3,
+                        franchise_reduction=True,
                     ),
                     encoding.WeightedCategoricalEncoder(),
                     get_default_scorers(),

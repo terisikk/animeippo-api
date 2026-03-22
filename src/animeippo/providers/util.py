@@ -37,6 +37,52 @@ def get_feature_selector(columns):
     return pl.concat_list(columns).cast(pl.List(pl.Categorical(ordering="lexical")))
 
 
+class UnionFind:
+    def __init__(self):
+        self.parent = {}
+
+    def find(self, x):
+        while self.parent.get(x, x) != x:
+            self.parent[x] = self.parent.get(self.parent[x], self.parent[x])
+            x = self.parent[x]
+        return x
+
+    def union(self, a, b):
+        ra, rb = self.find(a), self.find(b)
+        if ra != rb:
+            self.parent[ra] = rb
+
+
+def build_franchise_ids(ids, relation_lists):
+    """Build franchise IDs from relation edges using union-find.
+
+    Returns a List[Utf8] Series: ["franchise_<root_id>"] for anime in
+    multi-member franchises, [] for singletons.
+    """
+    uf = UnionFind()
+
+    for anime_id, relations in zip(ids.to_list(), relation_lists.to_list(), strict=True):
+        if relations:
+            for related_id in relations:
+                uf.union(anime_id, related_id)
+
+    # Count members per franchise root (only among watchlist IDs)
+    root_counts = {}
+    for anime_id in ids.to_list():
+        root = uf.find(anime_id)
+        root_counts[root] = root_counts.get(root, 0) + 1
+
+    return pl.Series(
+        "franchise",
+        [
+            [f"franchise_{uf.find(aid)}"] if root_counts.get(uf.find(aid), 0) > 1 else []
+            for aid in ids.to_list()
+        ],
+    )
+
+
+GENRE_MAX_WEIGHT = 200
+
 TAG_WEIGHTS = {
     "Theme": 1.5,
     "Setting": 1.5,
@@ -63,12 +109,22 @@ def get_ranks(df):
         .pivot(index="id", values="weighted_rank", on="name", aggregate_function="first")
     )
 
-    # Process genres with fixed weight
+    # Genre weight scaled by inverse frequency — rare genres in the user's watchlist
+    # get higher weight than ubiquitous ones like Action
+    genre_counts = df.select("genres").explode("genres").group_by("genres").len()
+
+    max_idf = (pl.lit(len(df)) / genre_counts["len"].min()).log()
+    genre_idf = genre_counts.with_columns(
+        idf_weight=((pl.lit(len(df)) / pl.col("len")).log() / max_idf * GENRE_MAX_WEIGHT).cast(
+            pl.UInt8
+        )
+    )
+
     genre_ranks = (
         df.select("id", pl.col("genres"))
         .explode("genres")
-        .with_columns(rank=pl.lit(75))
-        .pivot(index="id", values="rank", on="genres", aggregate_function="first")
+        .join(genre_idf, on="genres")
+        .pivot(index="id", values="idf_weight", on="genres", aggregate_function="first")
     )
 
     return (

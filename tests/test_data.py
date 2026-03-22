@@ -186,6 +186,14 @@ ANI_USER_LIST = {
                                 "seasonYear": 2023,
                                 "season": "SPRING",
                                 "isAdult": False,
+                                "relations": {
+                                    "edges": [
+                                        {
+                                            "relationType": "SEQUEL",
+                                            "node": {"id": 790, "idMal": None},
+                                        }
+                                    ]
+                                },
                             },
                         },
                         {
@@ -255,6 +263,14 @@ ANI_USER_LIST = {
                                 "seasonYear": 2023,
                                 "season": "SPRING",
                                 "isAdult": False,
+                                "relations": {
+                                    "edges": [
+                                        {
+                                            "relationType": "PREQUEL",
+                                            "node": {"id": 131518, "idMal": None},
+                                        }
+                                    ]
+                                },
                             },
                         },
                     ],
