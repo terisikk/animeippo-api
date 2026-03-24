@@ -147,6 +147,7 @@ def test_hidden_gems_category():
             "format": ["TV", "TV", "OVA", "TV", "MOVIE"],
             "recommend_score": [8.0, 7.0, 6.0, 9.0, 10.0],
             "popularity": [100, 50000, 500, 200, 10],
+            "continuationscore": [0, 0, 0, 0, 0],
         }
     )
 
@@ -156,10 +157,7 @@ def test_hidden_gems_category():
     mask, sorting_info = cat.categorize(data)
 
     # Test 4 excluded (COMPLETED), Test 5 excluded (MOVIE)
-    # Remaining sorted by recommend_score / popularity_rank:
-    # Test 1: 8.0 / (1/3) = 24.0 (lowest popularity)
-    # Test 3: 6.0 / (2/3) = 9.0 (mid popularity)
-    # Test 2: 7.0 / (3/3) = 7.0 (highest popularity)
+    # Remaining sorted by recommend_score * (1 - 0.5 * pop_rank)
     result = recommendations.filter(mask).sort(**sorting_info)
     assert result["title"].to_list() == ["Test 1", "Test 3", "Test 2"]
 
