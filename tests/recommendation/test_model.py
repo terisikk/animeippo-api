@@ -16,6 +16,12 @@ def test_recommendations_can_be_cached_to_lru_cache():
     assert isinstance(actual, str)
 
 
+def test_continuation_filtering_skips_when_data_missing():
+    dset = model.RecommendationModel(None, None)
+    dset.filter_continuation()
+    assert dset.seasonal is None
+
+
 def test_continuation_filtering_works():
     seasonal = pl.DataFrame(test_data.FORMATTED_ANI_SEASONAL_LIST)
     watchlist = pl.DataFrame(test_data.FORMATTED_ANI_USER_LIST)

@@ -3,6 +3,24 @@ import math
 import polars as pl
 
 
+def filter_continuation(seasonal, watchlist_ids):
+    """Filter sequels — only keep items that are continuations of watched anime,
+    standalone titles, or titles already on the user's list."""
+    if "continuation_to" not in seasonal.columns:
+        return seasonal
+
+    if seasonal["continuation_to"].dtype == pl.List(pl.Null):
+        return seasonal
+
+    mask = (
+        (pl.col("continuation_to").list.set_intersection(watchlist_ids) != [])
+        | (pl.col("continuation_to") == [])
+        | (pl.col("user_status").is_not_null())
+    )
+
+    return seasonal.filter(mask)
+
+
 def transform_to_animeippo_format(original, feature_names, schema, mapping):
     if len(original) == 0:
         return pl.DataFrame(schema=schema)

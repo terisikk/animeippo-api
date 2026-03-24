@@ -194,7 +194,10 @@ class AnimeClustering:
             dist_matrix[mj, mi] *= factor
 
     def predict(self, series, similarities=None):
-        """Assign each new item to the cluster with highest average similarity."""
+        """Assign each new item to the cluster with highest average similarity.
+
+        Returns a DataFrame with 'cluster' and 'similarity' columns.
+        """
         if not self.is_fit:
             raise RuntimeError("Cluster is not fitted yet. Please call cluster_by_features first.")
 
@@ -219,6 +222,10 @@ class AnimeClustering:
             .explode("avg_sims")
             .with_columns(idx=pl.int_range(pl.len()) % len(sim_cols))
             .group_by("idx", maintain_order=True)
-            .agg(pl.col("cluster").sort_by("avg_sims", descending=True).first())
-            .sort("idx")["cluster"]
+            .agg(
+                pl.col("cluster").sort_by("avg_sims", descending=True).first(),
+                pl.col("avg_sims").sort(descending=True).first().alias("similarity"),
+            )
+            .sort("idx")
+            .select("cluster", "similarity")
         )

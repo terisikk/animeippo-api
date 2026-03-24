@@ -417,6 +417,11 @@ ALL_TAGS = {
     76: {"name": "Yuri", "category": "Theme-Romance", "isAdult": False},
     152: {"name": "Zombie", "category": "Cast-Traits", "isAdult": False},
     1446: {"name": "Zoophilia", "category": "Sexual Content", "isAdult": True},
+    1813: {"name": "Gekiga", "category": "Technical", "isAdult": False},
+    1891: {"name": "Single-Page Chapter", "category": "Technical", "isAdult": False},
+    1899: {"name": "Brainwashing", "category": "Theme-Other", "isAdult": False},
+    1908: {"name": "Graduation Project", "category": "Technical", "isAdult": False},
+    1923: {"name": "Human Experimentation", "category": "Theme-Other", "isAdult": False},
 }
 # fmt: on
 

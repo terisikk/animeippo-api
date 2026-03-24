@@ -29,6 +29,17 @@ def test_web_view_can_render_profile_data():
     )
 
 
+def test_web_view_can_render_profile_data_with_seasonal():
+    df = pl.DataFrame(test_data.FORMATTED_MAL_USER_LIST)
+    seasonal = pl.DataFrame(test_data.FORMATTED_MAL_SEASONAL_LIST)
+
+    result = json.loads(views.profile_cluster_web_view(df, [], seasonal=seasonal))
+
+    assert "seasonal" in result["data"]
+    assert len(result["data"]["seasonal"]) > 0
+    assert "title" in result["data"]["seasonal"][0]
+
+
 def test_web_view_can_render_profile_characteristics():
     df = pl.DataFrame(test_data.FORMATTED_MAL_USER_LIST)
 

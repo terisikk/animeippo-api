@@ -1,7 +1,8 @@
 import asyncio
-from concurrent.futures import ThreadPoolExecutor
 
 import polars as pl
+
+from animeippo.meta.meta import run_coroutine
 
 
 class AnimeRecommender:
@@ -69,20 +70,7 @@ class AnimeRecommender:
             return await self.databuilder(year, season, user)
 
     def async_get_dataset(self, year, season, user=None):
-        # If we run from jupyter, loop is already running and we need
-        # to act differently. If the loop is not running,
-        # we break into "normal path" with RuntimeError
-        try:
-            asyncio.get_running_loop()
-
-            with ThreadPoolExecutor(1) as pool:
-                print("using threading")
-
-                return pool.submit(
-                    lambda: asyncio.run(self._databuilder_with_context(year, season, user))
-                ).result()
-        except RuntimeError:
-            return asyncio.run(self._databuilder_with_context(year, season, user))
+        return run_coroutine(self._databuilder_with_context(year, season, user))
 
     def recommend_seasonal_anime(self, year, season, user=None):
         dataset = self.async_get_dataset(year, season, user)

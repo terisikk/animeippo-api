@@ -99,7 +99,6 @@ class MixedProvider(abstract_provider.AbstractAnimeProvider):
                         relations { edges { relationType, node { id, idMal }}}
                         popularity
                         coverImage { large }
-                        staff { edges {role} nodes {id}}
                     }
                 }
             }
@@ -134,7 +133,6 @@ class MixedProvider(abstract_provider.AbstractAnimeProvider):
                         relations { edges { relationType, node { id, idMal }}}
                         popularity
                         coverImage { large }
-                        staff { edges {role} nodes {id}}
                     }
                 }
             }

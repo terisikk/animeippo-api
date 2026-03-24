@@ -9,6 +9,7 @@ from flask import Flask, Response, request
 from flask_cors import CORS
 
 from animeippo.profiling import analyser
+from animeippo.profiling.characteristics import Characteristics
 from animeippo.recommendation import recommender_builder
 from animeippo.view import views
 
@@ -124,16 +125,19 @@ def analyze_profile():
     """Analyses an Anilist user profile and clusters the watchlist to groups of
     simila anime with descriptions. Returns a json-representation."""
     user = request.args.get("user", None)
+    year = request.args.get("year", None)
+    season = request.args.get("season", None)
 
     if user is None:
         return "Validation error", 400
 
-    categories = profiler.analyse(user)
+    categories = profiler.analyse(user, year=year, season=season)
 
     return Response(
         views.profile_cluster_web_view(
             profiler.profile.watchlist.sort("title"),
             sorted(categories, key=lambda item: len(item["items"]), reverse=True),
+            seasonal=profiler.seasonal,
         ),
         mimetype="application/json",
     )
@@ -150,6 +154,9 @@ def profile_characteristics():
         return "Validation error", 400
 
     profiler.analyse(user)
+    profiler.profile.characteristics = Characteristics(
+        profiler.profile.watchlist, profiler.provider.get_genres()
+    )
 
     genre_variance = profiler.profile.characteristics.genre_variance
     logger.debug(f"Profile genre variance for {user}: {genre_variance}")

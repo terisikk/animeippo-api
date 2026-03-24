@@ -26,6 +26,8 @@ def recommendations_web_view(dataframe, categories=None, tags_and_genres=None, d
         "season_year",
         "season",
         "recommend_score",
+        "user_status",
+        "format",
     ]
 
     # In debug mode, include all scorer columns
@@ -52,20 +54,31 @@ def recommendations_web_view(dataframe, categories=None, tags_and_genres=None, d
     )
 
 
-def profile_cluster_web_view(watchlist, categories):
+def profile_cluster_web_view(watchlist, categories, seasonal=None):
     fields = {"id", "title", "cover_image", "genres", "user_status"}
     filtered_fields = list(set(watchlist.columns).intersection(fields))
 
     df_json = watchlist.select(filtered_fields).to_dicts()
 
-    return json.dumps(
-        {
-            "data": {
-                "shows": df_json,
-                "categories": categories,
-            }
+    data = {
+        "shows": df_json,
+        "categories": categories,
+    }
+
+    if seasonal is not None:
+        seasonal_fields = {
+            "id",
+            "title",
+            "cover_image",
+            "genres",
+            "status",
+            "season_year",
+            "season",
         }
-    )
+        filtered_seasonal = list(set(seasonal.columns).intersection(seasonal_fields))
+        data["seasonal"] = seasonal.select(filtered_seasonal).to_dicts()
+
+    return json.dumps({"data": data})
 
 
 def profile_characteristics_web_view(profile):

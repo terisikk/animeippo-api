@@ -397,18 +397,3 @@ class FormatScorer(AbstractScorer):
         )
 
         return out.get_column("penalty")
-
-
-class DirectorCorrelationScorer(AbstractScorer):
-    name = "directorcorrelationscore"
-
-    def score(self, data):
-        weights = data.user_profile.director_correlations
-
-        median = weights["weight"].median()
-
-        scores = statistics.weighted_mean_for_categorical_values(
-            data.seasonal_explode_cached("directors"), "directors", weights, median
-        )
-
-        return statistics.rank_series(scores)

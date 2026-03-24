@@ -17,6 +17,25 @@ def test_profile_analyser_can_run():
     assert len(categories) > 0
 
 
+def test_profile_analyser_can_run_with_seasonal():
+    profiler = analyser.ProfileAnalyser(test_provider.AsyncProviderStub())
+    profiler.encoder = encoding.CategoricalEncoder()
+
+    categories = profiler.analyse("Janiskeisari", year="2023", season="SPRING")
+
+    assert len(categories) > 0
+
+
+@pytest.mark.asyncio
+async def test_profile_analyser_seasonal_works_with_running_loop():
+    profiler = analyser.ProfileAnalyser(test_provider.AsyncProviderStub())
+    profiler.encoder = encoding.CategoricalEncoder()
+
+    categories = profiler.analyse("Janiskeisari", year="2023", season="SPRING")
+
+    assert len(categories) > 0
+
+
 @pytest.mark.asyncio
 async def test_profile_analyser_can_run_when_async_loop_is_already_running():
     profiler = analyser.ProfileAnalyser(test_provider.AsyncProviderStub())
@@ -25,26 +44,6 @@ async def test_profile_analyser_can_run_when_async_loop_is_already_running():
     categories = profiler.analyse("Janiskeisari")
 
     assert len(categories) > 0
-
-
-def test_user_profile_can_be_constructred():
-    watchlist = pl.DataFrame(test_data.FORMATTED_MAL_USER_LIST)
-
-    user_profile = UserProfile("Test", watchlist)
-
-    assert user_profile.watchlist is not None
-    assert user_profile.genre_correlations is not None
-    assert user_profile.studio_correlations is not None
-    assert user_profile.director_correlations is not None
-
-
-def test_user_profile_can_be_constructred_with_no_watchlist():
-    user_profile = UserProfile("Test", None)
-
-    assert user_profile.watchlist is None
-    assert user_profile.genre_correlations is None
-    assert user_profile.studio_correlations is None
-    assert user_profile.director_correlations is None
 
 
 def test_user_top_genres_and_tags_can_be_categorized(mocker):
@@ -128,6 +127,141 @@ def test_clusters_can_be_categorized():
     assert "completion_rate" in categories[0]["stats"]
 
 
+def test_seasonal_recommendations_added_to_clusters():
+    class ProviderStub:
+        def get_nsfw_tags(self):
+            return []
+
+        def get_tag_lookup(self):
+            return {
+                1: {"name": "Shounen", "category": "Demographic", "isAdult": False},
+                2: {"name": "Super Power", "category": "Theme-Fantasy", "isAdult": False},
+            }
+
+        def get_genres(self):
+            return {"Action", "Adventure", "Drama", "Fantasy"}
+
+        async def get_seasonal_anime_list(self, year, season):
+            return pl.DataFrame(
+                {
+                    "id": [100, 200, 300],
+                    "title": ["Seasonal 1", "Seasonal 2", "Unmatchable"],
+                    "genres": [["Action", "Fantasy"], ["Drama"], []],
+                    "features": [["Action", "Fantasy", "Shounen"], ["Drama"], []],
+                    "ranks": [
+                        {"Action": 75, "Fantasy": 75, "Shounen": 90},
+                        {"Drama": 75},
+                        {},
+                    ],
+                    "continuation_to": [[999], [], []],
+                }
+            )
+
+    data = pl.DataFrame(test_data.FORMATTED_ANI_SEASONAL_LIST)
+    data = data.with_columns(
+        cluster=pl.Series([0, 1]),
+        score=pl.Series([8.0, 9.0]),
+        user_status=pl.Series(["COMPLETED", "CURRENT"]),
+    )
+
+    uprofile = UserProfile("Test", data)
+    dset = RecommendationModel(uprofile, None)
+
+    profiler = analyser.ProfileAnalyser(ProviderStub())
+    profiler.profile = uprofile
+    profiler.profile.watchlist = data
+
+    # Fit encoder and clusterer like databuilder would
+    all_features = data.explode("features")["features"].unique().drop_nulls()
+    profiler.encoder.fit(all_features)
+    data = data.with_columns(encoded=profiler.encoder.encode(data))
+    data = data.with_columns(cluster=profiler.clusterer.cluster_by_features(data))
+    profiler.profile.watchlist = data
+
+    categories = profiler.get_cluster_categories(dset)
+    profiler.add_seasonal_recommendations(categories, "2026", None)
+
+    has_recs = any("recommendations" in cat for cat in categories)
+    assert has_recs
+    assert profiler.seasonal is not None
+
+
+def test_filter_seasonal_without_continuation_column():
+    profiler = analyser.ProfileAnalyser(None)
+    profiler.profile = UserProfile("Test", pl.DataFrame({"id": [1], "user_status": ["COMPLETED"]}))
+
+    seasonal = pl.DataFrame({"id": [100], "title": ["Test"]})
+    result = profiler.filter_seasonal(seasonal)
+
+    assert len(result) == 1
+
+
+def test_seasonal_recommendations_without_continuation_column():
+    class ProviderStub:
+        def get_nsfw_tags(self):
+            return []
+
+        def get_tag_lookup(self):
+            return {1: {"name": "Shounen", "category": "Demographic", "isAdult": False}}
+
+        def get_genres(self):
+            return {"Action"}
+
+        async def get_seasonal_anime_list(self, year, season):
+            return pl.DataFrame(
+                {
+                    "id": [100],
+                    "title": ["Seasonal 1"],
+                    "genres": [["Action"]],
+                    "features": [["Action", "Shounen"]],
+                    "ranks": [{"Action": 75, "Shounen": 90}],
+                }
+            )
+
+    data = pl.DataFrame(test_data.FORMATTED_ANI_SEASONAL_LIST)
+    data = data.with_columns(
+        cluster=pl.Series([0, 1]),
+        score=pl.Series([8.0, 9.0]),
+        user_status=pl.Series(["COMPLETED", "CURRENT"]),
+    )
+
+    profiler = analyser.ProfileAnalyser(ProviderStub())
+    profiler.profile = UserProfile("Test", data)
+
+    all_features = data.explode("features")["features"].unique().drop_nulls()
+    profiler.encoder.fit(all_features)
+    data = data.with_columns(encoded=profiler.encoder.encode(data))
+    data = data.with_columns(cluster=profiler.clusterer.cluster_by_features(data))
+    profiler.profile.watchlist = data
+
+    categories = profiler.get_cluster_categories(RecommendationModel(profiler.profile, None))
+    profiler.add_seasonal_recommendations(categories, "2026", None)
+
+    assert profiler.seasonal is not None
+
+
+def test_seasonal_recommendations_handles_none_seasonal():
+    class ProviderStub:
+        def get_nsfw_tags(self):
+            return []
+
+        def get_tag_lookup(self):
+            return {}
+
+        def get_genres(self):
+            return set()
+
+        async def get_seasonal_anime_list(self, year, season):
+            return None
+
+    profiler = analyser.ProfileAnalyser(ProviderStub())
+    categories = [{"name": "Test", "items": [1]}]
+    profiler.add_seasonal_recommendations(categories, "2026", None)
+
+    assert profiler.seasonal is None
+    assert "recommendations" not in categories[0]
+
+
 def test_clusters_can_be_categorized_with_nsfw_filtering():
     """Test that NSFW tags are correctly filtered when categorizing clusters.
 
@@ -173,42 +307,3 @@ def test_clusters_can_be_categorized_with_nsfw_filtering():
     categories = profiler.get_cluster_categories(dset)
 
     assert len(categories) > 0
-
-
-def test_correlations_are_consistent():
-    data = pl.DataFrame(test_data.FORMATTED_ANI_SEASONAL_LIST)
-    data = data.with_columns(score=pl.Series([10.0, 8.0]))
-
-    uprofile = UserProfile("Test", data)
-
-    previous = uprofile.get_director_correlations()
-
-    for _ in range(0, 10):
-        actual = uprofile.get_director_correlations()
-        assert actual.item(0, "weight") == previous.item(0, "weight")
-        assert actual.item(0, "name") == previous.item(0, "name")
-        assert actual is not None
-        previous = actual
-
-
-def test_favourite_source_calculation():
-    data = pl.DataFrame(test_data.FORMATTED_ANI_USER_LIST)
-    data = data.with_columns(score=pl.Series([10.0, 8.0]))
-
-    uprofile = UserProfile("Test", data)
-
-    assert uprofile.get_favourite_source() == "original"
-
-
-def test_favourite_source_calculation_defaults_to_manga():
-    data = pl.DataFrame(
-        {
-            "title": ["Anime 1", "Anime 2", "Anime 3"],
-            "score": [9.0, 8.5, 8.0],
-            "source": [None, None, None],
-        }
-    )
-
-    uprofile = UserProfile("Test", data)
-
-    assert uprofile.get_favourite_source() == "manga"

@@ -83,6 +83,7 @@ class StudioCategory:
 
 class GenreCategory:
     description = "Genre"
+    diversity_adjusted = True
 
     def __init__(self, nth_genre=0):
         self.nth_genre = nth_genre

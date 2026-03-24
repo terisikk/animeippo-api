@@ -3,6 +3,7 @@ from functools import lru_cache
 import polars as pl
 
 from ..analysis import similarity
+from ..providers.util import filter_continuation
 
 
 class RecommendationModel:
@@ -46,28 +47,12 @@ class RecommendationModel:
         )
 
     def filter_continuation(self):
-        if (
-            self.seasonal is not None
-            and self.watchlist is not None
-            and self.seasonal["continuation_to"].dtype != pl.List(pl.Null)
-        ):
-            """
-            Filter out all sequels unless they are a continuation from the user's watchlist.
-            """
+        if self.seasonal is not None and self.watchlist is not None:
             previously_watched = self.watchlist.filter(
                 pl.col("user_status").is_in(["COMPLETED", "CURRENT", "PAUSED"])
-            )["id"]
+            )["id"].to_list()
 
-            mask = (
-                (
-                    pl.col("continuation_to").list.set_intersection(previously_watched.to_list())
-                    != []
-                )
-                | (pl.col("continuation_to") == [])
-                | (pl.col("user_status").is_not_null())
-            )
-
-            self.seasonal = self.seasonal.filter(mask)
+            self.seasonal = filter_continuation(self.seasonal, previously_watched)
 
     def fit(self, encoder, clustering_model):
         self.validate()

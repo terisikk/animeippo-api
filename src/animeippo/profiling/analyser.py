@@ -1,13 +1,11 @@
-import asyncio
-from concurrent.futures import ThreadPoolExecutor
-
 import polars as pl
 
 from animeippo.analysis import encoding, statistics
 from animeippo.clustering import model
-from animeippo.profiling import characteristics
+from animeippo.meta.meta import run_coroutine
 from animeippo.profiling.cluster_namer import ClusterNamer
 from animeippo.profiling.model import UserProfile
+from animeippo.providers.util import filter_continuation
 
 
 class ProfileAnalyser:
@@ -16,6 +14,7 @@ class ProfileAnalyser:
     def __init__(self, provider):
         self.provider = provider
         self.encoder = encoding.WeightedCategoricalEncoder()
+        self.seasonal = None
         self.clusterer = model.AnimeClustering(
             distance_metric="cosine",
             distance_threshold=0.63,
@@ -25,16 +24,7 @@ class ProfileAnalyser:
         )
 
     def async_get_profile(self, user):
-        # If we run from jupyter, loop is already running and we need
-        # to act differently. If the loop is not running,
-        # we break into "normal path" with RuntimeError
-        try:
-            asyncio.get_running_loop()
-
-            with ThreadPoolExecutor(1) as pool:
-                return pool.submit(lambda: asyncio.run(self.databuilder(user))).result()
-        except RuntimeError:
-            return asyncio.run(self.databuilder(user))
+        return run_coroutine(self.databuilder(user))
 
     async def databuilder(self, user):
         user_watchlist = await self.provider.get_user_anime_list(user)
@@ -53,14 +43,93 @@ class ProfileAnalyser:
 
         return user_profile
 
-    def analyse(self, user):
+    def analyse(self, user, year=None, season=None):
         self.profile = self.async_get_profile(user)
 
-        self.profile.characteristics = characteristics.Characteristics(
-            self.profile.watchlist, self.provider.get_genres()
+        categories = self.get_cluster_categories(self.profile)
+
+        if year is not None:
+            self.add_seasonal_recommendations(categories, year, season)
+
+        return categories
+
+    def add_seasonal_recommendations(self, categories, year, season):
+        seasonal = run_coroutine(self.provider.get_seasonal_anime_list(year, season))
+
+        if seasonal is None:
+            return
+
+        seasonal = self.filter_seasonal(seasonal)
+
+        # Exclude items already on the user's watchlist
+        watchlist_ids = self.profile.watchlist["id"].to_list()
+        seasonal = seasonal.filter(~pl.col("id").is_in(watchlist_ids))
+
+        seasonal = seasonal.with_columns(encoded=self.encoder.encode(seasonal))
+        predictions = self.clusterer.predict(seasonal["encoded"])
+        seasonal = seasonal.with_columns(
+            cluster=predictions["cluster"],
+            cluster_similarity=predictions["similarity"],
         )
 
-        return self.get_cluster_categories(self.profile)
+        # Override cluster for continuations — assign to the prequel's cluster
+        if "continuation_to" in seasonal.columns:
+            seasonal = self.assign_continuations_to_prequel_cluster(seasonal)
+
+        self.seasonal = seasonal
+
+        cluster_map = {}
+        for cat in categories:
+            for item_id in (
+                self.profile.watchlist.filter(pl.col("id").is_in(cat["items"]))["cluster"]
+                .unique()
+                .to_list()
+            ):
+                cluster_map[item_id] = cat
+
+        for cluster_id, group in seasonal.sort("cluster_similarity", descending=True).group_by(
+            "cluster"
+        ):
+            cluster_map[cluster_id[0]]["recommendations"] = group["id"].to_list()
+
+    def assign_continuations_to_prequel_cluster(self, seasonal):
+        """If a seasonal item is a sequel to a watchlist item, use the prequel's cluster."""
+        if seasonal["continuation_to"].dtype == pl.List(pl.Null):
+            return seasonal
+
+        wl_clusters = self.profile.watchlist.select("id", "cluster")
+
+        return (
+            seasonal.explode("continuation_to")
+            .join(
+                wl_clusters.rename({"id": "continuation_to", "cluster": "prequel_cluster"}),
+                on="continuation_to",
+                how="left",
+            )
+            .group_by("id", maintain_order=True)
+            .agg(
+                pl.exclude("continuation_to", "prequel_cluster").first(),
+                pl.col("prequel_cluster").drop_nulls().first(),
+            )
+            .with_columns(
+                cluster=pl.when(pl.col("prequel_cluster").is_not_null())
+                .then(pl.col("prequel_cluster"))
+                .otherwise(pl.col("cluster"))
+            )
+            .drop("prequel_cluster")
+        )
+
+    def filter_seasonal(self, seasonal):
+        """Filter seasonal list the same way as recommendations."""
+        watchlist = self.profile.watchlist
+
+        previously_watched = watchlist.filter(
+            pl.col("user_status").is_in(["COMPLETED", "CURRENT", "PAUSED"])
+        )["id"].to_list()
+
+        seasonal = seasonal.join(watchlist.select(["id", "user_status"]), on="id", how="left")
+
+        return filter_continuation(seasonal, previously_watched)
 
     def get_categories(self, profile):
         categories = []

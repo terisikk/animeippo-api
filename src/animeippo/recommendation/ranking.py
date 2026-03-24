@@ -1,7 +1,5 @@
 import polars as pl
 
-from animeippo.recommendation import categories
-
 
 class RankingOrchestrator:
     """Maintains global state for cross-category ranking adjustments."""
@@ -9,9 +7,6 @@ class RankingOrchestrator:
     DISCOURAGE_MAX = 0.75
 
     diversity_adjustment = None
-
-    # FIXME: Maybe use a better syntax than type checking here?
-    diversity_adjusted_categories = [categories.GenreCategory]  # noqa RUF012
 
     def __init__(self, categorizers_with_limits):
         """Initialize with list of (category, top_n) tuples.
@@ -49,7 +44,7 @@ class RankingOrchestrator:
 
             filtered_sorted = recommendations_df.filter(mask).sort(**sorting_info)
 
-            if type(category) in self.diversity_adjusted_categories:
+            if getattr(category, "diversity_adjusted", False):
                 item_ids = self.adjust_by_diversity(filtered_sorted, top_n=top_n)
             else:
                 item_ids = filtered_sorted["id"][0:top_n].to_list()

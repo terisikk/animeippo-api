@@ -437,39 +437,3 @@ def test_format_scorer():
     ).sort("recommend_score", descending=True)
 
     assert recommendations["title"].to_list() == ["Anime A", "Anime B", "Anime C"]
-
-
-def test_director_correlation_scorer():
-    source_df = pl.DataFrame(
-        {
-            "id": [1, 2, 3],
-            "directors": [["1"], ["2"], ["3"]],
-            "title": ["Vinland Saga", "Fullmetal Alchemist: Brotherhood", "Bleach"],
-            "score": [10, 1, 2],
-        }
-    )
-    target_df = pl.DataFrame(
-        {
-            "id": [4, 5],
-            "directors": [["4"], ["1"]],
-            "title": ["Bungou Stray Dogs", "Jujutsu Kaisen"],
-        }
-    )
-
-    scorer = scoring.DirectorCorrelationScorer()
-
-    uprofile = UserProfile("Test", source_df)
-    recommendations = target_df.with_columns(
-        recommend_score=scorer.score(
-            RecommendationModel(
-                uprofile,
-                target_df,
-            )
-        )
-    ).sort("recommend_score", descending=True)
-
-    expected = "Jujutsu Kaisen"
-    actual = recommendations["title"].item(0)
-
-    assert actual == expected
-    assert not recommendations["recommend_score"].is_null().any()

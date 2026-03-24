@@ -210,7 +210,7 @@ def test_predict_returns_cluster_of_the_most_similar_element():
 
     actual = ml.predict(pl.Series([{"a": False, "b": False, "c": True, "d": True}]))
 
-    assert actual[0] == clusters[1]
+    assert actual["cluster"][0] == clusters[1]
 
 
 def test_predict_preserves_order_for_multiple_items():
@@ -245,7 +245,8 @@ def test_predict_preserves_order_for_multiple_items():
 
     predicted = ml.predict(new_items)
 
-    assert predicted[0] == cluster_b
-    assert predicted[1] == cluster_a
-    assert predicted[2] == cluster_b
-    assert predicted[3] == cluster_a
+    assert predicted["cluster"][0] == cluster_b
+    assert predicted["cluster"][1] == cluster_a
+    assert predicted["cluster"][2] == cluster_b
+    assert predicted["cluster"][3] == cluster_a
+    assert predicted["similarity"][0] > 0

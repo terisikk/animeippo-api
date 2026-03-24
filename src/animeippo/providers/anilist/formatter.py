@@ -238,8 +238,6 @@ ANILIST_MAPPING = {
                                         pl.col("completedAt.day")
                                     )
                                 ),
-    # Columns.TEMP_RANKS:         DefaultMapper("tags"),
-    # Columns.DIRECTOR:           QueryMapper(get_staff),
     Columns.FRANCHISE:          QueryMapper(build_franchise_column),
     Columns.FRANCHISE_RELATIONS: QueryMapper(build_typed_franchise_relations),
 }

@@ -22,10 +22,11 @@ class AnimeRecommendationEngine:
 
         recommendations = self.score_anime(dataset)
 
+        predictions = self.clustering_model.predict(
+            dataset.seasonal["encoded"], dataset.get_similarity_matrix(filtered=False)
+        )
         recommendations = recommendations.with_columns(
-            cluster=self.clustering_model.predict(
-                dataset.seasonal["encoded"], dataset.get_similarity_matrix(filtered=False)
-            ).cast(pl.UInt32),
+            cluster=predictions["cluster"].cast(pl.UInt32),
         )
 
         return recommendations.sort("recommend_score", descending=True)
