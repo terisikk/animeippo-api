@@ -3,3 +3,5 @@
 - `make lint` is the single source of truth for linting errors, not IDE
 - The test suite is fast enough that it can be executed fully always unless fixing some very specific issue
 - When leaving comments to code, prefer *why* something is done instead of explaining *what* something does, especially if it's evident fromt the code. If leaving a *what* comment, consider if it should be a small function instead.
+- When asked to create a todo item, write it to `.claude/todos/` as a markdown file and update `.claude/todos/index.md`. Move completed items from Active to Completed in the index.
+- Use `make format` to format code, not manual ruff commands.

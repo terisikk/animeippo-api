@@ -8,6 +8,8 @@ from tests import test_data
 class ResponseStub:
     def __init__(self, dictionary):
         self.dictionary = dictionary
+        self.status = 200
+        self.headers = {"X-RateLimit-Remaining": "90", "X-RateLimit-Limit": "90"}
 
     async def get(self, key):
         return self.dictionary.get(key)
@@ -206,6 +208,41 @@ async def test_get_all_pages_with_null_page_data_in_response(mocker):
     # Should only get the first page, null page should be filtered out
     assert len(final_pages) == 1
     assert final_pages[0] == response1["data"]["Page"]
+
+
+@pytest.mark.asyncio
+async def test_rate_limit_warning_logged_when_remaining_low(mocker, caplog):
+    response_stub = ResponseStub({"data": "test"})
+    response_stub.headers = {"X-RateLimit-Remaining": "5", "X-RateLimit-Limit": "90"}
+
+    mocker.patch("aiohttp.ClientSession.post", return_value=response_stub)
+
+    connection = animeippo.providers.anilist.AnilistConnection()
+    await connection.request_single("", {})
+
+    assert connection.rate_remaining == 5
+    assert "rate limit low" in caplog.text
+
+
+@pytest.mark.asyncio
+async def test_rate_limit_retries_on_429(mocker):
+    rate_limited_stub = ResponseStub({"data": None})
+    rate_limited_stub.status = 429
+    rate_limited_stub.headers = {
+        "X-RateLimit-Remaining": "0",
+        "X-RateLimit-Limit": "90",
+        "Retry-After": "0",
+    }
+
+    ok_stub = ResponseStub({"data": "success"})
+
+    mocker.patch("aiohttp.ClientSession.post", side_effect=[rate_limited_stub, ok_stub])
+    mocker.patch("asyncio.sleep", return_value=None)
+
+    connection = animeippo.providers.anilist.AnilistConnection()
+    result = await connection.request_single("", {})
+
+    assert result == {"data": "success"}
 
 
 def test_features_can_be_fetched():
