@@ -878,55 +878,59 @@ MIXED_USER_LIST_ANI = {
     "data": {
         "Page": {
             "pageInfo": {
-                "hasNextPage": True,
-                "total": 5000,
+                "hasNextPage": False,
+                "total": 2,
                 "currentPage": 1,
-                "lastPage": 100,
+                "lastPage": 1,
                 "perPage": 50,
-            }
-        },
-        "media": [
-            {
-                "id": 130,
-                "idMal": 30,
-                "title": {"romaji": "Neon Genesis Evangelion"},
-                "genres": ["Action", "Adventure", "Drama", "Fantasy", "Supernatural"],
-                "tags": [{"name": "Gore", "rank": 95, "isAdult": False, "category": "Theme-Other"}],
-                "format": "TV",
-                "duration": 24,
-                "episodes": 26,
-                "season": "SPRING",
-                "seasonYear": 2023,
-                "meanScore": 82,
-                "source": "ORIGINAL",
-                "studios": {"edges": [{"node": {"name": "Gainax", "isAnimationStudio": True}}]},
-                "staff": {
-                    "edges": [{"role": "Director"}],
-                    "nodes": [{"id": 12345}],
-                },
-                "coverImage": {"large": "https://localhost/test.png"},
             },
-            {
-                "id": 1270,
-                "idMal": 270,
-                "title": {"romaji": "Hellsingfårs"},
-                "genres": ["Action", "Adventure", "Drama", "Fantasy", "Supernatural"],
-                "tags": [{"name": "Gore", "rank": 80, "isAdult": False, "category": "Theme-Other"}],
-                "format": "TV",
-                "duration": 24,
-                "episodes": 13,
-                "season": "SPRING",
-                "seasonYear": 2023,
-                "meanScore": 75,
-                "source": "MANGA",
-                "studios": {"edges": [{"node": {"name": "Gonzo", "isAnimationStudio": True}}]},
-                "staff": {
-                    "edges": [{"role": "Director"}],
-                    "nodes": [{"id": 67890}],
+            "media": [
+                {
+                    "id": 130,
+                    "idMal": 30,
+                    "title": {"romaji": "Neon Genesis Evangelion"},
+                    "genres": ["Action", "Adventure", "Drama", "Fantasy", "Supernatural"],
+                    "tags": [
+                        {"name": "Gore", "rank": 95, "isAdult": False, "category": "Theme-Other"}
+                    ],
+                    "format": "TV",
+                    "duration": 24,
+                    "episodes": 26,
+                    "season": "SPRING",
+                    "seasonYear": 2023,
+                    "meanScore": 82,
+                    "source": "ORIGINAL",
+                    "studios": {"edges": [{"node": {"name": "Gainax", "isAnimationStudio": True}}]},
+                    "staff": {
+                        "edges": [{"role": "Director"}],
+                        "nodes": [{"id": 12345}],
+                    },
+                    "coverImage": {"large": "https://localhost/test.png"},
                 },
-                "coverImage": {"large": "https://localhost/test.png"},
-            },
-        ],
+                {
+                    "id": 1270,
+                    "idMal": 270,
+                    "title": {"romaji": "Hellsingfårs"},
+                    "genres": ["Action", "Adventure", "Drama", "Fantasy", "Supernatural"],
+                    "tags": [
+                        {"name": "Gore", "rank": 80, "isAdult": False, "category": "Theme-Other"}
+                    ],
+                    "format": "TV",
+                    "duration": 24,
+                    "episodes": 13,
+                    "season": "SPRING",
+                    "seasonYear": 2023,
+                    "meanScore": 75,
+                    "source": "MANGA",
+                    "studios": {"edges": [{"node": {"name": "Gonzo", "isAnimationStudio": True}}]},
+                    "staff": {
+                        "edges": [{"role": "Director"}],
+                        "nodes": [{"id": 67890}],
+                    },
+                    "coverImage": {"large": "https://localhost/test.png"},
+                },
+            ],
+        }
     }
 }
 
@@ -968,5 +972,69 @@ MIXED_ANI_SEASONAL_LIST = {
                 "popularity": 131620,
             },
         ],
+    }
+}
+
+MIXED_MANGA_LIST_MAL = {
+    "data": [
+        {
+            "node": {
+                "id": 1234,
+            },
+            "list_status": {
+                "status": "completed",
+                "score": 9,
+            },
+        },
+        {
+            "node": {
+                "id": 5678,
+            },
+            "list_status": {
+                "status": "reading",
+                "score": 7,
+            },
+        },
+    ]
+}
+
+MIXED_MANGA_LIST_ANI = {
+    "data": {
+        "Page": {
+            "pageInfo": {
+                "hasNextPage": False,
+                "total": 2,
+                "currentPage": 1,
+                "lastPage": 1,
+                "perPage": 50,
+            },
+            "media": [
+                {
+                    "id": 91234,
+                    "idMal": 1234,
+                    "title": {"romaji": "Dr. BONK: BONK BATTLES"},
+                    "genres": ["Action", "Adventure", "Comedy", "Sci-Fi"],
+                    "tags": [
+                        {
+                            "name": "Superpowers",
+                            "rank": 90,
+                            "isAdult": False,
+                            "category": "Theme-Fantasy",
+                        },
+                    ],
+                    "meanScore": 82,
+                },
+                {
+                    "id": 95678,
+                    "idMal": 5678,
+                    "title": {"romaji": "Bergo Moxy"},
+                    "genres": ["Adventure", "Mystery"],
+                    "tags": [
+                        {"name": "Gore", "rank": 80, "isAdult": False, "category": "Theme-Other"},
+                    ],
+                    "meanScore": 75,
+                },
+            ],
+        }
     }
 }

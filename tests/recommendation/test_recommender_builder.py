@@ -12,9 +12,10 @@ def test_builder_creation_returns_correct_builders():
         recommender_builder.build_recommender("anilist").provider.__class__
         == providers.anilist.AniListProvider
     )
+
     assert (
-        recommender_builder.build_recommender("myanimelist").provider.__class__
-        == providers.myanimelist.MyAnimeListProvider
+        recommender_builder.build_recommender("mixed").provider.__class__
+        == providers.mixed.MixedProvider
     )
 
     assert (

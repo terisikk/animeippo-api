@@ -2,14 +2,15 @@ import polars as pl
 import pytest
 import redis
 
-import animeippo.providers.myanimelist as mal
 from animeippo import cache
+from animeippo.providers.myanimelist.connection import MyAnimeListConnection
 from tests import test_data
 
 
 class ResponseStub:
     def __init__(self, dictionary):
         self.dictionary = dictionary
+        self.status = 200
 
     async def get(self, key):
         return self.dictionary.get(key)
@@ -78,80 +79,35 @@ def test_items_can_be_added_to_redis_cache(mocker):
 
 
 @pytest.mark.asyncio
-async def test_mal_can_fetch_values_from_cache(mocker):
+async def test_connection_can_fetch_values_from_cache(mocker):
     mocker.patch("redis.Redis", RedisStub)
 
     rcache = cache.RedisCache()
-
-    provider = mal.MyAnimeListProvider(rcache)
+    connection = MyAnimeListConnection(rcache)
 
     rcache.set_json("fake", test_data.MAL_SEASONAL_LIST)
 
     response = ResponseStub({"data": {}})
     mocker.patch("aiohttp.ClientSession.get", return_value=response)
 
-    seasonal_list = await provider.connection.request_anime_list("fake", {})
+    seasonal_list = await connection.request_anime_list("fake", {})
 
     assert seasonal_list["data"][0]["node"]["title"] == "Golden Kamuy 4th Season"
 
 
 @pytest.mark.asyncio
-async def test_mal_related_anime_can_use_cache(mocker):
+async def test_connection_can_store_to_cache(mocker):
     mocker.patch("redis.Redis", RedisStub)
 
     rcache = cache.RedisCache()
-
-    provider = mal.MyAnimeListProvider(rcache)
-
-    rid = "30"
-    rcache.set_json("fake", {"data": test_data.MAL_RELATED_ANIME["related_anime"]})
-
-    response = ResponseStub(None)
-    mocker.patch("aiohttp.ClientSession.get", return_value=response)
-
-    related_anime = await provider.get_related_anime(rid)
-
-    assert related_anime == [[31]]
-
-
-@pytest.mark.asyncio
-async def test_mal_list_can_be_stored_to_cache(mocker):
-    mocker.patch("redis.Redis", RedisStub)
-
-    rcache = cache.RedisCache()
-
-    provider = mal.MyAnimeListProvider(rcache)
-
-    year = "2023"
-    season = "winter"
+    connection = MyAnimeListConnection(rcache)
 
     response = ResponseStub(test_data.MAL_SEASONAL_LIST)
-    mocker.patch("aiohttp.ClientSession.get", side_effect=[response, None])
+    mocker.patch("aiohttp.ClientSession.request", side_effect=[response, None])
 
-    first_hit = await provider.get_seasonal_anime_list(year, season)
-    second_hit = await provider.get_seasonal_anime_list(year, season)
+    first_hit = await connection.request_anime_list("fake_query", {})
+    second_hit = await connection.request_anime_list("fake_query", {})
 
-    assert not first_hit.is_empty()
-    assert first_hit["title"].to_list() == second_hit["title"].to_list()
-
-
-@pytest.mark.asyncio
-async def test_mal_related_anime_can_be_stored_to_cache(mocker):
-    mocker.patch("redis.Redis", RedisStub)
-
-    rcache = cache.RedisCache()
-
-    provider = mal.MyAnimeListProvider(rcache)
-
-    rid = "30"
-
-    response = ResponseStub(test_data.MAL_RELATED_ANIME)
-    mocker.patch("aiohttp.ClientSession.get", side_effect=[response, None])
-
-    first_hit = await provider.get_related_anime(rid)
-    second_hit = await provider.get_related_anime(rid)
-
-    assert len(first_hit) != 0
     assert first_hit == second_hit
 
 
@@ -183,20 +139,46 @@ def test_none_frames_are_not_added_to_cache(mocker):
 
 
 @pytest.mark.asyncio
+async def test_cached_dataframe_decorator_stores_and_retrieves(mocker):
+    from datetime import timedelta
+
+    from animeippo.providers import caching
+
+    mocker.patch("redis.Redis", RedisStub)
+
+    rcache = cache.RedisCache()
+
+    class FakeProvider:
+        def __init__(self):
+            self.cache = rcache
+            self.call_count = 0
+
+        @caching.cached_dataframe(ttl=timedelta(days=1))
+        async def get_data(self, key):
+            self.call_count += 1
+            return pl.DataFrame({"id": [1, 2], "title": ["A", "B"]})
+
+    provider = FakeProvider()
+
+    first = await provider.get_data("test")
+    second = await provider.get_data("test")
+
+    assert first["title"].to_list() == ["A", "B"]
+    assert second["title"].to_list() == ["A", "B"]
+
+
+@pytest.mark.asyncio
 async def test_data_can_be_fetched_even_with_cache_connection_error(mocker):
     mocker.patch("redis.Redis", RedisStub)
 
     rcache = cache.RedisCache()
     rcache.connection.available = False
 
-    provider = mal.MyAnimeListProvider(rcache)
-
-    year = "2023"
-    season = "winter"
+    connection = MyAnimeListConnection(rcache)
 
     response = ResponseStub(test_data.MAL_SEASONAL_LIST)
-    mocker.patch("aiohttp.ClientSession.get", side_effect=[response, None])
+    mocker.patch("aiohttp.ClientSession.request", side_effect=[response, None])
 
-    seasonal_list = await provider.get_seasonal_anime_list(year, season)
+    result = await connection.request_anime_list("fake_query", {})
 
-    assert "Golden Kamuy 4th Season" in seasonal_list["title"].to_list()
+    assert result["data"][0]["node"]["title"] == "Golden Kamuy 4th Season"

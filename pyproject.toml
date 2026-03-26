@@ -111,7 +111,7 @@ exclude = [
 ]
 
 [tool.ruff.lint.per-file-ignores]
-"tests/*" = ["S101", "PLR2004"]
+"tests/*" = ["S101", "S105", "PLR2004"]
 "src/animeippo/providers/anilist/data.py" = ["E501"]
 
 

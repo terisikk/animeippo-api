@@ -3,8 +3,10 @@ from datetime import timedelta
 from .. import abstract_provider
 from .. import caching as animecache
 from ..anilist import provider as ani
-from ..myanimelist import provider as mal
+from ..myanimelist.connection import MyAnimeListConnection
 from . import formatter
+
+ANILIST_ID_BATCH_SIZE = 50
 
 
 class MixedProvider(abstract_provider.AbstractAnimeProvider):
@@ -12,7 +14,14 @@ class MixedProvider(abstract_provider.AbstractAnimeProvider):
         self.cache = cache
 
         self.ani_provider = ani.AniListProvider(cache)
-        self.mal_provider = mal.MyAnimeListProvider(cache)
+        self.mal_connection = MyAnimeListConnection(cache)
+
+    async def __aenter__(self):
+        await self.ani_provider.__aenter__()
+        return self
+
+    async def __aexit__(self, exc_type, exc_val, exc_tb):
+        return await self.ani_provider.__aexit__(exc_type, exc_val, exc_tb)
 
     @animecache.cached_dataframe(ttl=timedelta(days=1))
     async def get_user_anime_list(self, user_id):
@@ -25,9 +34,9 @@ class MixedProvider(abstract_provider.AbstractAnimeProvider):
             "list_status{score,status,finish_date}",
         ]
 
-        parameters = {"nsfw": "true", "fields": ",".join(fields)}
+        parameters = {"nsfw": "true", "fields": ",".join(fields), "limit": "1000"}
 
-        mal_list = await self.mal_provider.connection.request_anime_list(mal_query, parameters)
+        mal_list = await self.mal_connection.request_anime_list(mal_query, parameters)
         mal_df = formatter.transform_mal_watchlist_data(mal_list, [])
 
         ani_query = """
@@ -47,19 +56,20 @@ class MixedProvider(abstract_provider.AbstractAnimeProvider):
                         category
                     }
                     meanScore
+                    duration
+                    episodes
                     source
                     studios { edges { node { name isAnimationStudio } }}
                     seasonYear
                     season
                     coverImage { large }
+                    relations { edges { relationType, node { id, idMal }}}
                 }
             }
         }
         """
 
-        variables = {"idMal_in": mal_df["id"].to_list()}
-
-        ani_list = await self.ani_provider.connection.request_paginated(ani_query, variables)
+        ani_list = await self.request_anilist_batched(ani_query, mal_df["id"].to_list())
 
         return formatter.transform_ani_watchlist_data(ani_list, self.get_feature_fields(), mal_df)
 
@@ -76,7 +86,8 @@ class MixedProvider(abstract_provider.AbstractAnimeProvider):
             query ($seasonYear: Int, $season: MediaSeason, $page: Int) {
                 Page(page: $page, perPage: 50) {
                     pageInfo { hasNextPage currentPage lastPage total perPage }
-                    media(seasonYear: $seasonYear, season: $season, type:ANIME) {
+                    media(seasonYear: $seasonYear, season: $season, type:ANIME,
+                        isAdult: false, tag_not_in: ["Kids"]) {
                         id
                         idMal
                         title { romaji }
@@ -110,7 +121,8 @@ class MixedProvider(abstract_provider.AbstractAnimeProvider):
             query ($seasonYear: Int, $page: Int) {
                 Page(page: $page, perPage: 50) {
                     pageInfo { hasNextPage currentPage lastPage total perPage }
-                    media(seasonYear: $seasonYear, type:ANIME) {
+                    media(seasonYear: $seasonYear, type:ANIME,
+                        isAdult: false, tag_not_in: ["Kids"]) {
                         id
                         idMal
                         title { romaji }
@@ -144,11 +156,76 @@ class MixedProvider(abstract_provider.AbstractAnimeProvider):
 
         return formatter.transform_ani_seasonal_data(anime_list, self.get_feature_fields())
 
+    @animecache.cached_dataframe(ttl=timedelta(days=1))
     async def get_user_manga_list(self, user_id):
-        return await self.mal_provider.get_user_manga_list(user_id)
+        if user_id is None:
+            return None
+
+        mal_query = f"/users/{user_id}/mangalist"
+        fields = [
+            "id",
+            "list_status{score,status}",
+        ]
+
+        parameters = {"nsfw": "true", "fields": ",".join(fields), "limit": "1000"}
+
+        mal_list = await self.mal_connection.request_anime_list(mal_query, parameters)
+        mal_df = formatter.transform_mal_manga_data(mal_list)
+
+        ani_query = """
+        query ($idMal_in: [Int], $page: Int) {
+            Page(page: $page, perPage: 50) {
+                pageInfo { hasNextPage currentPage lastPage total perPage }
+                media(idMal_in: $idMal_in, type:MANGA) {
+                    id
+                    idMal
+                    title { romaji }
+                    genres
+                    tags {
+                        name
+                        rank
+                        isAdult
+                        category
+                    }
+                    meanScore
+                }
+            }
+        }
+        """
+
+        ani_list = await self.request_anilist_batched(ani_query, mal_df["id"].to_list())
+
+        return formatter.transform_ani_manga_data(ani_list, self.get_feature_fields(), mal_df)
+
+    async def request_anilist_batched(self, query, mal_ids):
+        """Batch AniList requests to avoid query size limits.
+
+        Uses request_single instead of request_paginated because AniList
+        returns unreliable pagination data for idMal_in queries.
+        Each batch of ANILIST_ID_BATCH_SIZE IDs fits in a single page.
+        """
+        all_media = []
+
+        for i in range(0, len(mal_ids), ANILIST_ID_BATCH_SIZE):
+            batch = mal_ids[i : i + ANILIST_ID_BATCH_SIZE]
+            result = await self.ani_provider.connection.request_single(
+                query, {"idMal_in": batch, "page": 1}
+            )
+            all_media.extend(result.get("data", {}).get("Page", {}).get("media", []))
+
+        return {"data": {"media": all_media}}
 
     def get_feature_fields(self):
         return self.ani_provider.get_feature_fields()
+
+    def get_nsfw_tags(self):
+        return self.ani_provider.get_nsfw_tags()
+
+    def get_tag_lookup(self):
+        return self.ani_provider.get_tag_lookup()
+
+    def get_genres(self):
+        return self.ani_provider.get_genres()
 
     def get_related_anime(self, related_id):
         pass

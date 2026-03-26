@@ -1,4 +1,3 @@
-import json
 import os
 import secrets
 
@@ -46,9 +45,10 @@ def generate_new_token(authorisation_code: str, code_verifier: str) -> dict:
     response.close()
     print("Token generated successfully!")
 
-    with open("token.json", "w") as file:
-        json.dump(token, file, indent=4)
-        print('Token saved in "token.json"')
+    with open("conf/prod_new.env", "w") as file:
+        file.write(f"MAL_API_TOKEN={token['access_token']}\n")
+        file.write(f"MAL_REFRESH_TOKEN={token['refresh_token']}\n")
+        print('Token saved in "conf/prod_new.env"')
 
     return token
 

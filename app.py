@@ -42,17 +42,26 @@ logger = logging.getLogger(__name__)
 mode = "DEBUG" if DEBUG else "PRODUCTION"
 logger.info(f"Starting AnimeIppo in {mode} mode (log level: {LOG_LEVEL})")
 
-recommender = recommender_builder.build_recommender("anilist")
-profiler = analyser.ProfileAnalyser(recommender.provider)
+recommenders = {
+    "anilist": recommender_builder.build_recommender("anilist"),
+    "mixed": recommender_builder.build_recommender("mixed"),
+}
+
+profilers = {name: analyser.ProfileAnalyser(rec.provider) for name, rec in recommenders.items()}
+
+
+def get_provider_instances(request):
+    provider = request.args.get("provider", "anilist")
+    return recommenders.get(provider, recommenders["anilist"]), profilers.get(
+        provider, profilers["anilist"]
+    )
 
 
 def cleanup_connections():
     """Close provider connections on app shutdown."""
-    if hasattr(recommender.provider, "connection") and hasattr(
-        recommender.provider.connection, "close"
-    ):
-        # Close the connection synchronously at shutdown
-        asyncio.run(recommender.provider.connection.close())
+    for rec in recommenders.values():
+        if hasattr(rec.provider, "connection") and hasattr(rec.provider.connection, "close"):
+            asyncio.run(rec.provider.connection.close())
 
 
 # Register cleanup to run when the Flask app shuts down
@@ -82,6 +91,7 @@ def seasonal_anime():
     if not year:
         return "Validation error", 400
 
+    recommender, _ = get_provider_instances(request)
     dataset = recommender.recommend_seasonal_anime(year, season)
 
     return Response(
@@ -93,7 +103,7 @@ def seasonal_anime():
 @app.route("/recommend")
 def recommend_anime():
     """Recommends new anime to a user, either from a year or a single season.
-    Currently users are accepted only from Anilist. Returns a json-representation.
+    Accepts provider parameter: 'anilist' (default) or 'mixed' (for MAL users).
     """
     user = request.args.get("user", None)
     year = request.args.get("year", None)
@@ -103,11 +113,13 @@ def recommend_anime():
     if not all([user, year]):
         return "Validation error", 400
 
+    recommender, _ = get_provider_instances(request)
+
     try:
         dataset = recommender.recommend_seasonal_anime(year, season, user)
         categories = recommender.get_categories(dataset)
     except ClientError:
-        return f"Could nof fetch data for user {user}.", 404
+        return f"Could not fetch data for user {user}.", 404
 
     return Response(
         views.recommendations_web_view(
@@ -122,14 +134,17 @@ def recommend_anime():
 
 @app.route("/analyse")
 def analyze_profile():
-    """Analyses an Anilist user profile and clusters the watchlist to groups of
-    simila anime with descriptions. Returns a json-representation."""
+    """Analyses a user profile and clusters the watchlist.
+    Accepts provider parameter: 'anilist' (default) or 'mixed' (for MAL users).
+    """
     user = request.args.get("user", None)
     year = request.args.get("year", None)
     season = request.args.get("season", None)
 
     if user is None:
         return "Validation error", 400
+
+    _, profiler = get_provider_instances(request)
 
     categories = profiler.analyse(user, year=year, season=season)
 
@@ -145,13 +160,15 @@ def analyze_profile():
 
 @app.route("/profile")
 def profile_characteristics():
-    """Analyses an Anilist user profile and gets several statistics
-    about what kind of anime hobbyist the user is.
-    Returns a json-representation."""
+    """Analyses a user profile and returns statistics.
+    Accepts provider parameter: 'anilist' (default) or 'mixed' (for MAL users).
+    """
     user = request.args.get("user", None)
 
     if user is None:
         return "Validation error", 400
+
+    _, profiler = get_provider_instances(request)
 
     profiler.analyse(user)
     profiler.profile.characteristics = Characteristics(

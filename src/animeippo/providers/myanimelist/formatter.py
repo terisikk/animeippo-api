@@ -9,17 +9,10 @@ from animeippo.providers.columns import (
 )
 from animeippo.providers.mappers import DefaultMapper, MultiMapper, SelectorMapper, SingleMapper
 from animeippo.providers.myanimelist.schema import (
-    MAL_MANGA_SCHEMA,
-    MAL_RELATED_SCHEMA,
-    MAL_SEASONAL_SCHEMA,
     MAL_WATCHLIST_SCHEMA,
 )
 
 from .. import util
-
-
-def combine_dataframes(dataframes):
-    return pl.concat(dataframes)
 
 
 def transform_watchlist_data(data, feature_names):
@@ -28,34 +21,6 @@ def transform_watchlist_data(data, feature_names):
     return util.transform_to_animeippo_format(
         original, feature_names, MAL_WATCHLIST_SCHEMA, MAL_MAPPING
     )
-
-
-def transform_seasonal_data(data, feature_names):
-    original = pl.from_pandas(fast_json_normalize(data["data"]))
-
-    return util.transform_to_animeippo_format(
-        original, feature_names, MAL_SEASONAL_SCHEMA, MAL_MAPPING
-    )
-
-
-def transform_user_manga_list_data(data, feature_names):
-    original = pl.from_pandas(fast_json_normalize(data["data"]))
-
-    return util.transform_to_animeippo_format(
-        original, feature_names, MAL_MANGA_SCHEMA, MAL_MAPPING
-    )
-
-
-def transform_related_anime(data, feature_names):
-    original = pl.from_pandas(fast_json_normalize(data["data"]))
-
-    filtered = util.transform_to_animeippo_format(
-        original, feature_names, MAL_RELATED_SCHEMA, MAL_MAPPING
-    )
-
-    return filtered.filter(~pl.col(Columns.CONTINUATION_TO).is_null())[
-        Columns.CONTINUATION_TO
-    ].to_list()
 
 
 def split_id_name_field(field):
@@ -124,8 +89,10 @@ MAL_MAPPING = {
     Columns.SEASON_YEAR:        DefaultMapper("node.start_season.year"),
     Columns.USER_STATUS:        SelectorMapper(
                                     pl.col("list_status.status").replace(
-                                        {"watching": "CURRENT", "on_hold": "PAUSED",
+                                        {"watching": "CURRENT", "reading": "CURRENT",
+                                         "on_hold": "PAUSED",
                                          "plan_to_watch": "PLANNING",
+                                         "plan_to_read": "PLANNING",
                                          "completed": "COMPLETED", "dropped": "DROPPED"},
                                     )
                                 ),

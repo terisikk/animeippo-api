@@ -1,6 +1,6 @@
 import polars as pl
 
-from animeippo.providers.myanimelist.provider import formatter
+from animeippo.providers.myanimelist import formatter
 from tests import test_data
 
 
@@ -12,15 +12,6 @@ def test_dataframe_can_be_constructed_from_mal():
     assert type(data) is pl.DataFrame
     assert len(data) == 2
     assert "Hellsingfårs" in data["title"].to_list()
-
-
-def test_relations_can_be_constructed_from_mal():
-    animelist = {"data": test_data.MAL_RELATED_ANIME["related_anime"]}
-
-    data = formatter.transform_related_anime(animelist, [])
-
-    assert len(data) == 1
-    assert data == [[31]]
 
 
 def test_dataframe_can_be_constructed_from_incomplete_data():
@@ -52,16 +43,6 @@ def test_mal_genres_can_be_split():
     expected = ["Action", "Adult Cast", "Gore", "Horror", "Seinen", "Supernatural", "Vampire"]
 
     assert actual == expected
-
-
-def test_columns_are_named_properly():
-    animelist = test_data.MAL_SEASONAL_LIST
-
-    data = formatter.transform_seasonal_data(animelist, [])
-
-    assert "popularity" in data.columns
-    assert "cover_image" in data.columns
-    assert "genres" in data.columns
 
 
 def test_get_continuation():

@@ -126,20 +126,6 @@ def build_recommender(providername):
                 fetch_related_anime=False,
             )
 
-        case "myanimelist":
-            return AnimeRecommender(
-                provider=providers.myanimelist.MyAnimeListProvider(rcache),
-                engine=engine.AnimeRecommendationEngine(
-                    model.AnimeClustering(),
-                    encoding.CategoricalEncoder(),
-                    get_default_scorers(),
-                    RankingOrchestrator(get_default_categorizers()),
-                ),
-                recommendation_model_cls=default_recommendation_model_cls,
-                profile_model_cls=default_profile_model_cls,
-                fetch_related_anime=True,
-            )
-
         case _:
             metric = "cosine"
             return AnimeRecommender(

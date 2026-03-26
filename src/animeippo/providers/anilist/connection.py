@@ -1,6 +1,7 @@
 import asyncio
 import functools
 import logging
+import types
 from datetime import timedelta
 
 import aiohttp
@@ -72,7 +73,7 @@ class AnilistConnection:
         return await self.request_single(query, variables)
 
     async def get_session(self):
-        if self._session is None or self._session.closed:
+        if self._session is None or self._session.closed or self._session.loop.is_closed():
             connector = aiohttp.TCPConnector(
                 limit=100,
                 limit_per_host=10,
@@ -93,10 +94,13 @@ class AnilistConnection:
         async with session.post(
             ANI_API_URL, json={"query": query, "variables": variables}, timeout=REQUEST_TIMEOUT
         ) as response:
-            response.raise_for_status()
-            return response, await response.json()
+            body = await response.json()
+            info = types.SimpleNamespace(status=response.status, headers=dict(response.headers))
+            return info, body
 
     async def get_all_pages(self, query, variables):
+        MAX_PAGES = 10
+
         variables["page"] = 1
         variables["perPage"] = 50
 
@@ -108,17 +112,16 @@ class AnilistConnection:
         if first_page_data is None:
             return
 
-        page_info = first_page_data.get("pageInfo", {})
-        has_next_page = page_info.get("hasNextPage", False)
-        last_page = page_info.get("lastPage", 1)
+        has_next_page = first_page_data.get("pageInfo", {}).get("hasNextPage", False)
+        page_num = 2
 
-        if not has_next_page or last_page <= 1:
-            return
-
-        max_page = min(last_page, 10)
-
-        for page_num in range(2, max_page + 1):
+        while has_next_page and page_num <= MAX_PAGES:
             page_response = await self.request_single(query, {**variables, "page": page_num})
             page_data = page_response.get("data", {}).get("Page", None)
-            if page_data is not None:
-                yield page_data
+
+            if page_data is None:
+                return
+
+            yield page_data
+            has_next_page = page_data.get("pageInfo", {}).get("hasNextPage", False)
+            page_num += 1

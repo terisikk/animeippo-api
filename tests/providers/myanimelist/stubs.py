@@ -1,6 +1,7 @@
 class ResponseStub:
     def __init__(self, dictionary):
         self.dictionary = dictionary
+        self.status = 200
 
     async def get(self, key):
         return self.dictionary.get(key)
@@ -24,6 +25,9 @@ class SessionStub:
 
     def get(self, key, *args, **kwargs):
         return self.dictionary.get(key)
+
+    def request(self, method, url, *args, **kwargs):
+        return self.dictionary.get(url, ResponseStub({}))
 
     async def __aexit__(self, exc_type, exc, tb):
         pass
