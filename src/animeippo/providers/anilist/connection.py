@@ -10,6 +10,7 @@ from .. import caching as animecache
 
 REQUEST_TIMEOUT = 30
 ANI_API_URL = "https://graphql.anilist.co"
+HTTP_BAD_REQUEST = 400
 HTTP_TOO_MANY_REQUESTS = 429
 RATE_LIMIT_WARNING_THRESHOLD = 10
 
@@ -35,7 +36,17 @@ def rate_limited(func):
             retry_after = int(response.headers.get("Retry-After", 60))
             logger.warning(f"AniList rate limited. Retrying after {retry_after}s")
             await asyncio.sleep(retry_after)
-            _, result = await func(self, *args, **kwargs)
+            response, result = await func(self, *args, **kwargs)
+
+        if response.status >= HTTP_BAD_REQUEST:
+            raise aiohttp.ClientResponseError(
+                request_info=aiohttp.RequestInfo(
+                    url=ANI_API_URL, method="POST", headers={}, real_url=ANI_API_URL
+                ),
+                history=(),
+                status=response.status,
+                message=str(result.get("errors", "Unknown error")),
+            )
 
         return result
 

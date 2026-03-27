@@ -1,3 +1,4 @@
+import aiohttp
 import pytest
 
 import animeippo.providers.anilist.connection
@@ -243,6 +244,19 @@ async def test_rate_limit_retries_on_429(mocker):
     result = await connection.request_single("", {})
 
     assert result == {"data": "success"}
+
+
+@pytest.mark.asyncio
+async def test_error_status_raises_client_error(mocker):
+    error_stub = ResponseStub({"errors": [{"message": "Internal Server Error"}]})
+    error_stub.status = 500
+
+    mocker.patch("aiohttp.ClientSession.post", return_value=error_stub)
+
+    connection = animeippo.providers.anilist.AnilistConnection()
+
+    with pytest.raises(aiohttp.ClientResponseError):
+        await connection.request_single("", {})
 
 
 def test_features_can_be_fetched():
