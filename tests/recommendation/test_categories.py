@@ -458,6 +458,12 @@ def test_genre_category_can_cache_values():
     assert cat.description == "Action"
 
 
+def test_ranking_orchestrator_diversity_adjustment_empty_list():
+    orchestrator = RankingOrchestrator([])
+    result = orchestrator.adjust_by_diversity([], top_n=5)
+    assert result == []
+
+
 def test_ranking_orchestrator_diversity_adjustment():
     recommendations = pl.DataFrame(
         {

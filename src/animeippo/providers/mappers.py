@@ -1,4 +1,7 @@
 import polars as pl
+import structlog
+
+logger = structlog.get_logger()
 
 
 class DefaultMapper:
@@ -49,7 +52,7 @@ class SingleMapper:
         try:
             return self.func(row)
         except (TypeError, ValueError, AttributeError, KeyError) as error:
-            print(f"Error extracting {self.name}: {error}")
+            logger.warning("mapper_extraction_error", field=self.name, error=str(error))
             return self.default
 
 
@@ -69,5 +72,5 @@ class MultiMapper:
         try:
             return self.func(*row)
         except (TypeError, ValueError, AttributeError, KeyError) as error:
-            print(f"Error extracting with function {self.func}: {error}")
+            logger.warning("mapper_extraction_error", func=str(self.func), error=str(error))
             return self.default

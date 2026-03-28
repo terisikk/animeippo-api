@@ -1,10 +1,10 @@
 import asyncio
-import logging
 import os
 from datetime import timedelta
 
 import aiohttp
 import dotenv
+import structlog
 
 from .. import caching as animecache
 
@@ -15,7 +15,7 @@ REQUEST_TIMEOUT = aiohttp.ClientTimeout(total=60)
 MAL_REQUEST_INTERVAL = 1  # seconds between requests
 HTTP_UNAUTHORIZED = 401
 
-logger = logging.getLogger(__name__)
+logger = structlog.get_logger()
 
 
 class MyAnimeListConnection:
@@ -48,7 +48,7 @@ class MyAnimeListConnection:
 
         async with session.request(method, url, **kwargs) as response:
             if response.status == HTTP_UNAUTHORIZED and self.refresh_token:
-                logger.warning("MAL token expired, attempting refresh")
+                logger.warning("mal_token_expired")
                 await self.do_token_refresh()
                 kwargs["headers"] = self.headers
                 async with session.request(method, url, **kwargs) as retry_response:
@@ -76,7 +76,7 @@ class MyAnimeListConnection:
                 self.refresh_token = tokens.get("refresh_token", self.refresh_token)
 
                 self.persist_tokens()
-                logger.info("MAL token refreshed successfully")
+                logger.info("mal_token_refreshed")
 
     def persist_tokens(self):
         """Write refreshed tokens to env file so they survive restarts."""

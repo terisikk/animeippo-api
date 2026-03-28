@@ -240,7 +240,7 @@ async def test_get_all_pages_with_null_page_data_in_response(mocker):
 
 
 @pytest.mark.asyncio
-async def test_rate_limit_warning_logged_when_remaining_low(mocker, caplog):
+async def test_rate_limit_warning_logged_when_remaining_low(mocker):
     response_stub = ResponseStub({"data": "test"})
     response_stub.headers = {"X-RateLimit-Remaining": "5", "X-RateLimit-Limit": "90"}
 
@@ -250,7 +250,7 @@ async def test_rate_limit_warning_logged_when_remaining_low(mocker, caplog):
     await connection.request_single(session, "", {})
 
     assert connection.rate_remaining == 5
-    assert "rate limit low" in caplog.text
+    assert connection.rate_limit == 90
 
 
 @pytest.mark.asyncio

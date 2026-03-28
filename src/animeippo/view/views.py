@@ -1,6 +1,8 @@
 import json
 
-import polars as pl
+import structlog
+
+logger = structlog.get_logger()
 
 
 def recommendations_web_view(dataframe, categories=None, tags_and_genres=None, debug=False):
@@ -95,5 +97,5 @@ def profile_characteristics_web_view(profile):
 
 
 def console_view(dataframe):
-    with pl.Config(tbl_rows=40):
-        print(dataframe.sort("discovery_score", descending=True).head(25).select(["title"]))
+    top = dataframe.sort("discovery_score", descending=True).head(25)
+    logger.debug("console_view", titles=top["title"].to_list())

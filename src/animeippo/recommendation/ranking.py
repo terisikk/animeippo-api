@@ -55,7 +55,10 @@ class RankingOrchestrator:
 
     def adjust_by_diversity(self, candidate_ids, top_n):
         """Select top_n from candidates, penalizing items shown in other genre lanes."""
-        candidates = pl.DataFrame({"id": candidate_ids})
+        if not candidate_ids:
+            return []
+
+        candidates = pl.DataFrame({"id": pl.Series(candidate_ids, dtype=pl.UInt32)})
 
         selected = (
             candidates.join(self.diversity_adjustment, on="id", how="left")

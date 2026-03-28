@@ -1,10 +1,9 @@
-import logging
-
 import polars as pl
+import structlog
 
 from .scoring import ScorerResult
 
-logger = logging.getLogger(__name__)
+logger = structlog.get_logger()
 
 
 class AnimeRecommendationEngine:
@@ -134,8 +133,8 @@ class AnimeRecommendationEngine:
     def run_scorer(self, scorer, dataset, n=0):
         try:
             return scorer.score(dataset)
-        except Exception as e:
-            logger.exception(f"Error in scorer {scorer.name}: {e}")
+        except Exception:
+            logger.error("scorer_error", scorer=scorer.name, exc_info=True)
             return ScorerResult(
                 score=pl.Series([0.0] * n),
                 confidence=pl.Series([0.0] * n),

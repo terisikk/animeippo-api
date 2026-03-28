@@ -1,5 +1,6 @@
-import logging
 import os
+
+import structlog
 
 from animeippo.profiling.model import UserProfile
 from animeippo.recommendation.model import RecommendationModel
@@ -11,7 +12,7 @@ from . import categories, engine, scoring
 from .ranking import RankingOrchestrator
 from .recommender import AnimeRecommender
 
-logger = logging.getLogger(__name__)
+logger = structlog.get_logger()
 
 
 def get_discovery_scorers():
@@ -85,7 +86,7 @@ def build_recommender(providername):
     rcache = cache.RedisCache()
 
     if not rcache.is_available():
-        logger.warning("Redis cache is not available")
+        logger.warning("redis_unavailable")
 
     match providername:
         case "anilist":

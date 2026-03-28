@@ -1,10 +1,10 @@
 import asyncio
 import functools
-import logging
 import types
 from datetime import timedelta
 
 import aiohttp
+import structlog
 
 from .. import caching as animecache
 
@@ -14,7 +14,7 @@ HTTP_BAD_REQUEST = 400
 HTTP_TOO_MANY_REQUESTS = 429
 RATE_LIMIT_WARNING_THRESHOLD = 10
 
-logger = logging.getLogger(__name__)
+logger = structlog.get_logger()
 
 
 def rate_limited(func):
@@ -30,15 +30,26 @@ def rate_limited(func):
         self.rate_limit = int(response.headers.get("X-RateLimit-Limit", self.rate_limit))
 
         if self.rate_remaining < RATE_LIMIT_WARNING_THRESHOLD:
-            logger.warning(f"AniList rate limit low: {self.rate_remaining}/{self.rate_limit}")
+            logger.warning(
+                "rate_limit_low",
+                remaining=self.rate_remaining,
+                limit=self.rate_limit,
+            )
 
         if response.status == HTTP_TOO_MANY_REQUESTS:
             retry_after = int(response.headers.get("Retry-After", 60))
-            logger.warning(f"AniList rate limited. Retrying after {retry_after}s")
+            logger.warning("rate_limited", retry_after=retry_after)
             await asyncio.sleep(retry_after)
             response, result = await func(self, *args, **kwargs)
 
         if response.status >= HTTP_BAD_REQUEST:
+            logger.error(
+                "anilist_api_error",
+                status=response.status,
+                errors=result.get("errors", "Unknown error"),
+                rate_remaining=self.rate_remaining,
+                rate_limit=self.rate_limit,
+            )
             raise aiohttp.ClientResponseError(
                 request_info=aiohttp.RequestInfo(
                     url=ANI_API_URL, method="POST", headers={}, real_url=ANI_API_URL
@@ -105,6 +116,7 @@ class AnilistConnection:
         page_num = 2
 
         while has_next_page and page_num <= MAX_PAGES:
+            logger.debug("fetching_page", page=page_num)
             page_response = await self.request_single(
                 session, query, {**variables, "page": page_num}
             )

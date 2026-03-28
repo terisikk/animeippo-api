@@ -1,10 +1,11 @@
 import asyncio
 import functools
-import logging
 import threading
 from concurrent.futures import ThreadPoolExecutor
 
-logger = logging.getLogger(__name__)
+import structlog
+
+logger = structlog.get_logger()
 
 
 def cached_query(ttl):
@@ -20,14 +21,14 @@ def cached_query(ttl):
                 data = await asyncio.to_thread(self.cache.get_json, cachekey)
 
             if data:
-                logger.debug(f"Cache hit for {cachekey}")
+                logger.debug("cache_hit", func=func.__name__, params=str(parameters))
                 return data
             else:
-                logger.debug(f"Cache miss for {cachekey}")
+                logger.debug("cache_miss", func=func.__name__, params=str(parameters))
                 data = await func(self, query, parameters)
 
                 if cache_available:
-                    logger.debug(f"Cache save for {cachekey}")
+                    logger.debug("cache_save", func=func.__name__)
                     threading.Thread(
                         target=self.cache.set_json,
                         args=(
@@ -54,7 +55,7 @@ def cached_dataframe(ttl):
                 + " "
                 + ",".join([str(arg) if arg else "" for arg in args])
                 + "_"
-                + str(self.__class__)
+                + self.__class__.__name__
             )
 
             cache_available = self.cache is not None and self.cache.is_available()
@@ -63,14 +64,14 @@ def cached_dataframe(ttl):
                 data = await asyncio.to_thread(self.cache.get_dataframe, cachekey)
 
             if data is not None:
-                logger.debug(f"Cache hit for {cachekey}")
+                logger.debug("cache_hit", func=func.__name__, args=str(args))
                 return data
             else:
-                logger.debug(f"Cache miss for {cachekey}")
+                logger.debug("cache_miss", func=func.__name__, args=str(args))
                 data = await func(self, *args)
 
                 if cache_available:
-                    logger.debug(f"Cache save for {cachekey}")
+                    logger.debug("cache_save", func=func.__name__)
 
                     with ThreadPoolExecutor() as executor:
                         executor.submit(
