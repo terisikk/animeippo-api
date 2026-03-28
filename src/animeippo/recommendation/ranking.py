@@ -28,6 +28,7 @@ class RankingOrchestrator:
         """
         rendered_categories = []
         recommendations_df = data.recommendations
+        self.recommendations_df = recommendations_df
 
         self.diversity_adjustment = pl.DataFrame(
             {
@@ -43,38 +44,34 @@ class RankingOrchestrator:
                 continue
 
             filtered_sorted = recommendations_df.filter(mask).sort(**sorting_info)
+            item_ids = category.get_items(filtered_sorted, top_n)
 
-            if hasattr(category, "compose"):
-                item_ids = category.compose(filtered_sorted, max_total=top_n)
-            elif getattr(category, "diversity_adjusted", False):
-                item_ids = self.adjust_by_diversity(filtered_sorted, top_n=top_n)
-            else:
-                item_ids = filtered_sorted["id"][0:top_n].to_list()
+            if category.needs_diversity:
+                item_ids = self.adjust_by_diversity(item_ids, top_n=top_n)
 
             rendered_categories.append({"name": category.description, "items": item_ids})
 
         return rendered_categories
 
-    def adjust_by_diversity(self, recommendations_df, top_n):
-        """
-        Calculate adjusted scores based on diversity_adjustment in dataframe.
-        """
+    def adjust_by_diversity(self, candidate_ids, top_n):
+        """Select top_n from candidates, penalizing items shown in other genre lanes."""
+        candidates = pl.DataFrame({"id": candidate_ids})
 
-        ids = (
-            recommendations_df.join(self.diversity_adjustment, on="id", how="left")
-            .select(
-                pl.col("id"),
-                (pl.col("discovery_score") - pl.col("diversity_adjustment")),
+        selected = (
+            candidates.join(self.diversity_adjustment, on="id", how="left")
+            .join(self.recommendations_df.select("id", "discovery_score"), on="id", how="left")
+            .with_columns(
+                adjusted_score=pl.col("discovery_score") - pl.col("diversity_adjustment"),
             )
-            .sort(by=["discovery_score"], descending=[True])[0:top_n]["id"]
+            .sort(by="adjusted_score", descending=True)[0:top_n]["id"]
             .to_list()
         )
 
         self.diversity_adjustment = self.diversity_adjustment.with_columns(
-            diversity_adjustment=pl.when(pl.col("id").is_in(ids))
+            diversity_adjustment=pl.when(pl.col("id").is_in(selected))
             .then(pl.col("diversity_adjustment") + 0.25)
-            .otherwise(pl.col("diversity_adjustment") + 0)
+            .otherwise(pl.col("diversity_adjustment"))
             .clip(upper_bound=self.DISCOURAGE_MAX)
         )
 
-        return ids
+        return selected

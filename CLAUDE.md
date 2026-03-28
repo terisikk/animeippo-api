@@ -6,3 +6,4 @@
 - When asked to create a todo item, write it to `.claude/todos/` as a markdown file and update `.claude/todos/index.md`. Move completed items from Active to Completed in the index.
 - Use `make format` to format code, not manual ruff commands.
 - Always use redis cache when debugging, unless debugging direct provider connection logic
+- Avoid using getattr, hasattr, type checking etc. Use known architectural patterns to avoid these.

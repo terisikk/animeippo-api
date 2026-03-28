@@ -170,9 +170,8 @@ class StudioCorrelationScorer(AbstractScorer):
 class ClusterSimilarityScorer(AbstractScorer):
     name = "clusterscore"
 
-    def __init__(self, weighted=False, weight=1.0):
+    def __init__(self, weight=1.0):
         super().__init__(weight=weight)
-        self.weighted = weighted
 
     def score(self, data):
         compare_df = data.watchlist

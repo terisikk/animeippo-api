@@ -6,6 +6,21 @@ from animeippo.recommendation.model import RecommendationModel
 from animeippo.recommendation.ranking import RankingOrchestrator
 
 
+def test_abstract_category_default_behavior():
+    class ConcreteCategory(categories.AbstractCategory):
+        description = "Test"
+
+        def categorize(self, dataset):
+            return super().categorize(dataset)
+
+    cat = ConcreteCategory()
+    cat.categorize(None)
+    assert cat.needs_diversity is False
+
+    df = pl.DataFrame({"id": [1, 2, 3]})
+    assert cat.get_items(df, 2) == [1, 2]
+
+
 def test_most_popular_category():
     cat = categories.MostPopularCategory()
 
@@ -76,7 +91,6 @@ def test_studio_category():
     recommendations = pl.DataFrame(
         {
             "studiocorrelationscore": [1, 3, 2],
-            "formatscore": [1, 3, 2],
             "discovery_score": [1, 3, 2],
             "title": ["Test 1", "Test 2", "Test 3"],
             "user_status": [None, None, None],
@@ -454,8 +468,8 @@ def test_ranking_orchestrator_diversity_adjustment():
     )
 
     orchestrator = RankingOrchestrator([])
+    orchestrator.recommendations_df = recommendations
 
-    # Initialize diversity adjustment
     orchestrator.diversity_adjustment = pl.DataFrame(
         {
             "id": recommendations["id"],
@@ -463,16 +477,18 @@ def test_ranking_orchestrator_diversity_adjustment():
         }
     )
 
-    # First call - should return items in order of discovery_score
-    result_ids = orchestrator.adjust_by_diversity(recommendations, top_n=2)
+    all_ids = recommendations["id"].to_list()
 
-    assert result_ids == [2, 1]  # IDs of Test 2 and Test 1
+    # First call - should return items in order of discovery_score
+    result_ids = orchestrator.adjust_by_diversity(all_ids, top_n=2)
+
+    assert result_ids == [2, 1]
     assert orchestrator.diversity_adjustment["diversity_adjustment"].to_list() == [0.25, 0.25, 0]
 
     # Second call - items 1 and 2 are discouraged, so Test 3 should come up
-    result_ids = orchestrator.adjust_by_diversity(recommendations, top_n=2)
+    result_ids = orchestrator.adjust_by_diversity(all_ids, top_n=2)
 
-    assert result_ids == [3, 2]  # Test 3 (id=3) now scores higher, Test 2 (id=2) still second
+    assert result_ids == [3, 2]
     assert orchestrator.diversity_adjustment["diversity_adjustment"].to_list() == [0.25, 0.5, 0.25]
 
 
@@ -709,7 +725,7 @@ def test_compose_two_pool_lane_with_group_by():
     assert len(result3) == 2
 
 
-def test_simulcasts_category_compose():
+def test_simulcasts_category_get_items():
     cat = categories.SimulcastsCategory()
 
     df = pl.DataFrame(
@@ -721,12 +737,12 @@ def test_simulcasts_category_compose():
         }
     )
 
-    result = cat.compose(df)
+    result = cat.get_items(df, top_n=None)
     assert result[0] == 1
     assert len(result) == 3
 
 
-def test_top_upcoming_category_compose_respects_season_groups():
+def test_top_upcoming_category_get_items_respects_season_groups():
     cat = categories.TopUpcomingCategory()
 
     df = pl.DataFrame(
@@ -740,7 +756,7 @@ def test_top_upcoming_category_compose_respects_season_groups():
         }
     )
 
-    result = cat.compose(df)
+    result = cat.get_items(df, top_n=None)
 
     # Spring items come before summer items
     spring_ids = {1, 2, 3}
@@ -758,17 +774,17 @@ def test_top_upcoming_category_compose_respects_season_groups():
     assert summer_result[0] == 4
 
 
-def test_render_uses_compose_when_available():
-    class ComposeCategory:
-        description = "Composed Lane"
+def test_render_calls_get_items_on_category():
+    class CustomCategory(categories.AbstractCategory):
+        description = "Custom Lane"
 
         def categorize(self, dataset):
             return True, {"by": "discovery_score", "descending": True}
 
-        def compose(self, df, max_total=None):
+        def get_items(self, df, top_n):
             return df.sort("discovery_score", descending=True)["id"].to_list()[:2]
 
-    orchestrator = RankingOrchestrator([(ComposeCategory(), None)])
+    orchestrator = RankingOrchestrator([(CustomCategory(), None)])
 
     data = RecommendationModel(None, None, None)
     data.recommendations = pl.DataFrame(

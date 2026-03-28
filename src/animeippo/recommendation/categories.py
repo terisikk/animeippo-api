@@ -1,7 +1,20 @@
+import abc
+
 import polars as pl
 
 from ..meta import meta
 from . import scoring
+
+
+class AbstractCategory(abc.ABC):
+    needs_diversity = False
+
+    @abc.abstractmethod
+    def categorize(self, dataset):
+        pass
+
+    def get_items(self, df, top_n):
+        return df["id"][0:top_n].to_list()
 
 
 def compose_two_pool_lane(
@@ -59,13 +72,8 @@ def compose_single_pool(df, continuation_threshold, weak_interleave_interval):
         .to_list()
     )
 
-    strong_set = set(strong)
-    weak_set = set(weak)
-    discoveries = [
-        row_id
-        for row_id in df.filter(~pl.col("id").is_in(list(strong_set)))["id"].to_list()
-        if row_id not in weak_set
-    ]
+    excluded = strong + weak
+    discoveries = df.filter(~pl.col("id").is_in(excluded))["id"].to_list()
 
     result = list(strong)
 
@@ -88,7 +96,7 @@ def compose_single_pool(df, continuation_threshold, weak_interleave_interval):
     return result
 
 
-class MostPopularCategory:
+class MostPopularCategory(AbstractCategory):
     description = "Most Popular for This Year"
 
     def categorize(self, dataset):
@@ -98,7 +106,7 @@ class MostPopularCategory:
         return mask, sorting
 
 
-class ContinueWatchingCategory:
+class ContinueWatchingCategory(AbstractCategory):
     description = "Continue or Finish Watching"
 
     def categorize(self, dataset):
@@ -115,7 +123,7 @@ class ContinueWatchingCategory:
         return mask, sorting
 
 
-class AdaptationCategory:
+class AdaptationCategory(AbstractCategory):
     description = "Because You Read the Manga"
 
     def categorize(self, dataset):
@@ -131,7 +139,7 @@ class AdaptationCategory:
         return mask, sorting
 
 
-class MangaCategory:
+class MangaCategory(AbstractCategory):
     description = "Based on a Manga"
 
     def categorize(self, dataset):
@@ -146,7 +154,7 @@ class MangaCategory:
         return mask, sorting
 
 
-class StudioCategory:
+class StudioCategory(AbstractCategory):
     description = "From Your Favourite Studios"
 
     def categorize(self, dataset):
@@ -165,9 +173,9 @@ class StudioCategory:
         }
 
 
-class GenreCategory:
+class GenreCategory(AbstractCategory):
     description = "Genre"
-    diversity_adjusted = True
+    needs_diversity = True
 
     def __init__(self, nth_genre=0):
         self.nth_genre = nth_genre
@@ -191,8 +199,11 @@ class GenreCategory:
 
         return False, {}
 
+    def get_items(self, df, top_n):
+        return df["id"].to_list()
 
-class TopReleasedPicksCategory:
+
+class TopReleasedPicksCategory(AbstractCategory):
     description = "Your Top 3"
 
     def categorize(self, dataset):
@@ -205,7 +216,7 @@ class TopReleasedPicksCategory:
         return mask, sorting
 
 
-class HiddenGemsCategory:
+class HiddenGemsCategory(AbstractCategory):
     description = "Hidden Gems for You"
 
     def categorize(self, dataset):
@@ -227,7 +238,7 @@ class HiddenGemsCategory:
         return mask, sorting
 
 
-class TopMoviesCategory:
+class TopMoviesCategory(AbstractCategory):
     description = "Top Movies for You"
 
     def categorize(self, dataset):
@@ -242,7 +253,7 @@ class TopMoviesCategory:
         return mask, sorting
 
 
-class YourTopPicksCategory:
+class YourTopPicksCategory(AbstractCategory):
     description = "Top New Picks for You"
 
     def categorize(self, dataset):
@@ -257,7 +268,7 @@ class YourTopPicksCategory:
         return mask, sorting
 
 
-class TopUpcomingCategory:
+class TopUpcomingCategory(AbstractCategory):
     description = "Top Picks from Upcoming Anime"
 
     CONTINUATION_THRESHOLD = 0.7
@@ -277,17 +288,17 @@ class TopUpcomingCategory:
 
         return mask, sorting
 
-    def compose(self, df, max_total=None):
+    def get_items(self, df, top_n):
         return compose_two_pool_lane(
             df,
             continuation_threshold=self.CONTINUATION_THRESHOLD,
             weak_interleave_interval=self.WEAK_INTERLEAVE_INTERVAL,
-            max_total=max_total,
+            max_total=top_n,
             group_by=["season_year", "season"],
         )
 
 
-class BecauseYouLikedCategory:
+class BecauseYouLikedCategory(AbstractCategory):
     description = "Because You Liked X"
 
     def __init__(self, nth_liked, distance_metric="jaccard"):
@@ -335,7 +346,7 @@ class BecauseYouLikedCategory:
         return False, {}
 
 
-class SimulcastsCategory:
+class SimulcastsCategory(AbstractCategory):
     description = "Top Simulcasts for You"
 
     CONTINUATION_THRESHOLD = 0.7
@@ -348,16 +359,16 @@ class SimulcastsCategory:
 
         return mask, sorting
 
-    def compose(self, df, max_total=None):
+    def get_items(self, df, top_n):
         return compose_two_pool_lane(
             df,
             continuation_threshold=self.CONTINUATION_THRESHOLD,
             weak_interleave_interval=self.WEAK_INTERLEAVE_INTERVAL,
-            max_total=max_total,
+            max_total=top_n,
         )
 
 
-class PlanningCategory:
+class PlanningCategory(AbstractCategory):
     description = "From Your Plan to Watch List"
 
     def categorize(self, dataset):
@@ -367,7 +378,7 @@ class PlanningCategory:
         return mask, sorting
 
 
-class DebugCategory:
+class DebugCategory(AbstractCategory):
     description = "Debug"
 
     def categorize(self, dataset):

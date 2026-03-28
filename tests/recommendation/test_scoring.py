@@ -131,7 +131,7 @@ def test_cluster_similarity_scorer_weighted():
         }
     )
 
-    scorer = scoring.ClusterSimilarityScorer(weighted=True)
+    scorer = scoring.ClusterSimilarityScorer()
 
     uprofile = UserProfile("Test", source_df)
     data = RecommendationModel(

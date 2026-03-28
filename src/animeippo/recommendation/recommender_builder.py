@@ -19,7 +19,7 @@ def get_discovery_scorers():
     return [
         scoring.DirectSimilarityScorer(weight=0.30),
         scoring.FeatureCorrelationScorer(weight=0.25),
-        scoring.ClusterSimilarityScorer(weighted=True, weight=0.20),
+        scoring.ClusterSimilarityScorer(weight=0.20),
         scoring.StudioCorrelationScorer(weight=0.10),
         scoring.PopularityScorer(weight=0.10),
         scoring.AdaptationScorer(weight=0.05),
@@ -82,9 +82,6 @@ def build_recommender(providername):
 
     Final recommender is created when builder.build() is called.
     """
-    default_recommendation_model_cls = RecommendationModel
-    default_profile_model_cls = UserProfile
-
     rcache = cache.RedisCache()
 
     if not rcache.is_available():
@@ -92,47 +89,28 @@ def build_recommender(providername):
 
     match providername:
         case "anilist":
-            # Cosine seems to work better for anilist than jaccard.
-            metric = "cosine"
-
-            return AnimeRecommender(
-                provider=providers.anilist.AniListProvider(rcache),
-                engine=engine.AnimeRecommendationEngine(
-                    model.AnimeClustering(
-                        distance_metric=metric,
-                        distance_threshold=0.63,
-                        linkage="average",
-                        min_cluster_size=3,
-                        franchise_reduction=True,
-                    ),
-                    encoding.WeightedCategoricalEncoder(),
-                    discovery_scorers=get_discovery_scorers(),
-                    engagement_scorers=get_engagement_scorers(),
-                    ranking_orchestrator=RankingOrchestrator(get_default_categorizers(metric)),
-                ),
-                recommendation_model_cls=default_recommendation_model_cls,
-                profile_model_cls=default_profile_model_cls,
-                fetch_related_anime=False,
-            )
-
+            provider = providers.anilist.AniListProvider(rcache)
         case _:
-            metric = "cosine"
-            return AnimeRecommender(
-                provider=providers.mixed.MixedProvider(rcache),
-                engine=engine.AnimeRecommendationEngine(
-                    model.AnimeClustering(
-                        distance_metric=metric,
-                        distance_threshold=0.63,
-                        linkage="average",
-                        min_cluster_size=3,
-                        franchise_reduction=True,
-                    ),
-                    encoding.WeightedCategoricalEncoder(),
-                    discovery_scorers=get_discovery_scorers(),
-                    engagement_scorers=get_engagement_scorers(),
-                    ranking_orchestrator=RankingOrchestrator(get_default_categorizers(metric)),
-                ),
-                recommendation_model_cls=default_recommendation_model_cls,
-                profile_model_cls=default_profile_model_cls,
-                fetch_related_anime=False,
-            )
+            provider = providers.mixed.MixedProvider(rcache)
+
+    metric = "cosine"
+
+    return AnimeRecommender(
+        provider=provider,
+        engine=engine.AnimeRecommendationEngine(
+            model.AnimeClustering(
+                distance_metric=metric,
+                distance_threshold=0.63,
+                linkage="average",
+                min_cluster_size=3,
+                franchise_reduction=True,
+            ),
+            encoding.WeightedCategoricalEncoder(),
+            discovery_scorers=get_discovery_scorers(),
+            engagement_scorers=get_engagement_scorers(),
+            ranking_orchestrator=RankingOrchestrator(get_default_categorizers(metric)),
+        ),
+        recommendation_model_cls=RecommendationModel,
+        profile_model_cls=UserProfile,
+        fetch_related_anime=False,
+    )

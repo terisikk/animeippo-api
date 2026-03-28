@@ -43,7 +43,6 @@ def recommendations_web_view(dataframe, categories=None, tags_and_genres=None, d
             "adaptationscore",
             "popularityscore",
             "studiocorrelationscore",
-            "directorcorrelationscore",
         ]
         fields.extend(scorer_fields)
 
@@ -98,6 +97,3 @@ def profile_characteristics_web_view(profile):
 def console_view(dataframe):
     with pl.Config(tbl_rows=40):
         print(dataframe.sort("discovery_score", descending=True).head(25).select(["title"]))
-
-    # For debug purposes
-    # dataframe.sort("id").write_excel()
