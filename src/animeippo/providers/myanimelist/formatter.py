@@ -75,7 +75,7 @@ MAL_MAPPING = {
     Columns.TITLE:              DefaultMapper("node.title"),
     Columns.FORMAT:             SelectorMapper(pl.col("node.media_type").str.to_uppercase()),
     Columns.COVER_IMAGE:        DefaultMapper("node.main_picture.medium"),
-    Columns.MEAN_SCORE:         DefaultMapper("node.mean"),
+    Columns.MEAN_SCORE:         SelectorMapper(pl.col("node.mean") * 10),
     Columns.POPULARITY:         DefaultMapper("node.num_list_users"),
     Columns.DURATION:           DefaultMapper("node.average_episode_duration"),
     Columns.EPISODES:           DefaultMapper("node.num_episodes"),

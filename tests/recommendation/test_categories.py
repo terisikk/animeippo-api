@@ -10,7 +10,7 @@ def test_most_popular_category():
     cat = categories.MostPopularCategory()
 
     recommendations = pl.DataFrame(
-        {"popularityscore": [2, 3, 1], "title": ["Test 1", "Test 2", "Test 3"]}
+        {"popularity": [2, 3, 1], "title": ["Test 1", "Test 2", "Test 3"]}
     )
 
     data = RecommendationModel(None, None, None)
@@ -28,7 +28,7 @@ def test_continue_watching_category():
     recommendations = pl.DataFrame(
         {
             "continuationscore": [0, 0, 1],
-            "recommend_score": [0, 0, 1],
+            "discovery_score": [0, 0, 1],
             "user_status": ["in_progress", "COMPLETED", "in_progress"],
             "title": ["Test 1", "Test 2", "Test 3"],
             "format": ["TV", "TV", "TV"],
@@ -52,7 +52,7 @@ def test_manga_category():
     recommendations = pl.DataFrame(
         {
             "directscore": [1, 2, 3],
-            "recommend_score": [1, 2, 3],
+            "discovery_score": [1, 2, 3],
             "title": ["Test 1", "Test 2", "Test 3"],
             "source": ["MANGA", "MANGA", "LIGHT_NOVEL"],
             "user_status": [None, None, None],
@@ -77,7 +77,7 @@ def test_studio_category():
         {
             "studiocorrelationscore": [1, 3, 2],
             "formatscore": [1, 3, 2],
-            "recommend_score": [1, 3, 2],
+            "discovery_score": [1, 3, 2],
             "title": ["Test 1", "Test 2", "Test 3"],
             "user_status": [None, None, None],
             "format": ["TV", "TV", "TV"],
@@ -102,7 +102,7 @@ def test_your_top_picks_category():
             "user_status": [None, None, None],
             "status": ["RELEASING", "RELEASING", "RELEASING"],
             "continuationscore": [0, 0, 10],
-            "recommend_score": [2, 3, 1],
+            "discovery_score": [2, 3, 1],
         }
     )
 
@@ -123,7 +123,7 @@ def test_top_released_picks_category():
             "title": ["Test 1", "Test 2", "Test 3", "Test 4", "Test 5"],
             "status": ["RELEASING", "FINISHED", "NOT_YET_RELEASED", "FINISHED", "RELEASING"],
             "user_status": [None, None, None, "COMPLETED", "COMPLETED"],
-            "recommend_score": [3, 2, 1, 5, 4],
+            "discovery_score": [3, 2, 1, 5, 4],
         }
     )
 
@@ -145,7 +145,7 @@ def test_hidden_gems_category():
             "status": ["FINISHED", "RELEASING", "FINISHED", "FINISHED", "FINISHED"],
             "user_status": [None, None, None, "COMPLETED", None],
             "format": ["TV", "TV", "OVA", "TV", "MOVIE"],
-            "recommend_score": [8.0, 7.0, 6.0, 9.0, 10.0],
+            "discovery_score": [8.0, 7.0, 6.0, 9.0, 10.0],
             "popularity": [100, 50000, 500, 200, 10],
             "continuationscore": [0, 0, 0, 0, 0],
         }
@@ -157,7 +157,7 @@ def test_hidden_gems_category():
     mask, sorting_info = cat.categorize(data)
 
     # Test 4 excluded (COMPLETED), Test 5 excluded (MOVIE)
-    # Remaining sorted by recommend_score * (1 - 0.5 * pop_rank)
+    # Remaining sorted by discovery_score * (1 - 0.5 * pop_rank)
     result = recommendations.filter(mask).sort(**sorting_info)
     assert result["title"].to_list() == ["Test 1", "Test 3", "Test 2"]
 
@@ -171,7 +171,7 @@ def test_top_movies_category():
             "format": ["MOVIE", "TV", "MOVIE", "MOVIE", "MOVIE"],
             "user_status": [None, None, "COMPLETED", None, None],
             "status": ["FINISHED", "FINISHED", "FINISHED", "NOT_YET_RELEASED", "FINISHED"],
-            "recommend_score": [8.0, 9.0, 10.0, 11.0, 7.0],
+            "discovery_score": [8.0, 9.0, 10.0, 11.0, 7.0],
         }
     )
 
@@ -200,7 +200,7 @@ def test_top_upcoming_category(mocker):
             "season_year": [2022, 2022, 2022, 2023],
             "season": ["SUMMER", "WINTER", "SUMMER", "SPRING"],
             "title": ["Test 1", "Test 2", "Test 3", "Test 4"],
-            "recommend_score": [0, 1, 2, 3],
+            "discovery_score": [0, 1, 2, 3],
             "continuationscore": [0, 0, 0, 0],
         }
     )
@@ -317,7 +317,7 @@ def test_simulcastscategory(mocker):
             "season_year": [2022, 2022, 2022],
             "season": ["SUMMER", "SUMMER", "WINTER"],
             "title": ["Test 1", "Test 2", "Test 3"],
-            "recommend_score": [0, 1, 2],
+            "discovery_score": [0, 1, 2],
             "continuationscore": [0, 0, 0],
         }
     )
@@ -342,7 +342,7 @@ def test_adapatation_category():
     recommendations = pl.DataFrame(
         {
             "adaptationscore": [0, 1, 1],
-            "recommend_score": [0, 0, 1],
+            "discovery_score": [0, 0, 1],
             "user_status": ["in_progress", "COMPLETED", "in_progress"],
             "title": ["Test 1", "Test 2", "Test 3"],
             "format": ["TV", "TV", "TV"],
@@ -377,7 +377,7 @@ def test_genre_category():
         {
             "genres": [["Action", "Fantasy"], ["Drama"], ["Action"]],
             "discourage_score": [1, 1, 1],
-            "recommend_score": [1, 1, 1],
+            "discovery_score": [1, 1, 1],
             "title": ["Test 1", "Test 2", "Test 3"],
             "user_status": [None, None, None],
         }
@@ -425,7 +425,7 @@ def test_genre_category_can_cache_values():
         {
             "genres": [["Action", "Fantasy"], ["Drama"], ["Action"]],
             "discourage_score": [1, 1, 1],
-            "recommend_score": [1, 1, 1],
+            "discovery_score": [1, 1, 1],
             "title": ["Test 1", "Test 2", "Test 3"],
             "user_status": [None, None, None],
         }
@@ -449,7 +449,7 @@ def test_ranking_orchestrator_diversity_adjustment():
         {
             "id": [1, 2, 3],
             "title": ["Test 1", "Test 2", "Test 3"],
-            "recommend_score": [2.0, 2.1, 1.99],
+            "discovery_score": [2.0, 2.1, 1.99],
         }
     )
 
@@ -463,7 +463,7 @@ def test_ranking_orchestrator_diversity_adjustment():
         }
     )
 
-    # First call - should return items in order of recommend_score
+    # First call - should return items in order of discovery_score
     result_ids = orchestrator.adjust_by_diversity(recommendations, top_n=2)
 
     assert result_ids == [2, 1]  # IDs of Test 2 and Test 1
@@ -491,7 +491,7 @@ def test_ranking_orchestrator_render_with_diversity_adjusted_categories():
             "title": ["Action 1", "Action 2", "Drama 1", "Comedy 1"],
             "genres": [["Action"], ["Action"], ["Drama"], ["Comedy"]],
             "features": [["Action"], ["Action"], ["Drama"], ["Comedy"]],
-            "recommend_score": [2.0, 1.9, 1.8, 1.7],
+            "discovery_score": [2.0, 1.9, 1.8, 1.7],
             "user_status": [None, None, None, None],
         }
     )
@@ -522,9 +522,8 @@ def test_ranking_orchestrator_render_with_non_diversity_adjusted_categories():
         {
             "id": [1, 2, 3],
             "title": ["Test 1", "Test 2", "Test 3"],
-            "recommend_score": [2.0, 2.1, 1.99],
-            "popularityscore": [1.0, 2.0, 3.0],
-            "features": [["A", "B"], ["A", "B"], ["A", "B"]],
+            "discovery_score": [2.0, 2.1, 1.99],
+            "popularity": [1000, 2000, 3000],
         }
     )
 
@@ -539,8 +538,7 @@ def test_ranking_orchestrator_render_with_non_diversity_adjusted_categories():
 
     assert len(result) == 1
     assert result[0]["name"] == "Most Popular for This Year"
-    # Should return top 25 items (or all if less than 25)
-    assert result[0]["items"] == [3, 2, 1]  # Sorted by popularityscore descending
+    assert result[0]["items"] == [3, 2, 1]  # Sorted by popularity descending
 
 
 def test_ranking_orchestrator_render_skips_empty_categories():
@@ -557,7 +555,7 @@ def test_ranking_orchestrator_render_skips_empty_categories():
         {
             "id": [3, 4],
             "title": ["Test 1", "Test 2"],
-            "recommend_score": [2.0, 1.0],
+            "discovery_score": [2.0, 1.0],
             "features": [["A", "B"], ["A", "B"]],
         }
     )
@@ -582,7 +580,7 @@ def test_debug_category_returns_all_recommendations():
     recommendations = pl.DataFrame(
         {
             "title": ["Test 1", "Test 2", "Test 3"],
-            "recommend_score": [2.0, 2.1, 1.99],
+            "discovery_score": [2.0, 2.1, 1.99],
         }
     )
 
@@ -602,7 +600,7 @@ def test_planning_category():
         {
             "title": ["Test 1", "Test 2", "Test 3"],
             "user_status": [None, "PLANNING", "in_progress"],
-            "recommend_score": [1, 1, 1],
+            "discovery_score": [1, 1, 1],
         }
     )
 
@@ -613,3 +611,172 @@ def test_planning_category():
 
     result = recommendations.filter(mask).sort(**sorting_info)
     assert result["title"].to_list() == ["Test 2"]
+
+
+def test_compose_two_pool_lane_pins_strong_continuations():
+    df = pl.DataFrame(
+        {
+            "id": [1, 2, 3, 4, 5],
+            "title": ["Strong Cont", "Weak Cont", "Disc 1", "Disc 2", "Disc 3"],
+            "continuationscore": [0.9, 0.3, 0.0, 0.0, 0.0],
+            "continuationscore_confidence": [0.8, 0.3, 0.0, 0.0, 0.0],
+            "discovery_score": [0.5, 0.4, 0.9, 0.8, 0.7],
+        }
+    )
+
+    result = categories.compose_two_pool_lane(df, continuation_threshold=0.7, max_total=5)
+
+    # Strong continuation pinned first
+    assert result[0] == 1
+    # Discoveries fill remaining slots
+    assert 3 in result
+    assert 4 in result
+
+
+def test_compose_two_pool_lane_interleaves_weak_continuations():
+    df = pl.DataFrame(
+        {
+            "id": list(range(1, 12)),
+            "continuationscore": [0.5] + [0.0] * 10,
+            "continuationscore_confidence": [0.3] + [0.0] * 10,
+            "discovery_score": [0.1] + [1.0 - i * 0.05 for i in range(10)],
+        }
+    )
+
+    result = categories.compose_two_pool_lane(
+        df, continuation_threshold=0.7, weak_interleave_interval=5, max_total=11
+    )
+
+    # Weak continuation (id=1) interleaved, not pinned at top
+    assert result[0] != 1
+    assert 1 in result
+
+
+def test_compose_two_pool_lane_no_max_total():
+    df = pl.DataFrame(
+        {
+            "id": [1, 2, 3],
+            "continuationscore": [0.0, 0.0, 0.0],
+            "continuationscore_confidence": [0.0, 0.0, 0.0],
+            "discovery_score": [0.9, 0.8, 0.7],
+        }
+    )
+
+    result = categories.compose_two_pool_lane(df, max_total=None)
+    assert len(result) == 3
+
+
+def test_compose_two_pool_lane_respects_max_total():
+    df = pl.DataFrame(
+        {
+            "id": list(range(1, 50)),
+            "continuationscore": [0.0] * 49,
+            "continuationscore_confidence": [0.0] * 49,
+            "discovery_score": [1.0 - i * 0.01 for i in range(49)],
+        }
+    )
+
+    result = categories.compose_two_pool_lane(df, max_total=10)
+    assert len(result) == 10
+
+
+def test_compose_two_pool_lane_with_group_by():
+    df = pl.DataFrame(
+        {
+            "id": [1, 2, 3, 4],
+            "group": ["A", "A", "B", "B"],
+            "continuationscore": [0.9, 0.0, 0.8, 0.0],
+            "continuationscore_confidence": [0.8, 0.0, 0.9, 0.0],
+            "discovery_score": [0.5, 0.9, 0.4, 0.7],
+        }
+    )
+
+    result = categories.compose_two_pool_lane(df, group_by=["group"], max_total=None)
+
+    # Group A comes first, continuation (id=1) pinned
+    assert result[0] == 1
+    # Group B follows, continuation (id=3) pinned
+    group_b = [i for i in result if i in {3, 4}]
+    assert group_b[0] == 3
+
+    # Also test with multiple group columns
+    df2 = df.with_columns(subgroup=pl.Series(["X", "X", "Y", "Y"]))
+    result2 = categories.compose_two_pool_lane(df2, group_by=["group", "subgroup"], max_total=None)
+    assert len(result2) == 4
+
+    # Test max_total with groups
+    result3 = categories.compose_two_pool_lane(df, group_by=["group"], max_total=2)
+    assert len(result3) == 2
+
+
+def test_simulcasts_category_compose():
+    cat = categories.SimulcastsCategory()
+
+    df = pl.DataFrame(
+        {
+            "id": [1, 2, 3],
+            "continuationscore": [0.9, 0.0, 0.0],
+            "continuationscore_confidence": [0.8, 0.0, 0.0],
+            "discovery_score": [0.5, 0.9, 0.7],
+        }
+    )
+
+    result = cat.compose(df)
+    assert result[0] == 1
+    assert len(result) == 3
+
+
+def test_top_upcoming_category_compose_respects_season_groups():
+    cat = categories.TopUpcomingCategory()
+
+    df = pl.DataFrame(
+        {
+            "id": [1, 2, 3, 4, 5],
+            "season_year": [2026, 2026, 2026, 2026, 2026],
+            "season": ["SPRING", "SPRING", "SPRING", "SUMMER", "SUMMER"],
+            "continuationscore": [0.0, 0.8, 0.0, 0.9, 0.0],
+            "continuationscore_confidence": [0.0, 0.9, 0.0, 0.8, 0.0],
+            "discovery_score": [0.9, 0.5, 0.7, 0.3, 0.8],
+        }
+    )
+
+    result = cat.compose(df)
+
+    # Spring items come before summer items
+    spring_ids = {1, 2, 3}
+    summer_ids = {4, 5}
+    last_spring_pos = max(result.index(i) for i in spring_ids)
+    first_summer_pos = min(result.index(i) for i in summer_ids)
+    assert last_spring_pos < first_summer_pos
+
+    # Within spring, continuation (id=2) is pinned first
+    spring_result = [i for i in result if i in spring_ids]
+    assert spring_result[0] == 2
+
+    # Within summer, continuation (id=4) is pinned first
+    summer_result = [i for i in result if i in summer_ids]
+    assert summer_result[0] == 4
+
+
+def test_render_uses_compose_when_available():
+    class ComposeCategory:
+        description = "Composed Lane"
+
+        def categorize(self, dataset):
+            return True, {"by": "discovery_score", "descending": True}
+
+        def compose(self, df, max_total=None):
+            return df.sort("discovery_score", descending=True)["id"].to_list()[:2]
+
+    orchestrator = RankingOrchestrator([(ComposeCategory(), None)])
+
+    data = RecommendationModel(None, None, None)
+    data.recommendations = pl.DataFrame(
+        {
+            "id": [1, 2, 3],
+            "discovery_score": [0.5, 0.9, 0.7],
+        }
+    )
+
+    result = orchestrator.render(data)
+    assert result[0]["items"] == [2, 3]

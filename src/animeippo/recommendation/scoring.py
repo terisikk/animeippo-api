@@ -1,17 +1,31 @@
 import abc
+from typing import NamedTuple
 
 import polars as pl
 
 from animeippo.analysis import statistics
 
 
+class ScorerResult(NamedTuple):
+    score: pl.Series
+    confidence: pl.Series
+
+
 class AbstractScorer(abc.ABC):
+    MIN_FEATURE_THRESHOLD = 4
+
     def __init__(self, weight=1.0):
         self.weight = weight
 
     @abc.abstractmethod
     def score(self, scoring_target_df, compare_df):
         pass
+
+    def feature_confidence(self, dataframe):
+        """Confidence based on feature richness of candidates."""
+        return (dataframe["features"].list.len().fill_null(0) / self.MIN_FEATURE_THRESHOLD).clip(
+            upper_bound=1.0
+        )
 
     @property
     @abc.abstractmethod
@@ -41,6 +55,8 @@ class FeatureCorrelationScorer(AbstractScorer):
     # Numerical stability constant for avoiding division by zero
     # and stabilizing effect on very rare features
     EPSILON = 1e-6
+
+    MIN_HISTORY_THRESHOLD = 20
 
     def score(self, data):
         scoring_target_df = data.seasonal
@@ -81,17 +97,9 @@ class FeatureCorrelationScorer(AbstractScorer):
             .rename({"debiased_weight": "weight", "features": "name"})
         )
 
-        # === 2. COMPUTE DENOMINATORS ===
+        # === 2. COMPUTE DENOMINATOR ===
         feature_count_per_item = scoring_target_df["features"].list.len().fill_null(0)
-
-        # diminishing returns for positive signal
-        denominator_positive = (
-            feature_count_per_item**self.GAMMA
-            if self.GAMMA != 0.5  # noqa: PLR2004 Use sqrt method for square root
-            else feature_count_per_item.sqrt()
-        ).replace(0, 1.0)
-
-        denominator_mean = feature_count_per_item.replace(0, 1.0)
+        denominator = feature_count_per_item.replace(0, 1.0)
 
         features_exploded = data.seasonal_explode_cached("features")
 
@@ -100,7 +108,7 @@ class FeatureCorrelationScorer(AbstractScorer):
             statistics.weighted_sum_for_categorical_values(
                 features_exploded, "features", debiased_weights
             )
-            / denominator_positive
+            / denominator
         )
 
         negative_signal = (
@@ -110,7 +118,7 @@ class FeatureCorrelationScorer(AbstractScorer):
                 user_negative_weights.rename({"features": "name"}),
                 fillna=0.0,
             )
-            / denominator_mean
+            / denominator
         )
 
         # catalogue baseline (expected mass from common features)
@@ -120,42 +128,23 @@ class FeatureCorrelationScorer(AbstractScorer):
                 "features",
                 catalogue_frequency.rename({"pc": "weight", "features": "name"}),
             )
-            / denominator_mean
+            / denominator
         )
 
         # === 4. COMBINE AND CLAMP ===
         raw_score = positive_signal - negative_signal - self.LAMBDA * catalogue_baseline
         clamped_score = raw_score.clip(lower_bound=0.0)
 
-        return statistics.rank_series(clamped_score)
+        history_confidence = min(len(compare_df) / self.MIN_HISTORY_THRESHOLD, 1.0)
+        confidence = self.feature_confidence(scoring_target_df) * history_confidence
 
-
-class GenreAverageScorer(AbstractScorer):
-    name = "genreaveragescore"
-
-    def score(self, data):
-        scoring_target_df = data.seasonal
-        gdf = data.seasonal_explode_cached("genres")
-
-        weights = statistics.weight_categoricals(data.watchlist_explode_cached("genres"), "genres")
-
-        scores = (
-            statistics.weighted_sum_for_categorical_values(
-                gdf,
-                "genres",
-                weights,
-            )
-            / scoring_target_df["genres"].list.len().sqrt()
-        )
-
-        # Penalize scores with no genres
-        scores = scores - 0.05 * (scoring_target_df["genres"].list.len() == 0)
-
-        return statistics.rank_series(scores)
+        return ScorerResult(statistics.rank_series(clamped_score), confidence)
 
 
 class StudioCorrelationScorer(AbstractScorer):
     name = "studiocorrelationscore"
+
+    MIN_STUDIO_HISTORY = 3
 
     def score(self, data):
         weights = data.user_profile.studio_correlations
@@ -166,7 +155,16 @@ class StudioCorrelationScorer(AbstractScorer):
             data.seasonal_explode_cached("studios"), "studios", weights, median
         )
 
-        return statistics.rank_series(scores)
+        user_studios = set(weights["name"].to_list())
+        studio_match_count = (
+            data.seasonal["studios"]
+            .list.eval(pl.element().is_in(list(user_studios)).sum())
+            .list.first()
+            .fill_null(0)
+        )
+        confidence = (studio_match_count / self.MIN_STUDIO_HISTORY).clip(upper_bound=1.0)
+
+        return ScorerResult(statistics.rank_series(scores), confidence)
 
 
 class ClusterSimilarityScorer(AbstractScorer):
@@ -178,8 +176,6 @@ class ClusterSimilarityScorer(AbstractScorer):
 
     def score(self, data):
         compare_df = data.watchlist
-
-        scores = pl.DataFrame()
 
         similarities = data.get_similarity_matrix(filtered=True).join(
             compare_df.select("id", "cluster", "score"), how="left", on="id"
@@ -198,7 +194,9 @@ class ClusterSimilarityScorer(AbstractScorer):
             .to_series()
         )
 
-        return statistics.rank_series(scores)
+        confidence = self.feature_confidence(data.seasonal)
+
+        return ScorerResult(statistics.rank_series(scores), confidence)
 
 
 class DirectSimilarityScorer(AbstractScorer):
@@ -234,33 +232,54 @@ class DirectSimilarityScorer(AbstractScorer):
 
         scores = scores.select(pl.col("directscore") * pl.col("max"))
 
-        return statistics.rank_series(scores["directscore"])
+        confidence = self.feature_confidence(data.seasonal)
+
+        return ScorerResult(statistics.rank_series(scores["directscore"]), confidence)
 
 
 class PopularityScorer(AbstractScorer):
     name = "popularityscore"
 
+    MIN_MEMBER_COUNT = 1000
+    MIN_SCORE = 50.0
+    MAX_SCORE = 90.0
+    HYPE_CONFIDENCE = 0.3
+
     def score(self, data):
         scoring_target_df = data.seasonal
 
-        scores = scoring_target_df["popularity"]
+        has_score = scoring_target_df["mean_score"].is_not_null()
+        popularity = scoring_target_df["popularity"].fill_null(0).cast(pl.Float64)
 
-        return statistics.rank_series(scores)
+        score_range = self.MAX_SCORE - self.MIN_SCORE
+        rated_score = (
+            (scoring_target_df["mean_score"].fill_null(0).cast(pl.Float64) - self.MIN_SCORE)
+            / score_range
+        ).clip(lower_bound=0.0, upper_bound=1.0)
+
+        # Hype mode: normalized member count as signal for unrated shows
+        hype_score = (popularity / self.MIN_MEMBER_COUNT).clip(upper_bound=1.0)
+
+        rated_confidence = (popularity / self.MIN_MEMBER_COUNT).clip(upper_bound=1.0)
+
+        result = scoring_target_df.select(
+            score=pl.when(has_score).then(rated_score).otherwise(hype_score),
+            confidence=pl.when(has_score)
+            .then(rated_confidence)
+            .otherwise(pl.lit(self.HYPE_CONFIDENCE)),
+        )
+
+        return ScorerResult(result["score"], result["confidence"])
 
 
 class ContinuationScorer(AbstractScorer):
     name = "continuationscore"
 
-    BASE_CONTINUATION_BONUS = 1.5
-    COMPLETION_BONUS = 1.0
-
     def score(self, data):
         scoring_target_df = data.seasonal
         compare_df = data.watchlist
 
-        user_baseline = statistics.mean_score_default(compare_df, 5.0)
-
-        rdf = (
+        joined = (
             scoring_target_df.explode("continuation_to")
             .select(["id", "continuation_to"])
             .join(
@@ -270,43 +289,28 @@ class ContinuationScorer(AbstractScorer):
                 how="left",
             )
             .with_columns(
-                [
-                    # Track whether this was a valid continuation match (exists in watchlist)
-                    pl.col("user_status").is_not_null().alias("has_continuation"),
-                    pl.when(pl.col("user_status") == "COMPLETED")
-                    .then(pl.lit(1.0))
-                    .when(pl.col("user_status").is_in(["CURRENT", "PAUSED"]))
-                    .then(pl.lit(0.5))
-                    .otherwise(pl.lit(0.2))
-                    .alias("confidence"),
-                ]
+                # Predecessor rating normalized to 0-1
+                predecessor_rating=pl.col("score").fill_null(0).cast(pl.Float64) / 10.0,
+                # Completion status weight
+                completion_weight=pl.col("user_status")
+                .replace_strict(
+                    {"COMPLETED": 1.0, "CURRENT": 0.7, "PAUSED": 0.3, "DROPPED": 0.1},
+                    default=0.0,
+                )
+                .cast(pl.Float64),
             )
             .with_columns(
-                # Apply shrinkage: blend prior score towards baseline based on confidence
-                # If score is null, use baseline
-                shrunk_score=(
-                    user_baseline
-                    + pl.col("confidence")
-                    * (pl.col("score").fill_null(user_baseline) - user_baseline)
-                )
-            )
-            .with_columns(
-                # Only apply bonuses for valid continuations
-                continuationscore=pl.when(pl.col("has_continuation"))
-                .then(
-                    pl.col("shrunk_score")
-                    + self.BASE_CONTINUATION_BONUS
-                    + pl.when(pl.col("user_status") == "COMPLETED")
-                    .then(pl.lit(self.COMPLETION_BONUS))
-                    .otherwise(pl.lit(0.0))
-                )
-                .otherwise(pl.lit(None))
+                # Strength = how much the user engaged with the predecessor
+                strength=pl.col("predecessor_rating") * pl.col("completion_weight"),
             )
             .group_by("id", maintain_order=True)
-            .agg(pl.col("continuationscore").max())
+            .agg(pl.col("strength").max())
         )
 
-        return rdf["continuationscore"].fill_null(0.0).clip(0, 10) / 10
+        score = joined["strength"].fill_null(0.0)
+        confidence = score
+
+        return ScorerResult(score, confidence)
 
 
 class AdaptationScorer(AbstractScorer):
@@ -318,9 +322,13 @@ class AdaptationScorer(AbstractScorer):
     def score(self, data):
         scoring_target_df = data.seasonal
         compare_df = data.mangalist
+        n = len(scoring_target_df)
 
         if compare_df is None:
-            return None
+            return ScorerResult(
+                pl.Series([0.0] * n),
+                pl.Series([0.0] * n),
+            )
 
         mean_score = statistics.mean_score_default(compare_df, self.DEFAULT_MEAN_SCORE)
 
@@ -330,70 +338,28 @@ class AdaptationScorer(AbstractScorer):
             rdf.select(["id", "adaptation_of"])
             .join(
                 compare_df.with_columns(
-                    pl.col("score").alias("adaptationscore").fill_null(mean_score)
-                ).select(["id", "adaptationscore"]),
+                    pl.col("score").alias("adaptationscore").fill_null(mean_score),
+                    # 1.0 if user rated, 0.5 if reading but unrated, 0.0 if no match
+                    rating_confidence=pl.when(pl.col("score").is_not_null())
+                    .then(pl.lit(1.0))
+                    .otherwise(pl.lit(0.5)),
+                ).select(["id", "adaptationscore", "rating_confidence"]),
                 left_on="adaptation_of",
                 right_on="id",
                 how="left",
             )
-            .fill_null(self.DEFAULT_SCORE)
-        )
-
-        return (
-            self.get_max_score_of_duplicate_relations(rdf, "adaptationscore")["adaptationscore"]
-            / 10
-        )
-
-    def get_max_score_of_duplicate_relations(self, df, column):
-        return df.group_by("id", maintain_order=True).agg(pl.col(column).max())
-
-
-class FormatScorer(AbstractScorer):
-    name = "formatscore"
-
-    def score(self, data):
-        scoring_target_df = data.seasonal
-
-        BASE_PENALTY = {
-            "TV": 0.0,
-            "MOVIE": 0.0,
-            "OVA": 0.05,
-            "ONA": 0.05,
-            "SPECIAL": 0.25,
-            "TV_SHORT": 0.25,
-            "MUSIC": 0.80,
-            "ONE_SHOT": 0.50,
-            "MANGA": 0.0,
-            "NOVEL": 0.0,
-        }
-
-        CUTOFF = 0.75
-        EP50 = scoring_target_df["episodes"].median() or 12
-        DU50 = scoring_target_df["duration"].median() or 24
-        SHORTNESS_PENALTY = 0.2
-
-        out = (
-            scoring_target_df.with_columns(
-                penalty_base=pl.col("format")
-                .replace_strict(BASE_PENALTY, default=0.05)
-                .cast(pl.Float64),
-            )
             .with_columns(
-                penalty=(
-                    pl.col("penalty_base")
-                    + pl.when(
-                        (
-                            (pl.col("episodes") < CUTOFF * EP50) & (pl.col("format") != "MOVIE")
-                        ).fill_null(False)
-                    )
-                    .then(SHORTNESS_PENALTY)
-                    .otherwise(0.0)
-                    + pl.when((pl.col("duration") < CUTOFF * DU50).fill_null(False))
-                    .then(SHORTNESS_PENALTY)
-                    .otherwise(0.0)
-                ).cast(pl.Float64)
+                pl.col("adaptationscore").fill_null(self.DEFAULT_SCORE),
+                pl.col("rating_confidence").fill_null(0.0),
             )
-            .select(pl.col("penalty").clip(lower_bound=0.0, upper_bound=1.0))
         )
 
-        return out.get_column("penalty")
+        grouped = rdf.group_by("id", maintain_order=True).agg(
+            pl.col("adaptationscore").max(),
+            pl.col("rating_confidence").max(),
+        )
+
+        score = grouped["adaptationscore"] / 10
+        confidence = grouped["rating_confidence"]
+
+        return ScorerResult(score, confidence)

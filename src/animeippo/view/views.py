@@ -25,7 +25,10 @@ def recommendations_web_view(dataframe, categories=None, tags_and_genres=None, d
         "status",
         "season_year",
         "season",
-        "recommend_score",
+        "discovery_score",
+        "overall_confidence",
+        "continuationscore",
+        "continuationscore_confidence",
         "user_status",
         "format",
     ]
@@ -39,8 +42,6 @@ def recommendations_web_view(dataframe, categories=None, tags_and_genres=None, d
             "continuationscore",
             "adaptationscore",
             "popularityscore",
-            "genreaverage",
-            "formatscore",
             "studiocorrelationscore",
             "directorcorrelationscore",
         ]
@@ -96,7 +97,7 @@ def profile_characteristics_web_view(profile):
 
 def console_view(dataframe):
     with pl.Config(tbl_rows=40):
-        print(dataframe.sort("recommend_score", descending=True).head(25).select(["title"]))
+        print(dataframe.sort("discovery_score", descending=True).head(25).select(["title"]))
 
     # For debug purposes
     # dataframe.sort("id").write_excel()

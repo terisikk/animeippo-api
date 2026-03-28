@@ -5,3 +5,4 @@
 - When leaving comments to code, prefer *why* something is done instead of explaining *what* something does, especially if it's evident fromt the code. If leaving a *what* comment, consider if it should be a small function instead.
 - When asked to create a todo item, write it to `.claude/todos/` as a markdown file and update `.claude/todos/index.md`. Move completed items from Active to Completed in the index.
 - Use `make format` to format code, not manual ruff commands.
+- Always use redis cache when debugging, unless debugging direct provider connection logic

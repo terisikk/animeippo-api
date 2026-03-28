@@ -6,4 +6,4 @@
 
 ## Completed
 
-(none yet)
+- [Lane Bending Architecture](lane_bending_architecture.md) - scorer confidence, confidence-weighted blending, lane composition

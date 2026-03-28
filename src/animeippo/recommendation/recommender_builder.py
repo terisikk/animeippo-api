@@ -14,34 +14,22 @@ from .recommender import AnimeRecommender
 logger = logging.getLogger(__name__)
 
 
-def get_default_scorers():
-    """Get default scorers with optimized weights.
-
-    Weights are tuned to balance different recommendation signals:
-    - Direct similarity (0.25): Strongest signal for similar anime
-    - Feature correlation (0.15): User's preference patterns
-    - Cluster similarity (0.15): Similar viewing clusters
-    - Continuation (0.15): Strong signal for sequels
-    - Adaptation (0.10): Source material preferences
-    - Popularity (0.10): Community consensus
-    - Genre average (0.05): Basic genre preferences
-    - Format (0.03): Format preferences (TV/Movie/etc)
-    - Studio (0.02): Production team correlation
-
-    Total weight: 1.02 (intentionally slightly over 1.0 to boost strong signals)
-    """
+def get_discovery_scorers():
+    """Scorers for discovering new anime based on taste similarity."""
     return [
-        scoring.DirectSimilarityScorer(weight=0.25),
-        scoring.FeatureCorrelationScorer(weight=0.15),
-        scoring.ClusterSimilarityScorer(weighted=True, weight=0.15),
-        scoring.ContinuationScorer(weight=0.15),
-        scoring.AdaptationScorer(weight=0.12),
+        scoring.DirectSimilarityScorer(weight=0.30),
+        scoring.FeatureCorrelationScorer(weight=0.25),
+        scoring.ClusterSimilarityScorer(weighted=True, weight=0.20),
+        scoring.StudioCorrelationScorer(weight=0.10),
         scoring.PopularityScorer(weight=0.10),
-        scoring.GenreAverageScorer(weight=0.05),
-        scoring.StudioCorrelationScorer(weight=0.02),
-        # Disabled: negligible discrimination (0.001) at 0.02 weight,
-        # no category uses it, and staff parsing is expensive
-        # scoring.DirectorCorrelationScorer(weight=0.02),
+        scoring.AdaptationScorer(weight=0.05),
+    ]
+
+
+def get_engagement_scorers():
+    """Scorers based on prior user engagement (watched prequels)."""
+    return [
+        scoring.ContinuationScorer(weight=0.15),
     ]
 
 
@@ -118,8 +106,9 @@ def build_recommender(providername):
                         franchise_reduction=True,
                     ),
                     encoding.WeightedCategoricalEncoder(),
-                    get_default_scorers(),
-                    RankingOrchestrator(get_default_categorizers(metric)),
+                    discovery_scorers=get_discovery_scorers(),
+                    engagement_scorers=get_engagement_scorers(),
+                    ranking_orchestrator=RankingOrchestrator(get_default_categorizers(metric)),
                 ),
                 recommendation_model_cls=default_recommendation_model_cls,
                 profile_model_cls=default_profile_model_cls,
@@ -139,8 +128,9 @@ def build_recommender(providername):
                         franchise_reduction=True,
                     ),
                     encoding.WeightedCategoricalEncoder(),
-                    get_default_scorers(),
-                    RankingOrchestrator(get_default_categorizers(metric)),
+                    discovery_scorers=get_discovery_scorers(),
+                    engagement_scorers=get_engagement_scorers(),
+                    ranking_orchestrator=RankingOrchestrator(get_default_categorizers(metric)),
                 ),
                 recommendation_model_cls=default_recommendation_model_cls,
                 profile_model_cls=default_profile_model_cls,

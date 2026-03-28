@@ -27,7 +27,7 @@ class RankingOrchestrator:
             List of {"name": str, "items": [ids]} dicts
         """
         rendered_categories = []
-        recommendations_df = self.apply_feature_coverage(data.recommendations)
+        recommendations_df = data.recommendations
 
         self.diversity_adjustment = pl.DataFrame(
             {
@@ -44,7 +44,9 @@ class RankingOrchestrator:
 
             filtered_sorted = recommendations_df.filter(mask).sort(**sorting_info)
 
-            if getattr(category, "diversity_adjusted", False):
+            if hasattr(category, "compose"):
+                item_ids = category.compose(filtered_sorted, max_total=top_n)
+            elif getattr(category, "diversity_adjusted", False):
                 item_ids = self.adjust_by_diversity(filtered_sorted, top_n=top_n)
             else:
                 item_ids = filtered_sorted["id"][0:top_n].to_list()
@@ -52,20 +54,6 @@ class RankingOrchestrator:
             rendered_categories.append({"name": category.description, "items": item_ids})
 
         return rendered_categories
-
-    # Titles need at least this many features for full scoring confidence
-    MIN_FEATURE_THRESHOLD = 4
-
-    def apply_feature_coverage(self, recommendations_df):
-        """Discount recommend_score for titles with very few features.
-
-        Titles with sparse feature data lack enough signal for meaningful scoring
-        and would otherwise free-ride on non-feature-based scorers.
-        """
-        feature_count = recommendations_df["features"].list.len().fill_null(0)
-        coverage = (feature_count / self.MIN_FEATURE_THRESHOLD).clip(upper_bound=1.0)
-
-        return recommendations_df.with_columns(recommend_score=pl.col("recommend_score") * coverage)
 
     def adjust_by_diversity(self, recommendations_df, top_n):
         """
@@ -76,9 +64,9 @@ class RankingOrchestrator:
             recommendations_df.join(self.diversity_adjustment, on="id", how="left")
             .select(
                 pl.col("id"),
-                (pl.col("recommend_score") - pl.col("diversity_adjustment")),
+                (pl.col("discovery_score") - pl.col("diversity_adjustment")),
             )
-            .sort(by=["recommend_score"], descending=[True])[0:top_n]["id"]
+            .sort(by=["discovery_score"], descending=[True])[0:top_n]["id"]
             .to_list()
         )
 

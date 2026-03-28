@@ -4,12 +4,96 @@ from ..meta import meta
 from . import scoring
 
 
+def compose_two_pool_lane(
+    df,
+    continuation_threshold=0.7,
+    weak_interleave_interval=5,
+    max_total=30,
+    group_by=None,
+):
+    """Compose a lane by merging continuation and discovery pools.
+
+    Strong continuations pin to the top of each group. Weak continuations
+    interleave into the discovery list at regular intervals.
+
+    When group_by is set, composition is applied per group (e.g. per season),
+    preserving group order.
+    """
+    if group_by is not None:
+        groups = df.select(group_by).unique(maintain_order=True).rows()
+        result = []
+        for group_vals in groups:
+            group_filter = pl.lit(True)
+            for col, val in zip(group_by, group_vals, strict=True):
+                group_filter = group_filter & (pl.col(col) == val)
+            group_df = df.filter(group_filter)
+            result.extend(
+                compose_single_pool(group_df, continuation_threshold, weak_interleave_interval)
+            )
+        if max_total is not None:
+            result = result[:max_total]
+        return result
+
+    result = compose_single_pool(df, continuation_threshold, weak_interleave_interval)
+    if max_total is not None:
+        result = result[:max_total]
+    return result
+
+
+def compose_single_pool(df, continuation_threshold, weak_interleave_interval):
+    """Compose a single pool: pin strong continuations, interleave weak ones."""
+    cont_col = scoring.ContinuationScorer.name
+    conf_col = f"{cont_col}_confidence"
+
+    has_continuation = (pl.col(cont_col) > 0) & pl.col(conf_col).is_not_null()
+
+    strong = (
+        df.filter(has_continuation & (pl.col(conf_col) >= continuation_threshold))
+        .sort(cont_col, descending=True)["id"]
+        .to_list()
+    )
+
+    weak = (
+        df.filter(has_continuation & (pl.col(conf_col) < continuation_threshold))
+        .sort(cont_col, descending=True)["id"]
+        .to_list()
+    )
+
+    strong_set = set(strong)
+    weak_set = set(weak)
+    discoveries = [
+        row_id
+        for row_id in df.filter(~pl.col("id").is_in(list(strong_set)))["id"].to_list()
+        if row_id not in weak_set
+    ]
+
+    result = list(strong)
+
+    interleave_idx = 0
+    discovery_idx = 0
+    slot = 1
+
+    while discovery_idx < len(discoveries) or interleave_idx < len(weak):
+        if interleave_idx < len(weak) and slot % weak_interleave_interval == 0:
+            result.append(weak[interleave_idx])
+            interleave_idx += 1
+        elif discovery_idx < len(discoveries):
+            result.append(discoveries[discovery_idx])
+            discovery_idx += 1
+        else:
+            result.append(weak[interleave_idx])
+            interleave_idx += 1
+        slot += 1
+
+    return result
+
+
 class MostPopularCategory:
     description = "Most Popular for This Year"
 
     def categorize(self, dataset):
         mask = True
-        sorting = {"by": scoring.PopularityScorer.name, "descending": True}
+        sorting = {"by": "popularity", "descending": True}
 
         return mask, sorting
 
@@ -23,7 +107,7 @@ class ContinueWatchingCategory:
             & (pl.col("user_status").ne_missing("COMPLETED"))
         ) | (pl.col("user_status") == "PAUSED")
 
-        by = [pl.col("format"), "recommend_score"]
+        by = [pl.col("format"), "discovery_score"]
         descending = [False, True]
 
         sorting = {"by": by, "descending": descending}
@@ -57,7 +141,7 @@ class MangaCategory:
             & (pl.col("format").is_in(["TV", "MOVIE"]))
         )
 
-        sorting = {"by": "recommend_score", "descending": True}
+        sorting = {"by": "discovery_score", "descending": True}
 
         return mask, sorting
 
@@ -71,7 +155,7 @@ class StudioCategory:
         by = [
             scoring.StudioCorrelationScorer.name,
             pl.col("format"),
-            "recommend_score",
+            "discovery_score",
         ]
         descending = [True, False, True]
 
@@ -101,7 +185,7 @@ class GenreCategory:
 
             self.description = genre
 
-            sorting = {"by": "recommend_score", "descending": True}
+            sorting = {"by": "discovery_score", "descending": True}
 
             return mask, sorting
 
@@ -116,7 +200,7 @@ class TopReleasedPicksCategory:
             pl.col("user_status").ne_missing("COMPLETED")
         )
 
-        sorting = {"by": "recommend_score", "descending": True}
+        sorting = {"by": "discovery_score", "descending": True}
 
         return mask, sorting
 
@@ -134,7 +218,7 @@ class HiddenGemsCategory:
 
         sorting = {
             "by": [
-                pl.col("recommend_score")
+                pl.col("discovery_score")
                 * (1 - 0.5 * pl.col("popularity").rank() / pl.col("popularity").count())
             ],
             "descending": True,
@@ -153,7 +237,7 @@ class TopMoviesCategory:
             & (pl.col("status").is_in(["RELEASING", "FINISHED"]))
         )
 
-        sorting = {"by": "recommend_score", "descending": True}
+        sorting = {"by": "discovery_score", "descending": True}
 
         return mask, sorting
 
@@ -168,13 +252,16 @@ class YourTopPicksCategory:
             & (pl.col("status").is_in(["RELEASING", "FINISHED"]))
         )
 
-        sorting = {"by": "recommend_score", "descending": True}
+        sorting = {"by": "discovery_score", "descending": True}
 
         return mask, sorting
 
 
 class TopUpcomingCategory:
     description = "Top Picks from Upcoming Anime"
+
+    CONTINUATION_THRESHOLD = 0.7
+    WEAK_INTERLEAVE_INTERVAL = 5
 
     def categorize(self, dataset):
         year, season = meta.get_current_anime_season()
@@ -184,11 +271,20 @@ class TopUpcomingCategory:
         )
 
         sorting = {
-            "by": ["season_year", "season", "recommend_score"],
+            "by": ["season_year", "season", "discovery_score"],
             "descending": [False, False, True],
         }
 
         return mask, sorting
+
+    def compose(self, df, max_total=None):
+        return compose_two_pool_lane(
+            df,
+            continuation_threshold=self.CONTINUATION_THRESHOLD,
+            weak_interleave_interval=self.WEAK_INTERLEAVE_INTERVAL,
+            max_total=max_total,
+            group_by=["season_year", "season"],
+        )
 
 
 class BecauseYouLikedCategory:
@@ -242,12 +338,23 @@ class BecauseYouLikedCategory:
 class SimulcastsCategory:
     description = "Top Simulcasts for You"
 
+    CONTINUATION_THRESHOLD = 0.7
+    WEAK_INTERLEAVE_INTERVAL = 5
+
     def categorize(self, dataset):
         year, season = meta.get_current_anime_season()
         mask = (pl.col("season_year") == year) & (pl.col("season") == season)
-        sorting = {"by": "recommend_score", "descending": True}
+        sorting = {"by": "discovery_score", "descending": True}
 
         return mask, sorting
+
+    def compose(self, df, max_total=None):
+        return compose_two_pool_lane(
+            df,
+            continuation_threshold=self.CONTINUATION_THRESHOLD,
+            weak_interleave_interval=self.WEAK_INTERLEAVE_INTERVAL,
+            max_total=max_total,
+        )
 
 
 class PlanningCategory:
@@ -255,7 +362,7 @@ class PlanningCategory:
 
     def categorize(self, dataset):
         mask = pl.col("user_status") == "PLANNING"
-        sorting = {"by": "recommend_score", "descending": True}
+        sorting = {"by": "discovery_score", "descending": True}
 
         return mask, sorting
 
@@ -265,6 +372,6 @@ class DebugCategory:
 
     def categorize(self, dataset):
         mask = True  # Return all items
-        sorting = {"by": "recommend_score", "descending": True}
+        sorting = {"by": "discovery_score", "descending": True}
 
         return mask, sorting

@@ -39,18 +39,6 @@ def weighted_sum_for_categorical_values(dataframe, column, weights, fillna=0.0):
     )
 
 
-def weight_categoricals(dataframe, column):
-    return (
-        dataframe.select(
-            pl.col(column).alias("name"),
-            pl.col("score").mean().over(column).alias("weight")
-            * pl.col(column).count().sqrt().over(column),
-        )
-        .unique()
-        .sort("name")
-    )
-
-
 def weight_encoded_categoricals_correlation(dataframe, column, against="score", header_name="name"):
     return (
         dataframe.filter(pl.col(against).is_not_null())

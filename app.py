@@ -1,5 +1,3 @@
-import asyncio
-import atexit
 import logging
 import os
 
@@ -55,17 +53,6 @@ def get_provider_instances(request):
     return recommenders.get(provider, recommenders["anilist"]), profilers.get(
         provider, profilers["anilist"]
     )
-
-
-def cleanup_connections():
-    """Close provider connections on app shutdown."""
-    for rec in recommenders.values():
-        if hasattr(rec.provider, "connection") and hasattr(rec.provider.connection, "close"):
-            asyncio.run(rec.provider.connection.close())
-
-
-# Register cleanup to run when the Flask app shuts down
-atexit.register(cleanup_connections)
 
 
 @app.before_request

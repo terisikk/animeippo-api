@@ -20,14 +20,6 @@ class ProviderStub:
         self.user = user
         self.cache = cache
 
-    async def __aenter__(self):
-        """Async context manager entry."""
-        return self
-
-    async def __aexit__(self, exc_type, exc_val, exc_tb):
-        """Async context manager exit."""
-        return False
-
     async def get_seasonal_anime_list(self, *args, **kwargs):
         return pl.DataFrame(
             self.seasonal,
@@ -82,6 +74,7 @@ async def test_scorer_does_not_crash_the_program_when_failing():
 
     class FakeScorer:
         name = "fake"
+        weight = 1.0
 
         def score(self, data):
             raise Exception("Fake exception")
@@ -135,8 +128,32 @@ def test_runtime_error_is_raised_when_no_scorers_exist():
         clustering.AnimeClustering(), encoding.CategoricalEncoder()
     )
 
+    data = RecommendationModel(None, pl.DataFrame({"id": [1]}))
+
     with pytest.raises(RuntimeError):
-        recengine.score_anime(RecommendationModel(None, None))
+        recengine.score_anime(data)
+
+
+@pytest.mark.asyncio
+async def test_engagement_scorers_produce_separate_columns():
+    provider = ProviderStub()
+    data = RecommendationModel(
+        UserProfile("Test", await provider.get_user_anime_list()),
+        await provider.get_seasonal_anime_list(),
+    )
+
+    recengine = engine.AnimeRecommendationEngine(
+        clustering.AnimeClustering(),
+        encoding.CategoricalEncoder(),
+        discovery_scorers=[scoring.FeatureCorrelationScorer()],
+        engagement_scorers=[scoring.ContinuationScorer()],
+    )
+
+    recommendations = recengine.fit_predict(data)
+
+    assert "discovery_score" in recommendations.columns
+    assert "continuationscore" in recommendations.columns
+    assert "continuationscore_confidence" in recommendations.columns
 
 
 def test_categorize():
@@ -173,7 +190,7 @@ def test_categorize():
             "source": ["ORIGINAL"],
             "score": [123],
             "user_status": [None],
-            "recommend_score": [1],
+            "discovery_score": [1],
             "format": ["TV"],
         }
     )
@@ -191,7 +208,7 @@ def test_categorize_raises_error_without_ranking_orchestrator():
     )
 
     data = RecommendationModel(None, None, None)
-    data.recommendations = pl.DataFrame({"id": [1], "recommend_score": [1]})
+    data.recommendations = pl.DataFrame({"id": [1], "discovery_score": [1]})
 
     with pytest.raises(RuntimeError, match="No ranking orchestrator configured"):
         recengine.categorize_anime(data)

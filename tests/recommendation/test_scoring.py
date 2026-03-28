@@ -50,59 +50,23 @@ def test_feature_correlation_scorer():
     scorer = scoring.FeatureCorrelationScorer()
 
     uprofile = UserProfile("Test", source_df)
-    recommendations = target_df.with_columns(
-        recommend_score=scorer.score(
-            RecommendationModel(
-                uprofile,
-                target_df,
-                features=pl.Series(["Action", "Adventure", "Fantasy", "Romance", "Sci-fi"]),
-            )
+    result = scorer.score(
+        RecommendationModel(
+            uprofile,
+            target_df,
+            features=pl.Series(["Action", "Adventure", "Fantasy", "Romance", "Sci-fi"]),
         )
-    ).sort("recommend_score", descending=True)
-
-    expected = "Fate/Grand Order"
-    actual = recommendations["title"].item(0)
-
-    assert actual == expected
-    assert not recommendations["recommend_score"].is_null().any()
-
-
-def test_genre_average_scorer():
-    # Intermittent failures, order probably not guaranteed somwhere
-    # see also studio_correlation_scorer
-    source_df = pl.DataFrame(
-        {
-            "id": [1, 2],
-            "genres": [["Action", "Adventure"], ["Fantasy", "Adventure"]],
-            "title": ["Bleach", "Fate/Zero"],
-            "score": [1, 10],
-        }
-    )
-    target_df = pl.DataFrame(
-        {
-            "id": [3, 4],
-            "genres": [["Action", "Adventure"], ["Fantasy", "Adventure"]],
-            "title": ["Naruto", "Inuyasha"],
-        }
     )
 
-    scorer = scoring.GenreAverageScorer()
+    recommendations = target_df.with_columns(discovery_score=result.score).sort(
+        "discovery_score", descending=True
+    )
 
-    uprofile = UserProfile("Test", source_df)
-    recommendations = target_df.with_columns(
-        recommend_score=scorer.score(
-            RecommendationModel(
-                uprofile,
-                target_df,
-            )
-        )
-    ).sort("recommend_score", descending=True)
-
-    expected = "Inuyasha"
-    actual = recommendations["title"].item(0)
-
-    assert actual == expected
-    assert not recommendations["recommend_score"].is_null().any()
+    assert recommendations["title"].item(0) == "Fate/Grand Order"
+    assert not recommendations["discovery_score"].is_null().any()
+    assert len(result.confidence) == len(target_df)
+    assert (result.confidence >= 0).all()
+    assert (result.confidence <= 1).all()
 
 
 def test_cluster_similarity_scorer():
@@ -140,15 +104,13 @@ def test_cluster_similarity_scorer():
         }
     )
 
-    recommendations = target_df.with_columns(recommend_score=scorer.score(data)).sort(
-        "recommend_score", descending=True
+    result = scorer.score(data)
+    recommendations = target_df.with_columns(discovery_score=result.score).sort(
+        "discovery_score", descending=True
     )
 
-    expected = "Naruto"
-    actual = recommendations["title"].item(0)
-
-    assert actual == expected
-    assert not recommendations["recommend_score"].is_null().any()
+    assert recommendations["title"].item(0) == "Naruto"
+    assert not recommendations["discovery_score"].is_null().any()
 
 
 def test_cluster_similarity_scorer_weighted():
@@ -184,15 +146,13 @@ def test_cluster_similarity_scorer_weighted():
         }
     )
 
-    recommendations = target_df.with_columns(recommend_score=scorer.score(data)).sort(
-        "recommend_score", descending=True
+    result = scorer.score(data)
+    recommendations = target_df.with_columns(discovery_score=result.score).sort(
+        "discovery_score", descending=True
     )
 
-    expected = "Naruto"
-    actual = recommendations["title"].item(0)
-
-    assert actual == expected
-    assert not recommendations["recommend_score"].is_null().any()
+    assert recommendations["title"].item(0) == "Naruto"
+    assert not recommendations["discovery_score"].is_null().any()
 
 
 def test_studio_correlation_scorer():
@@ -215,47 +175,51 @@ def test_studio_correlation_scorer():
     scorer = scoring.StudioCorrelationScorer()
 
     uprofile = UserProfile("Test", source_df)
-    recommendations = target_df.with_columns(
-        recommend_score=scorer.score(
-            RecommendationModel(
-                uprofile,
-                target_df,
-            )
+    result = scorer.score(
+        RecommendationModel(
+            uprofile,
+            target_df,
         )
-    ).sort("recommend_score", descending=True)
+    )
 
-    expected = "Jujutsu Kaisen"
-    actual = recommendations["title"].item(0)
+    recommendations = target_df.with_columns(discovery_score=result.score).sort(
+        "discovery_score", descending=True
+    )
 
-    assert actual == expected
-    assert not recommendations["recommend_score"].is_null().any()
+    assert recommendations["title"].item(0) == "Jujutsu Kaisen"
+    assert not recommendations["discovery_score"].is_null().any()
+    assert (result.confidence >= 0).all()
+    assert (result.confidence <= 1).all()
 
 
 def test_popularity_scorer():
     target_df = pl.DataFrame(
         {
-            "studios": [["Bones"], ["MAPPA"]],
-            "title": ["Bungou Stray Dogs", "Jujutsu Kaisen"],
-            "popularity": [10, 100],
+            "title": ["Low Score", "High Score"],
+            "mean_score": [55, 85],
+            "popularity": [100, 50000],
         }
     )
 
     scorer = scoring.PopularityScorer()
 
-    recommendations = target_df.with_columns(
-        recommend_score=scorer.score(
-            RecommendationModel(
-                None,
-                target_df,
-            )
+    result = scorer.score(
+        RecommendationModel(
+            None,
+            target_df,
         )
-    ).sort("recommend_score", descending=True)
+    )
 
-    expected = "Jujutsu Kaisen"
-    actual = recommendations["title"].item(0)
+    recommendations = target_df.with_columns(discovery_score=result.score).sort(
+        "discovery_score", descending=True
+    )
 
-    assert actual == expected
-    assert not recommendations["recommend_score"].is_null().any()
+    assert recommendations["title"].item(0) == "High Score"
+    assert not recommendations["discovery_score"].is_null().any()
+    assert (result.confidence >= 0).all()
+    assert (result.confidence <= 1).all()
+    # High popularity = high confidence
+    assert result.confidence[1] > result.confidence[0]
 
 
 def test_continuation_scorer():
@@ -279,12 +243,15 @@ def test_continuation_scorer():
     scorer = scoring.ContinuationScorer()
 
     uprofile = UserProfile("Test", compare)
-    actual = scorer.score(RecommendationModel(uprofile, original))
+    result = scorer.score(RecommendationModel(uprofile, original))
 
-    assert [round(a, 1) for a in actual.to_list()] == [1.0, 0.0, 1.0, 0.0]
+    assert [round(a, 1) for a in result.score.to_list()] == [0.8, 0.0, 0.7, 0.0]
+    assert len(result.confidence) == len(original)
+    assert (result.confidence >= 0).all()
+    assert (result.confidence <= 1).all()
 
 
-def test_continuation_scorer_scores_nan_with_zero():
+def test_continuation_scorer_null_predecessor_score():
     compare = pl.DataFrame(
         {
             "id": [1, 2, 3, 4],
@@ -305,9 +272,9 @@ def test_continuation_scorer_scores_nan_with_zero():
     scorer = scoring.ContinuationScorer()
 
     uprofile = UserProfile("Test", compare)
-    actual = scorer.score(RecommendationModel(uprofile, original))
+    result = scorer.score(RecommendationModel(uprofile, original))
 
-    assert [round(a, 1) for a in actual.to_list()] == [0.7, 0.0, 0.6, 0.0]
+    assert [round(a, 1) for a in result.score.to_list()] == [0.0, 0.0, 0.3, 0.0]
 
 
 def test_continuation_scorer_takes_max_of_duplicate_relations():
@@ -331,9 +298,9 @@ def test_continuation_scorer_takes_max_of_duplicate_relations():
     scorer = scoring.ContinuationScorer()
 
     uprofile = UserProfile("Test", compare)
-    actual = scorer.score(RecommendationModel(uprofile, original))
+    result = scorer.score(RecommendationModel(uprofile, original))
 
-    assert actual.to_list() == [1.0, 0.0]
+    assert result.score.to_list() == [0.8, 0.0]
 
 
 def test_direct_similarity_scorer():
@@ -369,15 +336,13 @@ def test_direct_similarity_scorer():
         }
     )
 
-    recommendations = target_df.with_columns(recommend_score=scorer.score(data)).sort(
-        "recommend_score", descending=True
+    result = scorer.score(data)
+    recommendations = target_df.with_columns(discovery_score=result.score).sort(
+        "discovery_score", descending=True
     )
 
-    expected = "Naruto"
-    actual = recommendations["title"].item(0)
-
-    assert actual == expected
-    assert not recommendations["recommend_score"].is_null().any()
+    assert recommendations["title"].item(0) == "Naruto"
+    assert not recommendations["discovery_score"].is_null().any()
 
 
 def test_adaptation_scorer():
@@ -401,39 +366,21 @@ def test_adaptation_scorer():
 
     data = RecommendationModel(None, target)
 
-    actual = scorer.score(data)
+    result = scorer.score(data)
 
-    assert actual is None
+    # No manga list — zero score and zero confidence
+    assert (result.score == 0).all()
+    assert (result.confidence == 0).all()
 
     data.mangalist = compare
 
-    actual = target.with_columns(recommend_score=scorer.score(data)).sort(
-        "recommend_score", descending=True
+    result = scorer.score(data)
+    recommendations = target.with_columns(discovery_score=result.score).sort(
+        "discovery_score", descending=True
     )
 
-    assert actual["title"].to_list() == ["Anime A", "Anime X", "Anime Y"]
-    assert actual.filter(pl.col("id") == 7)["recommend_score"].item() == 0
+    assert recommendations["title"].to_list() == ["Anime A", "Anime X", "Anime Y"]
+    assert recommendations.filter(pl.col("id") == 7)["discovery_score"].item() == 0
 
-
-def test_format_scorer():
-    target = pl.DataFrame(
-        {
-            "title": ["Anime A", "Anime B", "Anime C"],
-            "format": ["TV_SHORT", "TV", "TV"],
-            "episodes": [5, 12, 12],
-            "duration": [5, 25, 25],
-        }
-    )
-
-    scorer = scoring.FormatScorer()
-
-    recommendations = target.with_columns(
-        recommend_score=scorer.score(
-            RecommendationModel(
-                None,
-                target,
-            )
-        )
-    ).sort("recommend_score", descending=True)
-
-    assert recommendations["title"].to_list() == ["Anime A", "Anime B", "Anime C"]
+    # Unrated manga (id=1, score=None) should get 0.5 confidence
+    assert result.confidence[1] == 0.5
