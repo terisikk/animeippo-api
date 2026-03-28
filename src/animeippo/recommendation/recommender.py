@@ -64,13 +64,8 @@ class AnimeRecommender:
 
         return data
 
-    async def _databuilder_with_context(self, year, season, user):
-        """Wrapper that ensures provider context is managed in the correct event loop."""
-        async with self.provider:
-            return await self.databuilder(year, season, user)
-
     def async_get_dataset(self, year, season, user=None):
-        return run_coroutine(self._databuilder_with_context(year, season, user))
+        return run_coroutine(self.databuilder(year, season, user))
 
     def recommend_seasonal_anime(self, year, season, user=None):
         dataset = self.async_get_dataset(year, season, user)

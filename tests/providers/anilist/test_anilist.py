@@ -28,6 +28,16 @@ class ResponseStub:
         pass
 
 
+class SessionStub:
+    """Stub that simulates aiohttp.ClientSession for request_single tests."""
+
+    def __init__(self, response):
+        self.response = response
+
+    def post(self, *args, **kwargs):
+        return self.response
+
+
 @pytest.mark.asyncio
 async def test_ani_user_anime_list_can_be_fetched(mocker):
     provider = anilist.AniListProvider()
@@ -97,9 +107,9 @@ async def test_get_single_returns_succesfully(mocker):
     response_json = {"data": [{"test": "test"}], "pageInfo": {"hasNextPage": False}}
 
     response = ResponseStub(response_json)
-    mocker.patch("aiohttp.ClientSession.post", return_value=response)
+    session = SessionStub(response)
 
-    page = await animeippo.providers.anilist.AnilistConnection().request_single("test", {})
+    page = await animeippo.providers.anilist.AnilistConnection().request_single(session, "test", {})
 
     assert page == await response.json()
 
@@ -136,9 +146,14 @@ async def test_get_all_pages_returns_all_pages(mocker):
         side_effect=[ResponseStub(response1), ResponseStub(response2), ResponseStub(response3)],
     )
 
+    session = aiohttp.ClientSession()
     final_pages = [
-        page async for page in animeippo.providers.anilist.AnilistConnection().get_all_pages("", {})
+        page
+        async for page in animeippo.providers.anilist.AnilistConnection().get_all_pages(
+            session, "", {}
+        )
     ]
+    await session.close()
 
     assert len(final_pages) == 3
     assert final_pages[0] == response1["data"]["Page"]
@@ -147,14 +162,17 @@ async def test_get_all_pages_returns_all_pages(mocker):
 
 @pytest.mark.asyncio
 async def test_request_does_not_fail_catastrophically_when_response_is_empty(mocker):
-    response = {}
-
     response = ResponseStub({})
     mocker.patch("aiohttp.ClientSession.post", return_value=response)
 
+    session = aiohttp.ClientSession()
     all_pages = [
-        page async for page in animeippo.providers.anilist.AnilistConnection().get_all_pages("", {})
+        page
+        async for page in animeippo.providers.anilist.AnilistConnection().get_all_pages(
+            session, "", {}
+        )
     ]
+    await session.close()
 
     assert len(all_pages) == 1
     assert all_pages[0] is None
@@ -173,9 +191,14 @@ async def test_get_all_pages_returns_single_page_when_no_next_page(mocker):
 
     mocker.patch("aiohttp.ClientSession.post", return_value=ResponseStub(response))
 
+    session = aiohttp.ClientSession()
     final_pages = [
-        page async for page in animeippo.providers.anilist.AnilistConnection().get_all_pages("", {})
+        page
+        async for page in animeippo.providers.anilist.AnilistConnection().get_all_pages(
+            session, "", {}
+        )
     ]
+    await session.close()
 
     assert len(final_pages) == 1
     assert final_pages[0] == response["data"]["Page"]
@@ -202,9 +225,14 @@ async def test_get_all_pages_with_null_page_data_in_response(mocker):
         side_effect=[ResponseStub(response1), ResponseStub(response2)],
     )
 
+    session = aiohttp.ClientSession()
     final_pages = [
-        page async for page in animeippo.providers.anilist.AnilistConnection().get_all_pages("", {})
+        page
+        async for page in animeippo.providers.anilist.AnilistConnection().get_all_pages(
+            session, "", {}
+        )
     ]
+    await session.close()
 
     # Should only get the first page, null page should be filtered out
     assert len(final_pages) == 1
@@ -216,10 +244,10 @@ async def test_rate_limit_warning_logged_when_remaining_low(mocker, caplog):
     response_stub = ResponseStub({"data": "test"})
     response_stub.headers = {"X-RateLimit-Remaining": "5", "X-RateLimit-Limit": "90"}
 
-    mocker.patch("aiohttp.ClientSession.post", return_value=response_stub)
+    session = SessionStub(response_stub)
 
     connection = animeippo.providers.anilist.AnilistConnection()
-    await connection.request_single("", {})
+    await connection.request_single(session, "", {})
 
     assert connection.rate_remaining == 5
     assert "rate limit low" in caplog.text
@@ -237,11 +265,20 @@ async def test_rate_limit_retries_on_429(mocker):
 
     ok_stub = ResponseStub({"data": "success"})
 
-    mocker.patch("aiohttp.ClientSession.post", side_effect=[rate_limited_stub, ok_stub])
     mocker.patch("asyncio.sleep", return_value=None)
 
+    call_count = 0
+
+    class RetrySessionStub:
+        def post(self, *args, **kwargs):
+            nonlocal call_count
+            call_count += 1
+            if call_count == 1:
+                return rate_limited_stub
+            return ok_stub
+
     connection = animeippo.providers.anilist.AnilistConnection()
-    result = await connection.request_single("", {})
+    result = await connection.request_single(RetrySessionStub(), "", {})
 
     assert result == {"data": "success"}
 
@@ -251,12 +288,12 @@ async def test_error_status_raises_client_error(mocker):
     error_stub = ResponseStub({"errors": [{"message": "Internal Server Error"}]})
     error_stub.status = 500
 
-    mocker.patch("aiohttp.ClientSession.post", return_value=error_stub)
+    session = SessionStub(error_stub)
 
     connection = animeippo.providers.anilist.AnilistConnection()
 
     with pytest.raises(aiohttp.ClientResponseError):
-        await connection.request_single("", {})
+        await connection.request_single(session, "", {})
 
 
 def test_features_can_be_fetched():
@@ -389,95 +426,6 @@ def test_anilist_get_tag_lookup_fallback_to_static_when_cache_empty(mocker):
     # Verify we get static data
     assert 206 in tag_lookup  # 4-koma from static data
     assert tag_lookup[206]["name"] == "4-koma"
-
-
-@pytest.mark.asyncio
-async def test_get_session_creates_session():
-    connection = animeippo.providers.anilist.AnilistConnection()
-
-    session = await connection.get_session()
-
-    assert session is not None
-    assert not session.closed
-
-    await connection.close()
-
-
-@pytest.mark.asyncio
-async def test_get_session_reuses_existing_session():
-    connection = animeippo.providers.anilist.AnilistConnection()
-
-    session1 = await connection.get_session()
-    session2 = await connection.get_session()
-
-    assert session1 is session2
-
-    await connection.close()
-
-
-@pytest.mark.asyncio
-async def test_close_closes_session():
-    connection = animeippo.providers.anilist.AnilistConnection()
-
-    session = await connection.get_session()
-    assert not session.closed
-
-    await connection.close()
-
-    assert session.closed
-    assert connection._session is None
-
-
-@pytest.mark.asyncio
-async def test_close_does_nothing_when_no_session():
-    connection = animeippo.providers.anilist.AnilistConnection()
-
-    # Should not raise an error
-    await connection.close()
-
-    assert connection._session is None
-
-
-@pytest.mark.asyncio
-async def test_context_manager_closes_session():
-    """Test that using AnilistConnection as async context manager properly closes session."""
-    async with animeippo.providers.anilist.AnilistConnection() as connection:
-        session = await connection.get_session()
-        assert not session.closed
-
-    # Session should be closed after exiting context
-    assert session.closed
-
-
-@pytest.mark.asyncio
-async def test_context_manager_with_exception():
-    """Test that session is closed even if exception occurs in context."""
-    connection = None
-    session = None
-
-    try:
-        async with animeippo.providers.anilist.AnilistConnection() as conn:
-            connection = conn
-            session = await connection.get_session()
-            assert not session.closed
-            raise ValueError("test error")
-    except ValueError:
-        pass
-
-    # Session should still be closed after exception
-    assert session.closed
-
-
-@pytest.mark.asyncio
-async def test_anilist_provider_context_manager():
-    """Test that AniListProvider properly manages connection lifecycle."""
-    async with anilist.AniListProvider() as provider:
-        # Provider should work normally
-        assert provider.connection is not None
-
-    # Connection should be closed after context exit
-    # We can't directly check the session, but we can verify close was called
-    assert provider.connection._session is None or provider.connection._session.closed
 
 
 @pytest.mark.asyncio

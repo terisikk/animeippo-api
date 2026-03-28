@@ -116,14 +116,6 @@ async def test_mixed_provider_user_manga_can_be_fetched(mocker):
     assert 9 in user_manga["score"].to_list()
 
 
-@pytest.mark.asyncio
-async def test_mixed_provider_supports_async_context_manager():
-    provider = mixed.MixedProvider()
-
-    async with provider as p:
-        assert p is provider
-
-
 def test_mixed_provider_related_anime_returns_none():
     provider = mixed.MixedProvider()
 

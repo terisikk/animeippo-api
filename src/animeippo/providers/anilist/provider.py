@@ -1,9 +1,6 @@
 import os
 from datetime import timedelta
 
-from asyncache import cached as async_cached
-from cachetools import TTLCache
-
 from animeippo.providers.anilist.connection import AnilistConnection
 
 from .. import abstract_provider
@@ -19,21 +16,6 @@ class AniListProvider(abstract_provider.AbstractAnimeProvider):
         self.cache = cache
         self.connection = AnilistConnection(cache)
 
-    async def __aenter__(self):
-        """Async context manager entry."""
-        await self.connection.__aenter__()
-        return self
-
-    async def __aexit__(self, exc_type, exc_val, exc_tb):
-        """Async context manager exit - ensures connection is properly closed."""
-        return await self.connection.__aexit__(exc_type, exc_val, exc_tb)
-
-    @async_cached(
-        TTLCache(
-            maxsize=1,
-            ttl=timedelta(days=USER_DATA_TTL_DAYS).total_seconds(),
-        )
-    )
     @animecache.cached_dataframe(ttl=timedelta(days=USER_DATA_TTL_DAYS))
     async def get_user_anime_list(self, user_id):
         if user_id is None:
@@ -97,12 +79,6 @@ class AniListProvider(abstract_provider.AbstractAnimeProvider):
             anime_list, self.get_feature_fields(), self.get_tag_lookup()
         )
 
-    @async_cached(
-        TTLCache(
-            maxsize=1,
-            ttl=timedelta(days=SEASONAL_DATA_TTL_DAYS).total_seconds(),
-        )
-    )
     @animecache.cached_dataframe(ttl=timedelta(days=SEASONAL_DATA_TTL_DAYS))
     async def get_seasonal_anime_list(self, year, season):
         if year is None:
@@ -188,12 +164,6 @@ class AniListProvider(abstract_provider.AbstractAnimeProvider):
             anime_list, self.get_feature_fields(), self.get_tag_lookup()
         )
 
-    @async_cached(
-        TTLCache(
-            maxsize=1,
-            ttl=timedelta(days=USER_DATA_TTL_DAYS).total_seconds(),
-        )
-    )
     @animecache.cached_dataframe(ttl=timedelta(days=USER_DATA_TTL_DAYS))
     async def get_user_manga_list(self, user_id):
         if user_id is None:

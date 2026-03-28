@@ -23,12 +23,13 @@ class ProfileAnalyser:
             franchise_reduction=True,
         )
 
-    def async_get_profile(self, user):
-        return run_coroutine(self.databuilder(user))
-
-    async def databuilder(self, user):
+    async def databuilder(self, user, year=None, season=None):
         user_watchlist = await self.provider.get_user_anime_list(user)
         user_profile = UserProfile(user, user_watchlist)
+
+        seasonal = None
+        if year is not None:
+            seasonal = await self.provider.get_seasonal_anime_list(year, season)
 
         all_features = user_profile.watchlist.explode("features")["features"].unique().drop_nulls()
 
@@ -41,24 +42,19 @@ class ProfileAnalyser:
             cluster=self.clusterer.cluster_by_features(user_profile.watchlist)
         )
 
-        return user_profile
+        return user_profile, seasonal
 
     def analyse(self, user, year=None, season=None):
-        self.profile = self.async_get_profile(user)
+        self.profile, seasonal = run_coroutine(self.databuilder(user, year, season))
 
         categories = self.get_cluster_categories(self.profile)
 
-        if year is not None:
-            self.add_seasonal_recommendations(categories, year, season)
+        if seasonal is not None:
+            self.add_seasonal_recommendations(categories, seasonal)
 
         return categories
 
-    def add_seasonal_recommendations(self, categories, year, season):
-        seasonal = run_coroutine(self.provider.get_seasonal_anime_list(year, season))
-
-        if seasonal is None:
-            return
-
+    def add_seasonal_recommendations(self, categories, seasonal):
         seasonal = self.filter_seasonal(seasonal)
 
         # Exclude items already on the user's watchlist

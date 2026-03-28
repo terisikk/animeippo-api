@@ -56,52 +56,30 @@ def rate_limited(func):
 class AnilistConnection:
     def __init__(self, cache=None):
         self.cache = cache
-        self._session = None
         self.rate_remaining = 90
         self.rate_limit = 90
-
-    async def __aenter__(self):
-        return self
-
-    async def __aexit__(self, exc_type, exc_val, exc_tb):
-        await self.close()
-        return False
 
     @animecache.cached_query(ttl=timedelta(days=1))
     async def request_paginated(self, query, parameters):
         anime_list = {"data": {"media": []}}
         variables = parameters.copy()
 
-        async for page in self.get_all_pages(query, variables):
-            for item in page["media"]:
-                anime_list["data"]["media"].append(item)
+        async with aiohttp.ClientSession() as session:
+            async for page in self.get_all_pages(session, query, variables):
+                for item in page["media"]:
+                    anime_list["data"]["media"].append(item)
 
         return anime_list
 
     @animecache.cached_query(ttl=timedelta(days=1))
     async def request_collection(self, query, parameters):
         variables = parameters.copy()
-        return await self.request_single(query, variables)
 
-    async def get_session(self):
-        if self._session is None or self._session.closed or self._session.loop.is_closed():
-            connector = aiohttp.TCPConnector(
-                limit=100,
-                limit_per_host=10,
-                ttl_dns_cache=300,
-            )
-            self._session = aiohttp.ClientSession(connector=connector)
-        return self._session
-
-    async def close(self):
-        if self._session is not None and not self._session.closed:
-            await self._session.close()
-            self._session = None
+        async with aiohttp.ClientSession() as session:
+            return await self.request_single(session, query, variables)
 
     @rate_limited
-    async def request_single(self, query, variables):
-        session = await self.get_session()
-
+    async def request_single(self, session, query, variables):
         async with session.post(
             ANI_API_URL, json={"query": query, "variables": variables}, timeout=REQUEST_TIMEOUT
         ) as response:
@@ -109,13 +87,13 @@ class AnilistConnection:
             info = types.SimpleNamespace(status=response.status, headers=dict(response.headers))
             return info, body
 
-    async def get_all_pages(self, query, variables):
+    async def get_all_pages(self, session, query, variables):
         MAX_PAGES = 10
 
         variables["page"] = 1
         variables["perPage"] = 50
 
-        first_page = await self.request_single(query, variables)
+        first_page = await self.request_single(session, query, variables)
         first_page_data = first_page.get("data", {}).get("Page", None)
 
         yield first_page_data
@@ -127,7 +105,9 @@ class AnilistConnection:
         page_num = 2
 
         while has_next_page and page_num <= MAX_PAGES:
-            page_response = await self.request_single(query, {**variables, "page": page_num})
+            page_response = await self.request_single(
+                session, query, {**variables, "page": page_num}
+            )
             page_data = page_response.get("data", {}).get("Page", None)
 
             if page_data is None:

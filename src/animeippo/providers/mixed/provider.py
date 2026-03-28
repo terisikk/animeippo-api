@@ -1,5 +1,7 @@
 from datetime import timedelta
 
+import aiohttp
+
 from .. import abstract_provider
 from .. import caching as animecache
 from ..anilist import provider as ani
@@ -15,13 +17,6 @@ class MixedProvider(abstract_provider.AbstractAnimeProvider):
 
         self.ani_provider = ani.AniListProvider(cache)
         self.mal_connection = MyAnimeListConnection(cache)
-
-    async def __aenter__(self):
-        await self.ani_provider.__aenter__()
-        return self
-
-    async def __aexit__(self, exc_type, exc_val, exc_tb):
-        return await self.ani_provider.__aexit__(exc_type, exc_val, exc_tb)
 
     @animecache.cached_dataframe(ttl=timedelta(days=1))
     async def get_user_anime_list(self, user_id):
@@ -206,12 +201,13 @@ class MixedProvider(abstract_provider.AbstractAnimeProvider):
         """
         all_media = []
 
-        for i in range(0, len(mal_ids), ANILIST_ID_BATCH_SIZE):
-            batch = mal_ids[i : i + ANILIST_ID_BATCH_SIZE]
-            result = await self.ani_provider.connection.request_single(
-                query, {"idMal_in": batch, "page": 1}
-            )
-            all_media.extend(result.get("data", {}).get("Page", {}).get("media", []))
+        async with aiohttp.ClientSession() as session:
+            for i in range(0, len(mal_ids), ANILIST_ID_BATCH_SIZE):
+                batch = mal_ids[i : i + ANILIST_ID_BATCH_SIZE]
+                result = await self.ani_provider.connection.request_single(
+                    session, query, {"idMal_in": batch, "page": 1}
+                )
+                all_media.extend(result.get("data", {}).get("Page", {}).get("media", []))
 
         return {"data": {"media": all_media}}
 

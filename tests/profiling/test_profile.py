@@ -1,3 +1,5 @@
+import asyncio
+
 import polars as pl
 import pytest
 
@@ -179,7 +181,9 @@ def test_seasonal_recommendations_added_to_clusters():
     profiler.profile.watchlist = data
 
     categories = profiler.get_cluster_categories(dset)
-    profiler.add_seasonal_recommendations(categories, "2026", None)
+
+    seasonal = asyncio.run(ProviderStub().get_seasonal_anime_list("2026", None))
+    profiler.add_seasonal_recommendations(categories, seasonal)
 
     has_recs = any("recommendations" in cat for cat in categories)
     assert has_recs
@@ -235,31 +239,11 @@ def test_seasonal_recommendations_without_continuation_column():
     profiler.profile.watchlist = data
 
     categories = profiler.get_cluster_categories(RecommendationModel(profiler.profile, None))
-    profiler.add_seasonal_recommendations(categories, "2026", None)
+
+    seasonal = asyncio.run(ProviderStub().get_seasonal_anime_list("2026", None))
+    profiler.add_seasonal_recommendations(categories, seasonal)
 
     assert profiler.seasonal is not None
-
-
-def test_seasonal_recommendations_handles_none_seasonal():
-    class ProviderStub:
-        def get_nsfw_tags(self):
-            return []
-
-        def get_tag_lookup(self):
-            return {}
-
-        def get_genres(self):
-            return set()
-
-        async def get_seasonal_anime_list(self, year, season):
-            return None
-
-    profiler = analyser.ProfileAnalyser(ProviderStub())
-    categories = [{"name": "Test", "items": [1]}]
-    profiler.add_seasonal_recommendations(categories, "2026", None)
-
-    assert profiler.seasonal is None
-    assert "recommendations" not in categories[0]
 
 
 def test_clusters_can_be_categorized_with_nsfw_filtering():
