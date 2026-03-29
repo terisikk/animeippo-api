@@ -36,39 +36,69 @@ class AbstractScorer(abc.ABC):
 class FeatureCorrelationScorer(AbstractScorer):
     """Score items based on user feature correlations with debiasing.
 
-    - Debiases common features via catalogue frequency
-    - Applies diminishing returns to long feature lists
-    - Combines positive signal, negative signal (dropped/paused), and catalogue baseline
-    - Returns rank-normalized scores in [0, 1]
+    Pipeline stages:
+    1. Debias positive weights by catalogue frequency
+    2. Compute denominator with diminishing returns for long feature lists
+    3. Aggregate positive, negative, and catalogue baseline signals
+    4. Combine and clamp to produce final score
+    5. Compute confidence from feature richness, history size, and contested features
     """
 
     name = "featurecorrelationscore"
 
-    BETA = 0.7  # Debias strength for common features (higher = more debiasing)
-    LAMBDA = 0.25  # Catalogue baseline strength (residual penalty for common features)
-
-    # Diminishing returns exponent for long feature lists.
-    # Set GAMMA to < 0.5 for stronger diminishing returns for long lists
-    # or > 0.5 for weaker diminishing returns
-    GAMMA = 0.5
-
-    # Numerical stability constant for avoiding division by zero
-    # and stabilizing effect on very rare features
-    EPSILON = 1e-6
-
+    BETA = 0.7  # Debias strength (higher = more debiasing of common features)
+    LAMBDA = 0.25  # Catalogue baseline penalty strength
+    GAMMA = 0.5  # Diminishing returns exponent for feature list length
+    EPSILON = 1e-6  # Numerical stability constant
     MIN_HISTORY_THRESHOLD = 20
+    CONTESTED_THRESHOLD = 0.1  # Min weight to consider a feature "active"
+    CONTESTED_PENALTY = 0.5  # Max confidence reduction from contested features
 
     def score(self, data):
         scoring_target_df = data.seasonal
         compare_df = data.watchlist
 
-        # Get user feature weights (positive signal from correlations)
-        user_positive_weights = statistics.weight_encoded_categoricals_correlation(
+        positive_weights = self.get_positive_weights(compare_df)
+        negative_weights = self.get_negative_weights(compare_df)
+        catalogue_freq = self.get_catalogue_frequency(scoring_target_df)
+
+        debiased = self.debias_weights(positive_weights, catalogue_freq)
+        denominator = self.get_denominator(scoring_target_df)
+        features_exploded = data.seasonal_explode_cached("features")
+
+        positive_signal = self.aggregate_signal(features_exploded, debiased) / denominator
+        negative_signal = (
+            self.aggregate_signal(
+                features_exploded,
+                negative_weights.rename({"features": "name"}),
+                fillna=0.0,
+            )
+            / denominator
+        )
+        baseline = (
+            self.aggregate_signal(
+                features_exploded,
+                catalogue_freq.rename({"pc": "weight", "features": "name"}),
+            )
+            / denominator
+        )
+
+        raw_score = positive_signal - negative_signal - self.LAMBDA * baseline
+        clamped_score = raw_score.clip(lower_bound=0.0)
+
+        confidence = self.compute_confidence(
+            scoring_target_df, compare_df, positive_weights, negative_weights
+        )
+
+        return ScorerResult(statistics.rank_series(clamped_score), confidence)
+
+    def get_positive_weights(self, compare_df):
+        return statistics.weight_encoded_categoricals_correlation(
             compare_df, "encoded", header_name="features"
         )
 
-        # Get negative signal from dropped/paused features
-        user_negative_weights = statistics.weight_encoded_categoricals_correlation(
+    def get_negative_weights(self, compare_df):
+        return statistics.weight_encoded_categoricals_correlation(
             compare_df.with_columns(
                 dropped_or_paused=pl.col("user_status").is_in(["DROPPED", "PAUSED"])
             ),
@@ -77,15 +107,13 @@ class FeatureCorrelationScorer(AbstractScorer):
             header_name="features",
         )
 
-        # Compute catalogue frequency, i.e. P(feature)
-        catalogue_frequency = statistics.catalogue_frequency(
-            scoring_target_df, "features", value_col="features"
-        )
+    def get_catalogue_frequency(self, scoring_target_df):
+        return statistics.catalogue_frequency(scoring_target_df, "features", value_col="features")
 
-        # === 1. DEBIAS POSITIVE WEIGHTS  ===
-        debiased_weights = (
-            user_positive_weights.join(
-                catalogue_frequency.with_columns(pl.col("features").cast(pl.Utf8)),
+    def debias_weights(self, positive_weights, catalogue_freq):
+        return (
+            positive_weights.join(
+                catalogue_freq.with_columns(pl.col("features").cast(pl.Utf8)),
                 on="features",
                 how="left",
             )
@@ -97,48 +125,48 @@ class FeatureCorrelationScorer(AbstractScorer):
             .rename({"debiased_weight": "weight", "features": "name"})
         )
 
-        # === 2. COMPUTE DENOMINATOR ===
-        feature_count_per_item = scoring_target_df["features"].list.len().fill_null(0)
-        denominator = feature_count_per_item.replace(0, 1.0)
+    def get_denominator(self, scoring_target_df):
+        feature_count = scoring_target_df["features"].list.len().fill_null(0)
+        return (feature_count**self.GAMMA).replace(0, 1.0)
 
-        features_exploded = data.seasonal_explode_cached("features")
-
-        # === 3. AGGREGATE SIGNALS ===
-        positive_signal = (
-            statistics.weighted_sum_for_categorical_values(
-                features_exploded, "features", debiased_weights
-            )
-            / denominator
+    def aggregate_signal(self, features_exploded, weights, fillna=None):
+        kwargs = {"fillna": fillna} if fillna is not None else {}
+        return statistics.weighted_sum_for_categorical_values(
+            features_exploded, "features", weights, **kwargs
         )
 
-        negative_signal = (
-            statistics.weighted_sum_for_categorical_values(
-                features_exploded,
-                "features",
-                user_negative_weights.rename({"features": "name"}),
-                fillna=0.0,
-            )
-            / denominator
+    def compute_confidence(self, scoring_target_df, compare_df, positive_weights, negative_weights):
+        feature_conf = self.feature_confidence(scoring_target_df)
+        history_conf = min(len(compare_df) / self.MIN_HISTORY_THRESHOLD, 1.0)
+
+        contested_penalty = self.get_contested_penalty(
+            scoring_target_df, positive_weights, negative_weights
         )
 
-        # catalogue baseline (expected mass from common features)
-        catalogue_baseline = (
-            statistics.weighted_sum_for_categorical_values(
-                features_exploded,
-                "features",
-                catalogue_frequency.rename({"pc": "weight", "features": "name"}),
-            )
-            / denominator
+        return feature_conf * history_conf * contested_penalty
+
+    def get_contested_penalty(self, scoring_target_df, positive_weights, negative_weights):
+        """Reduce confidence when features have both strong positive and negative signals."""
+        contested = positive_weights.join(negative_weights, on="features", suffix="_neg").filter(
+            (pl.col("weight").abs() > self.CONTESTED_THRESHOLD)
+            & (pl.col("weight_neg").abs() > self.CONTESTED_THRESHOLD)
         )
 
-        # === 4. COMBINE AND CLAMP ===
-        raw_score = positive_signal - negative_signal - self.LAMBDA * catalogue_baseline
-        clamped_score = raw_score.clip(lower_bound=0.0)
+        contested_features = set(contested["features"].to_list())
+        if not contested_features:
+            return 1.0
 
-        history_confidence = min(len(compare_df) / self.MIN_HISTORY_THRESHOLD, 1.0)
-        confidence = self.feature_confidence(scoring_target_df) * history_confidence
+        feature_counts = scoring_target_df["features"].list.len().fill_null(0)
+        contested_counts = (
+            scoring_target_df["features"]
+            .list.eval(pl.element().is_in(list(contested_features)).sum())
+            .list.first()
+            .fill_null(0)
+        )
 
-        return ScorerResult(statistics.rank_series(clamped_score), confidence)
+        contested_ratio = contested_counts / feature_counts.replace(0, 1)
+
+        return 1.0 - contested_ratio * self.CONTESTED_PENALTY
 
 
 class StudioCorrelationScorer(AbstractScorer):
@@ -278,6 +306,8 @@ class ContinuationScorer(AbstractScorer):
         scoring_target_df = data.seasonal
         compare_df = data.watchlist
 
+        user_mean = statistics.mean_score_default(compare_df, 5.0)
+
         joined = (
             scoring_target_df.explode("continuation_to")
             .select(["id", "continuation_to"])
@@ -288,8 +318,7 @@ class ContinuationScorer(AbstractScorer):
                 how="left",
             )
             .with_columns(
-                # Predecessor rating normalized to 0-1
-                predecessor_rating=pl.col("score").fill_null(0).cast(pl.Float64) / 10.0,
+                predecessor_rating=pl.col("score").fill_null(user_mean).cast(pl.Float64) / 10.0,
                 # Completion status weight
                 completion_weight=pl.col("user_status")
                 .replace_strict(

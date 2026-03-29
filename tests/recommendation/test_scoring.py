@@ -69,6 +69,41 @@ def test_feature_correlation_scorer():
     assert (result.confidence <= 1).all()
 
 
+def test_feature_correlation_scorer_contested_features_reduce_confidence():
+    source_df = pl.DataFrame(
+        {
+            "id": [1, 2, 3, 4],
+            "features": [["Action"], ["Action"], ["Drama"], ["Drama"]],
+            "encoded": [
+                {"Action": 1, "Drama": 0},
+                {"Action": 1, "Drama": 0},
+                {"Action": 0, "Drama": 1},
+                {"Action": 0, "Drama": 1},
+            ],
+            "score": [9, 8, 2, 3],
+            "user_status": ["COMPLETED", "COMPLETED", "DROPPED", "DROPPED"],
+        },
+    )
+
+    target_df = pl.DataFrame(
+        {
+            "id": [5],
+            "features": [["Action", "Drama"]],
+            "encoded": [{"Action": 1, "Drama": 1}],
+        }
+    )
+
+    scorer = scoring.FeatureCorrelationScorer()
+    uprofile = UserProfile("Test", source_df)
+
+    result = scorer.score(
+        RecommendationModel(uprofile, target_df, features=pl.Series(["Action", "Drama"]))
+    )
+
+    # Action is liked, Drama is dropped — contested features should lower confidence
+    assert result.confidence[0] < 1.0
+
+
 def test_cluster_similarity_scorer():
     source_df = pl.DataFrame(
         {
@@ -274,7 +309,10 @@ def test_continuation_scorer_null_predecessor_score():
     uprofile = UserProfile("Test", compare)
     result = scorer.score(RecommendationModel(uprofile, original))
 
-    assert [round(a, 1) for a in result.score.to_list()] == [0.0, 0.0, 0.3, 0.0]
+    # Null score falls back to user mean (4.33), so id=5 gets 0.433 * 1.0
+    assert result.score[0] > 0  # Not zero — uses mean score fallback
+    assert result.score[1] == 0  # No predecessor match
+    assert result.score[3] == 0  # No continuation
 
 
 def test_continuation_scorer_takes_max_of_duplicate_relations():

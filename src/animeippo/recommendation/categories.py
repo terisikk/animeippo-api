@@ -5,6 +5,16 @@ import polars as pl
 from ..meta import meta
 from . import scoring
 
+WEAK_FORMATS = ["TV_SHORT", "SPECIAL", "MUSIC", "ONE_SHOT"]
+MIN_EPISODE_DURATION = 10
+
+
+def substantial_format_filter():
+    """Filter out short-form and weak formats from premium lanes."""
+    return ~pl.col("format").is_in(WEAK_FORMATS) & (
+        pl.col("duration").fill_null(MIN_EPISODE_DURATION) >= MIN_EPISODE_DURATION
+    )
+
 
 class AbstractCategory(abc.ABC):
     needs_diversity = False
@@ -207,8 +217,10 @@ class TopReleasedPicksCategory(AbstractCategory):
     description = "Your Top 3"
 
     def categorize(self, dataset):
-        mask = (pl.col("status").is_in(["RELEASING", "FINISHED"])) & (
-            pl.col("user_status").ne_missing("COMPLETED")
+        mask = (
+            (pl.col("status").is_in(["RELEASING", "FINISHED"]))
+            & (pl.col("user_status").ne_missing("COMPLETED"))
+            & substantial_format_filter()
         )
 
         sorting = {"by": "discovery_score", "descending": True}
@@ -261,6 +273,7 @@ class YourTopPicksCategory(AbstractCategory):
             (pl.col(scoring.ContinuationScorer.name) == 0)
             & (pl.col("user_status").is_null() | (pl.col("user_status") == "PLANNING"))
             & (pl.col("status").is_in(["RELEASING", "FINISHED"]))
+            & substantial_format_filter()
         )
 
         sorting = {"by": "discovery_score", "descending": True}
@@ -277,8 +290,10 @@ class TopUpcomingCategory(AbstractCategory):
     def categorize(self, dataset):
         year, season = meta.get_current_anime_season()
 
-        mask = (pl.col("status") == "NOT_YET_RELEASED") & (
-            (pl.col("season") > season) | (pl.col("season_year") > year)
+        mask = (
+            (pl.col("status") == "NOT_YET_RELEASED")
+            & ((pl.col("season") > season) | (pl.col("season_year") > year))
+            & substantial_format_filter()
         )
 
         sorting = {
@@ -354,7 +369,11 @@ class SimulcastsCategory(AbstractCategory):
 
     def categorize(self, dataset):
         year, season = meta.get_current_anime_season()
-        mask = (pl.col("season_year") == year) & (pl.col("season") == season)
+        mask = (
+            (pl.col("season_year") == year)
+            & (pl.col("season") == season)
+            & substantial_format_filter()
+        )
         sorting = {"by": "discovery_score", "descending": True}
 
         return mask, sorting

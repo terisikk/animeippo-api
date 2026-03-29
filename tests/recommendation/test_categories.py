@@ -117,6 +117,8 @@ def test_your_top_picks_category():
             "status": ["RELEASING", "RELEASING", "RELEASING"],
             "continuationscore": [0, 0, 10],
             "discovery_score": [2, 3, 1],
+            "format": ["TV", "TV", "TV"],
+            "duration": [24, 24, 24],
         }
     )
 
@@ -138,6 +140,8 @@ def test_top_released_picks_category():
             "status": ["RELEASING", "FINISHED", "NOT_YET_RELEASED", "FINISHED", "RELEASING"],
             "user_status": [None, None, None, "COMPLETED", "COMPLETED"],
             "discovery_score": [3, 2, 1, 5, 4],
+            "format": ["TV", "TV", "TV", "TV", "TV"],
+            "duration": [24, 24, 24, 24, 24],
         }
     )
 
@@ -216,6 +220,8 @@ def test_top_upcoming_category(mocker):
             "title": ["Test 1", "Test 2", "Test 3", "Test 4"],
             "discovery_score": [0, 1, 2, 3],
             "continuationscore": [0, 0, 0, 0],
+            "format": ["TV", "TV", "TV", "TV"],
+            "duration": [24, 24, 24, 24],
         }
     )
 
@@ -333,6 +339,8 @@ def test_simulcastscategory(mocker):
             "title": ["Test 1", "Test 2", "Test 3"],
             "discovery_score": [0, 1, 2],
             "continuationscore": [0, 0, 0],
+            "format": ["TV", "TV", "TV"],
+            "duration": [24, 24, 24],
         }
     )
 
