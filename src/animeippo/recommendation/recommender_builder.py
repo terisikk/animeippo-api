@@ -18,11 +18,17 @@ logger = structlog.get_logger()
 def get_discovery_scorers():
     """Scorers for discovering new anime based on taste similarity."""
     return [
+        # Capture shows that closely resemble previous shows the user liked
         scoring.DirectSimilarityScorer(weight=0.30),
+        # Capture shows that share specific features with user preferences
         scoring.FeatureCorrelationScorer(weight=0.25),
+        # Capture shows that are similar to user's clusters of interest
         scoring.ClusterSimilarityScorer(weight=0.20),
+        # Capture shows from studios the user has liked before
         scoring.StudioCorrelationScorer(weight=0.10),
+        # Capture generally popular shows to ensure relevance
         scoring.PopularityScorer(weight=0.10),
+        # Capture shows that are adaptations of manga the user has read
         scoring.AdaptationScorer(weight=0.05),
     ]
 

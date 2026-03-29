@@ -27,7 +27,7 @@ def test_extract_features():
     gdf = df.explode("genres")
 
     features = animeippo.analysis.statistics.get_descriptive_features(
-        gdf, "genres", "cluster", 2, min_count=1
+        gdf, "genres", "cluster", 2, min_count=1, min_prevalence=0
     )
 
     assert features.select(pl.exclude("cluster")).rows() == [
@@ -55,7 +55,7 @@ def test_extract_features_without_feature_count():
     gdf = df.explode("genres")
 
     features = animeippo.analysis.statistics.get_descriptive_features(
-        gdf, "genres", "cluster", min_count=1
+        gdf, "genres", "cluster", min_count=1, min_prevalence=0
     )
 
     # TF-IDF ranks features by distinctiveness (rare across clusters but common within)
@@ -67,3 +67,28 @@ def test_extract_features_without_feature_count():
         ("Shounen", "Drama", "Action", "Comedy", "Historical", "Horror", "Romance"),
         ("Historical", "Drama", "Action", "Comedy", "Horror", "Romance", "Shounen"),
     ]
+
+
+def test_extract_features_with_prevalence_threshold():
+    """Features below prevalence threshold are excluded from cluster naming."""
+    df = pl.DataFrame(
+        {
+            "genres": [
+                ["Action", "Drama"],
+                ["Action", "Comedy"],
+                ["Action", "Romance"],
+            ],
+            "cluster": [0, 0, 0],
+        }
+    )
+
+    gdf = df.explode("genres")
+
+    # With 60% threshold: only Action (3/3=100%) qualifies, Drama/Comedy/Romance (1/3=33%) don't
+    features = animeippo.analysis.statistics.get_descriptive_features(
+        gdf, "genres", "cluster", 2, min_count=1, min_prevalence=0.6
+    )
+
+    result = features.select(pl.exclude("cluster")).rows()[0]
+    assert result[0] == "Action"
+    assert len(result) == 1  # Only Action survives the prevalence filter

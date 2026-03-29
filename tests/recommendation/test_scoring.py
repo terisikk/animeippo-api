@@ -341,6 +341,59 @@ def test_continuation_scorer_takes_max_of_duplicate_relations():
     assert result.score.to_list() == [0.8, 0.0]
 
 
+def test_cluster_similarity_scorer_cohesion():
+    source_df = pl.DataFrame(
+        {
+            "id": [1, 2, 3],
+            "features": [["Action"], ["Action"], ["Drama"]],
+            "score": [8, 9, 7],
+            "cluster": [0, 0, 1],
+        },
+    )
+
+    target_df = pl.DataFrame(
+        {
+            "id": [4, 5],
+            "features": [["Action"], ["Drama"]],
+        }
+    )
+
+    scorer = scoring.ClusterSimilarityScorer()
+
+    uprofile = UserProfile("Test", source_df)
+    data = RecommendationModel(uprofile, target_df)
+
+    # Filtered matrix (seasonal columns only) for scoring
+    data.similarity_matrix = pl.DataFrame(
+        {
+            "4": [0.8, 0.7, 0.2],
+            "5": [0.2, 0.3, 0.9],
+            "id": [1, 2, 3],
+        }
+    )
+
+    # Full matrix (including watchlist-to-watchlist) for cohesion
+    full_matrix = pl.DataFrame(
+        {
+            "4": [0.8, 0.7, 0.2],
+            "5": [0.2, 0.3, 0.9],
+            "1": [1.0, 0.9, 0.1],
+            "2": [0.9, 1.0, 0.1],
+            "3": [0.1, 0.1, 1.0],
+            "id": [1, 2, 3],
+        }
+    )
+    data.get_similarity_matrix = lambda filtered=True, transposed=False: (
+        data.similarity_matrix if filtered else full_matrix
+    )
+
+    result = scorer.score(data)
+
+    assert len(result.score) == 2
+    assert len(result.confidence) == 2
+    assert (result.confidence > 0).any()
+
+
 def test_direct_similarity_scorer():
     source_df = pl.DataFrame(
         {
@@ -348,6 +401,7 @@ def test_direct_similarity_scorer():
             "features": [["Action", "Adventure"], ["Action", "Fantasy"]],
             "title": ["Bleach", "Fate/Zero"],
             "score": [10, 9],
+            "user_status": ["COMPLETED", "COMPLETED"],
         },
     )
     target_df = pl.DataFrame(

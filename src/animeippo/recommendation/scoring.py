@@ -1,5 +1,5 @@
 import abc
-from typing import NamedTuple
+from typing import ClassVar, NamedTuple
 
 import polars as pl
 
@@ -198,70 +198,158 @@ class StudioCorrelationScorer(AbstractScorer):
 class ClusterSimilarityScorer(AbstractScorer):
     name = "clusterscore"
 
-    def __init__(self, weight=1.0):
-        super().__init__(weight=weight)
+    TOP_N = 3
+    DECAY_WEIGHTS: ClassVar[list[float]] = [1.0, 0.5, 0.25]
 
     def score(self, data):
         compare_df = data.watchlist
+        sim_matrix = data.get_similarity_matrix(filtered=True)
 
-        similarities = data.get_similarity_matrix(filtered=True).join(
-            compare_df.select("id", "cluster", "score"), how="left", on="id"
-        )
+        candidate_cols = [c for c in sim_matrix.columns if c != "id"]
 
-        scores = (
-            similarities.group_by("cluster", maintain_order=True)
+        # Per-cluster mean similarity to each candidate, with bounded rating modifier
+        cluster_sims = (
+            sim_matrix.join(compare_df.select("id", "cluster", "score"), how="left", on="id")
+            .group_by("cluster", maintain_order=True)
             .agg(
-                pl.exclude("cluster", "id", "score").mean()
-                * pl.col("score").mean().fill_null(5)
-                * pl.col("id").len().sqrt()
+                pl.exclude("cluster", "id", "score").mean(),
+                rating=pl.col("score").mean().fill_null(5.0) / 10.0,
             )
-            .select(pl.exclude("cluster"))
-            .max()
-            .transpose()
-            .to_series()
+            .with_columns(
+                *(
+                    (pl.col(col) * (0.5 + 0.5 * pl.col("rating"))).alias(col)
+                    for col in candidate_cols
+                )
+            )
+            .drop("rating")
         )
 
-        confidence = self.feature_confidence(data.seasonal)
+        # For each candidate, pick top-N clusters and aggregate with decay
+        cluster_only = cluster_sims.select(pl.exclude("cluster"))
 
-        return ScorerResult(statistics.rank_series(scores), confidence)
+        scores = []
+        for col in candidate_cols:
+            top_vals = cluster_only[col].sort(descending=True).head(self.TOP_N).to_list()
+            weights = self.DECAY_WEIGHTS[: len(top_vals)]
+            score = sum(v * w for v, w in zip(top_vals, weights, strict=False)) / sum(weights)
+            scores.append(score)
+
+        score_series = pl.Series(scores)
+
+        # Cluster cohesion confidence
+        cohesion = self.compute_cluster_cohesion(data)
+        confidence = self.feature_confidence(data.seasonal) * cohesion
+
+        return ScorerResult(statistics.rank_series(score_series), confidence)
+
+    def compute_cluster_cohesion(self, data):
+        """Mean intra-cluster similarity as confidence signal."""
+        sim_matrix = data.get_similarity_matrix(filtered=False)
+        watchlist = data.watchlist
+
+        candidate_cols = [c for c in sim_matrix.columns if c != "id"]
+        watchlist_ids = sim_matrix["id"].cast(pl.Utf8).to_list()
+
+        # Only use watchlist-to-watchlist similarities
+        intra_cols = [c for c in candidate_cols if c in watchlist_ids]
+        if not intra_cols:
+            return 1.0
+
+        cluster_map = dict(
+            zip(
+                watchlist["id"].to_list(),
+                watchlist["cluster"].to_list(),
+                strict=False,
+            )
+        )
+
+        # For each row, compute mean similarity to same-cluster members
+        cohesions = []
+        for row in sim_matrix.iter_rows(named=True):
+            row_cluster = cluster_map.get(row["id"])
+            same_cluster = [
+                row[c]
+                for c in intra_cols
+                if cluster_map.get(int(c)) == row_cluster and c != str(row["id"])
+            ]
+            cohesions.append(sum(same_cluster) / len(same_cluster) if same_cluster else 0.5)
+
+        mean_cohesion = sum(cohesions) / len(cohesions) if cohesions else 0.5
+
+        return min(mean_cohesion / 0.5, 1.0)
 
 
 class DirectSimilarityScorer(AbstractScorer):
     name = "directscore"
 
+    TOP_K = 5
+    DECAY_WEIGHTS: ClassVar[list[float]] = [1.0, 0.6, 0.36, 0.22, 0.13]
+    DROP_PENALTY = 0.5
+    MIN_SIMILARITY_THRESHOLD = 0.3
+
     def score(self, data):
         compare_df = data.watchlist
+        user_mean = statistics.mean_score_default(compare_df, 5.0)
 
-        compare_df = compare_df.with_columns(
-            directscore=pl.col("score").fill_null(pl.col("score").mean())
+        sim_matrix = data.get_similarity_matrix(filtered=True)
+        candidate_cols = [c for c in sim_matrix.columns if c != "id"]
+
+        # Melt to long format: (watchlist_id, candidate_id, similarity)
+        long = sim_matrix.unpivot(
+            index="id", on=candidate_cols, variable_name="candidate_id", value_name="similarity"
         )
 
-        # Want to sort this so that argmax gives at least consistent results,
-        # returning the index of the max score on invalid cases
-        similarities = (
-            data.get_similarity_matrix(filtered=True)
-            .join(compare_df.select("id", "directscore"), on="id", how="left")
-            .sort(["directscore", "id"], descending=[True, True])
-            .drop("directscore")
+        # Join watchlist data for rating modifier
+        long = long.join(compare_df.select("id", "score", "user_status"), on="id", how="left")
+
+        # Compute match score with bounded rating modifier and drop penalty
+        long = long.with_columns(
+            rating_mod=pl.when(pl.col("user_status").is_in(["DROPPED", "PAUSED"]))
+            .then(-self.DROP_PENALTY)
+            .otherwise(0.5 + 0.5 * pl.col("score").fill_null(user_mean).cast(pl.Float64) / 10.0),
+            # Replace NaN similarities (zero overlap) with null for proper handling
+            similarity=pl.col("similarity").fill_nan(None),
+        ).with_columns(
+            match_score=pl.col("similarity").fill_null(0.0) * pl.col("rating_mod"),
         )
 
-        idymax = statistics.idymax(similarities)
+        # Rank matches per candidate and take top-K
+        ranked = long.with_columns(
+            rank=pl.col("similarity").rank(method="ordinal", descending=True).over("candidate_id")
+        ).filter(pl.col("rank") <= self.TOP_K)
 
-        # Feels kinda hackish, I think the max column should not have nans in the first place,
-        # need to investigate why it does.
-        idymax = idymax.with_columns(
-            max=pl.col("max").fill_nan(None).fill_null(pl.col("max").mean())
+        # Apply geometric decay weights and aggregate
+        scores_df = (
+            ranked.sort(["candidate_id", "rank"])
+            .with_columns(
+                weight=pl.col("rank")
+                .cast(pl.UInt32)
+                .map_elements(
+                    lambda r: self.DECAY_WEIGHTS[r - 1] if r <= len(self.DECAY_WEIGHTS) else 0.0,
+                    return_dtype=pl.Float64,
+                )
+            )
+            .group_by("candidate_id", maintain_order=True)
+            .agg(
+                score=(pl.col("match_score") * pl.col("weight")).sum() / pl.col("weight").sum(),
+                best_sim=pl.col("similarity").max(),
+            )
         )
 
-        scores = idymax.join(
-            compare_df.select("id", "directscore"), left_on="idymax", right_on="id", how="left"
+        # Restore original candidate order
+        order = pl.DataFrame({"candidate_id": candidate_cols})
+        result = order.join(scores_df, on="candidate_id", how="left").with_columns(
+            pl.col("score").fill_null(0.0),
+            pl.col("best_sim").fill_null(0.0),
         )
 
-        scores = scores.select(pl.col("directscore") * pl.col("max"))
+        score = result["score"].clip(lower_bound=0.0)
 
-        confidence = self.feature_confidence(data.seasonal)
+        # Confidence: feature richness * match quality
+        match_conf = (result["best_sim"] / self.MIN_SIMILARITY_THRESHOLD).clip(upper_bound=1.0)
+        confidence = self.feature_confidence(data.seasonal) * match_conf
 
-        return ScorerResult(statistics.rank_series(scores["directscore"]), confidence)
+        return ScorerResult(statistics.rank_series(score), confidence)
 
 
 class PopularityScorer(AbstractScorer):

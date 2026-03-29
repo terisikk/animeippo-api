@@ -241,3 +241,19 @@ def test_deduplicate_no_duplicates_is_noop():
 
     assert names["0"] == "Samurai Action"
     assert names["1"] == "Detective Fantasy"
+
+
+def test_adjective_only_core_swaps_with_noun_modifier():
+    """When core is adjective-only but modifier is noun-capable, swap them."""
+    namer = ClusterNamer(
+        tag_lookup={
+            1: {"name": "Historical", "category": "Setting-Time", "isAdult": False},
+        },
+        genres={"Action"},
+    )
+
+    # Historical (Setting, adjective-only) has higher core priority than Action (Genre),
+    # so it initially becomes core. But since it's adjective-only, it should swap.
+    name = namer.name_single_cluster(["Historical", "Action"])
+
+    assert name == "Historical Action"

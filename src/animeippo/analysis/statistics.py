@@ -93,17 +93,6 @@ def mean_score_default(compare_df, default=0):
     return mean_score
 
 
-def idymax(dataframe):
-    """
-    Find the max value in each column and return it along with the id of the max value.
-    """
-
-    return dataframe.select(
-        pl.concat_list(pl.col("id").gather(pl.exclude("id").arg_max())).alias("idymax"),
-        pl.concat_list(pl.exclude("id").max()).alias("max"),
-    ).explode(["idymax", "max"])
-
-
 def calculate_residuals(contingency_table, expected):
     return ((contingency_table - expected) * np.abs(contingency_table - expected)) / np.sqrt(
         expected
@@ -116,6 +105,7 @@ def get_descriptive_features(  # noqa: PLR0913
     cluster_column,
     n_features=None,
     min_count=2,
+    min_prevalence=0.6,
     boost_features=None,
     boost_factor=1.5,
 ):
@@ -126,7 +116,8 @@ def get_descriptive_features(  # noqa: PLR0913
     - TF (term frequency): how common the feature is within the cluster
     - IDF (inverse document frequency): how rare the feature is across all clusters
 
-    This naturally produces names like "Isekai Fantasy" (distinctive) over "Action Comedy" (common).
+    Features must appear in at least min_prevalence (60%) of a cluster's items
+    to be eligible for naming that cluster.
     """
 
     # Build term-document matrix: features by clusters
@@ -134,8 +125,21 @@ def get_descriptive_features(  # noqa: PLR0913
         on=cluster_column, index=feature_column, values=cluster_column, aggregate_function="len"
     ).fill_null(0)
 
-    # Filter features that don't appear enough in any single cluster
     cluster_columns = contingency_table.columns[1:]
+
+    # Zero out features that appear in fewer than min_prevalence of a cluster's items.
+    # Cluster size = max feature count in that column (the most common feature appears
+    # in every item, so its count equals the cluster size).
+    if min_prevalence > 0:
+        contingency_table = contingency_table.with_columns(
+            pl.when(pl.col(col) >= pl.col(col).max() * min_prevalence)
+            .then(pl.col(col))
+            .otherwise(0)
+            .alias(col)
+            for col in cluster_columns
+        )
+
+    # Filter features that don't meet min_count in any cluster
     filtered = contingency_table.filter(
         pl.max_horizontal(pl.col(col) for col in cluster_columns) >= min_count
     )

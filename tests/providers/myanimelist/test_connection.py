@@ -6,7 +6,9 @@ from .stubs import ResponseStub, SessionStub
 
 
 @pytest.mark.asyncio
-async def test_get_next_page_returns_succesfully():
+async def test_get_next_page_returns_succesfully(mocker):
+    mocker.patch("asyncio.sleep", return_value=None)
+
     response2 = ResponseStub({"data": [{"test2": "test2"}], "paging": {"next": "page3"}})
     response3 = ResponseStub({"data": [{"test3": "test3"}]})
 
@@ -30,6 +32,7 @@ async def test_get_all_pages_returns_all_pages(mocker):
     response3 = ResponseStub({"data": [{"test3": "test3"}]})
 
     mocker.patch("animeippo.providers.myanimelist.connection.MAL_API_URL", "FAKE")
+    mocker.patch("asyncio.sleep", return_value=None)
 
     mock_session = SessionStub(
         {"FAKE/users/test/animelist": response1, "page2": response2, "page3": response3}
