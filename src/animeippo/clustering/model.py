@@ -49,7 +49,7 @@ class AnimeClustering:
 
     def __init__(  # noqa: PLR0913
         self,
-        distance_metric="jaccard",
+        distance_metric="cosine",
         distance_threshold=0.85,
         linkage="average",
         n_clusters=None,
@@ -83,10 +83,8 @@ class AnimeClustering:
         return clusters
 
     def get_valid_mask(self, series):
-        """Cosine is undefined for zero-vectors; other metrics accept all."""
-        if self.distance_metric == "cosine":
-            return series.sum(axis=1) > 0
-        return np.ones(len(series), dtype=bool)
+        """Cosine is undefined for zero-vectors; exclude them."""
+        return series.sum(axis=1) > 0
 
     def build_distance_matrix(self, series, dataframe, mask):
         dist_matrix = pairwise_distances(series, metric=self.distance_metric)

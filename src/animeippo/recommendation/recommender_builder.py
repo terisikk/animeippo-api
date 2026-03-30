@@ -40,42 +40,70 @@ def get_engagement_scorers():
     ]
 
 
-def get_default_categorizers(distance_metric="jaccard"):
-    """Get default categorizers with their top_n limits.
+def get_default_categorizers(distance_metric="cosine"):
+    """Get categorizer layouts for different data volumes.
 
-    Returns list of (category, top_n) tuples where:
-    - top_n=None means no limit (diversity-adjusted categories)
-    - top_n=N means return top N items
+    Returns dict of layouts. The orchestrator selects at render time based
+    on recommendation count: minimal (<20), standard (20-100), full (>100).
+    Each category also has min_items — skipped if too few items match.
     """
-    categorizer_list = [
-        (categories.TopReleasedPicksCategory(), 3),
+    debug = (
+        [(categories.DebugCategory(), None)]
+        if os.getenv("DEBUG", "false").lower() == "true"
+        else []
+    )
+
+    minimal = [
+        *debug,
+        (categories.TopUpcomingCategory(min_items=3), 35),
         (categories.ContinueWatchingCategory(), None),
-        (categories.HiddenGemsCategory(), 3),
+        (categories.YourTopPicksCategory(), 10),
         (categories.MostPopularCategory(), 20),
-        (categories.SimulcastsCategory(), 40),
-        (categories.YourTopPicksCategory(), 35),
-        (categories.TopUpcomingCategory(), 35),
-        (categories.GenreCategory(0), None),
-        (categories.AdaptationCategory(), None),
-        (categories.GenreCategory(1), None),
-        (categories.TopMoviesCategory(), 3),
-        (categories.PlanningCategory(), None),
-        (categories.GenreCategory(2), None),
-        (categories.MangaCategory(), 25),
-        (categories.GenreCategory(3), None),
-        (categories.StudioCategory(), 25),
-        (categories.GenreCategory(4), None),
-        (categories.BecauseYouLikedCategory(0, distance_metric), 20),
-        (categories.GenreCategory(5), None),
-        (categories.BecauseYouLikedCategory(1, distance_metric), 20),
-        (categories.GenreCategory(6), None),
-        (categories.BecauseYouLikedCategory(2, distance_metric), 20),
     ]
 
-    if os.getenv("DEBUG", "false").lower() == "true":
-        categorizer_list.insert(0, (categories.DebugCategory(), None))
+    standard = [
+        *debug,
+        (categories.TopReleasedPicksCategory(), 3),
+        (categories.ContinueWatchingCategory(), None),
+        (categories.SimulcastsCategory(min_items=3), 40),
+        (categories.TopUpcomingCategory(min_items=3), 35),
+        (categories.PlanningCategory(), None),
+        (categories.MovieNightCategory(), 3),
+        (categories.YourTopPicksCategory(), 35),
+        (categories.MostPopularCategory(), 20),
+        (categories.HiddenGemsCategory(), 3),
+        (categories.AllMoviesCategory(), None),
+        (categories.AdaptationCategory(), None),
+    ]
 
-    return categorizer_list
+    full = [
+        *debug,
+        (categories.TopReleasedPicksCategory(), 3),
+        (categories.ContinueWatchingCategory(), None),
+        (categories.SimulcastsCategory(min_items=3), 40),
+        (categories.TopUpcomingCategory(min_items=3), 35),
+        (categories.PlanningCategory(), None),
+        (categories.MovieNightCategory(), 3),
+        (categories.YourTopPicksCategory(), 35),
+        (categories.MostPopularCategory(), 20),
+        (categories.HiddenGemsCategory(), 3),
+        (categories.AllMoviesCategory(), None),
+        (categories.GenreCategory(nth_genre=0, needs_diversity=True, min_items=2), None),
+        (categories.AdaptationCategory(), None),
+        (categories.GenreCategory(nth_genre=1, needs_diversity=True, min_items=2), None),
+        (categories.GenreCategory(nth_genre=2, needs_diversity=True, min_items=2), None),
+        (categories.MangaCategory(), 25),
+        (categories.GenreCategory(nth_genre=3, needs_diversity=True, min_items=2), None),
+        (categories.StudioCategory(), 25),
+        (categories.GenreCategory(nth_genre=4, needs_diversity=True, min_items=2), None),
+        (categories.BecauseYouLikedCategory(nth_liked=0, distance_metric=distance_metric), 20),
+        (categories.GenreCategory(nth_genre=5, needs_diversity=True, min_items=2), None),
+        (categories.BecauseYouLikedCategory(nth_liked=1, distance_metric=distance_metric), 20),
+        (categories.GenreCategory(nth_genre=6, needs_diversity=True, min_items=2), None),
+        (categories.BecauseYouLikedCategory(nth_liked=2, distance_metric=distance_metric), 20),
+    ]
+
+    return {"minimal": minimal, "standard": standard, "full": full}
 
 
 def build_recommender(providername):

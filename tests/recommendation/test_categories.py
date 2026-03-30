@@ -181,7 +181,7 @@ def test_hidden_gems_category():
 
 
 def test_top_movies_category():
-    cat = categories.TopMoviesCategory()
+    cat = categories.MovieNightCategory()
 
     recommendations = pl.DataFrame(
         {
@@ -200,6 +200,28 @@ def test_top_movies_category():
 
     result = recommendations.filter(mask).sort(**sorting_info)
     assert result["title"].to_list() == ["Test 1", "Test 5"]
+
+
+def test_all_movies_category():
+    cat = categories.AllMoviesCategory()
+
+    recommendations = pl.DataFrame(
+        {
+            "title": ["Movie A", "TV Show", "Movie B", "Movie C"],
+            "format": ["MOVIE", "TV", "MOVIE", "MOVIE"],
+            "user_status": [None, None, "COMPLETED", None],
+            "discovery_score": [0.8, 0.9, 0.7, 0.6],
+        }
+    )
+
+    data = RecommendationModel(None, None, None)
+    data.recommendations = recommendations
+
+    mask, sorting_info = cat.categorize(data)
+
+    result = recommendations.filter(mask).sort(**sorting_info)
+    # Includes all movies except completed, sorted by discovery_score
+    assert result["title"].to_list() == ["Movie A", "Movie C"]
 
 
 def test_top_upcoming_category(mocker):
@@ -466,6 +488,46 @@ def test_genre_category_can_cache_values():
     assert cat.description == "Action"
 
 
+def test_ranking_orchestrator_selects_layout_by_data_volume():
+    minimal_cat = categories.MostPopularCategory()
+    standard_cat = categories.YourTopPicksCategory()
+    full_cat = categories.StudioCategory()
+
+    layouts = {
+        "minimal": [(minimal_cat, None)],
+        "standard": [(standard_cat, None)],
+        "full": [(full_cat, None)],
+    }
+
+    orchestrator = RankingOrchestrator(layouts)
+
+    # <20 items = minimal
+    assert orchestrator.select_layout(10) == layouts["minimal"]
+    # 20-100 = standard
+    assert orchestrator.select_layout(50) == layouts["standard"]
+    # >100 = full
+    assert orchestrator.select_layout(200) == layouts["full"]
+
+
+def test_ranking_orchestrator_skips_categories_below_min_items():
+    class HighMinCategory(categories.AbstractCategory):
+        description = "Needs Many"
+
+        def __init__(self):
+            super().__init__(min_items=5)
+
+        def categorize(self, dataset):
+            return True, {"by": "discovery_score", "descending": True}
+
+    orchestrator = RankingOrchestrator([(HighMinCategory(), None)])
+
+    data = RecommendationModel(None, None, None)
+    data.recommendations = pl.DataFrame({"id": [1, 2, 3], "discovery_score": [0.9, 0.8, 0.7]})
+
+    result = orchestrator.render(data)
+    assert len(result) == 0  # 3 items < min_items=5, skipped
+
+
 def test_ranking_orchestrator_diversity_adjustment_empty_list():
     orchestrator = RankingOrchestrator([])
     result = orchestrator.adjust_by_diversity([], top_n=5)
@@ -517,12 +579,12 @@ def test_ranking_orchestrator_render_with_diversity_adjusted_categories():
 
     recommendations = pl.DataFrame(
         {
-            "id": [1, 2, 3, 4],
-            "title": ["Action 1", "Action 2", "Drama 1", "Comedy 1"],
-            "genres": [["Action"], ["Action"], ["Drama"], ["Comedy"]],
-            "features": [["Action"], ["Action"], ["Drama"], ["Comedy"]],
-            "discovery_score": [2.0, 1.9, 1.8, 1.7],
-            "user_status": [None, None, None, None],
+            "id": [1, 2, 3, 4, 5, 6],
+            "title": ["A1", "A2", "A3", "D1", "D2", "C1"],
+            "genres": [["Action"], ["Action"], ["Action"], ["Drama"], ["Drama"], ["Comedy"]],
+            "features": [["Action"], ["Action"], ["Action"], ["Drama"], ["Drama"], ["Comedy"]],
+            "discovery_score": [2.0, 1.9, 1.8, 1.7, 1.6, 1.5],
+            "user_status": [None, None, None, None, None, None],
         }
     )
 
@@ -532,8 +594,8 @@ def test_ranking_orchestrator_render_with_diversity_adjusted_categories():
 
     # Create genre categories that will be diversity-adjusted
     # GenreCategory picks genre by correlation score
-    genre_cat_1 = categories.GenreCategory(0)  # First genre
-    genre_cat_2 = categories.GenreCategory(0)  # Same genre again
+    genre_cat_1 = categories.GenreCategory(nth_genre=0, needs_diversity=True)
+    genre_cat_2 = categories.GenreCategory(nth_genre=0, needs_diversity=True)
 
     orchestrator = RankingOrchestrator([(genre_cat_1, None), (genre_cat_2, None)])
     result = orchestrator.render(data)

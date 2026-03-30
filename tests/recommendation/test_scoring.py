@@ -190,6 +190,34 @@ def test_cluster_similarity_scorer_weighted():
     assert not recommendations["discovery_score"].is_null().any()
 
 
+def test_cluster_similarity_scorer_single_member_clusters():
+    """When each cluster has one member, there are no intra-cluster pairs for cohesion."""
+    source_df = pl.DataFrame(
+        {
+            "id": [1, 2],
+            "features": [["Action"], ["Drama"]],
+            "score": [8, 9],
+            "cluster": [0, 1],
+        },
+    )
+
+    target_df = pl.DataFrame({"id": [3], "features": [["Action"]]})
+
+    scorer = scoring.ClusterSimilarityScorer()
+    uprofile = UserProfile("Test", source_df)
+    data = RecommendationModel(uprofile, target_df)
+
+    data.similarity_matrix = pl.DataFrame({"3": [0.8, 0.2], "id": [1, 2]})
+
+    full_matrix = pl.DataFrame({"3": [0.8, 0.2], "1": [1.0, 0.3], "2": [0.3, 1.0], "id": [1, 2]})
+    data.get_similarity_matrix = lambda filtered=True, transposed=False: (
+        data.similarity_matrix if filtered else full_matrix
+    )
+
+    result = scorer.score(data)
+    assert len(result.score) == 1
+
+
 def test_studio_correlation_scorer():
     source_df = pl.DataFrame(
         {
@@ -313,6 +341,35 @@ def test_continuation_scorer_null_predecessor_score():
     assert result.score[0] > 0  # Not zero — uses mean score fallback
     assert result.score[1] == 0  # No predecessor match
     assert result.score[3] == 0  # No continuation
+
+
+def test_continuation_scorer_dropped_sequel_caps_strength():
+    """If S2 was dropped, S3's continuation strength should be capped even if S1 was loved."""
+    compare = pl.DataFrame(
+        {
+            "id": [1, 2],
+            "title": ["Show S1", "Show S2"],
+            "user_status": ["COMPLETED", "DROPPED"],
+            "score": [9, 3],
+        }
+    )
+
+    original = pl.DataFrame(
+        {
+            "id": [3, 4],
+            "title": ["Show S3", "Other Show"],
+            "continuation_to": [[1, 2], []],
+        }
+    )
+
+    scorer = scoring.ContinuationScorer()
+    uprofile = UserProfile("Test", compare)
+    result = scorer.score(RecommendationModel(uprofile, original))
+
+    # S3 has predecessors S1 (completed, 9) and S2 (dropped, 3)
+    # Drop should cap the strength despite S1 being great
+    assert result.score[0] <= scorer.DROP_CAP
+    assert result.score[1] == 0  # No continuation
 
 
 def test_continuation_scorer_takes_max_of_duplicate_relations():

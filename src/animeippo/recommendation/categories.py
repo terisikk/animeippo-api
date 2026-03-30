@@ -17,7 +17,9 @@ def substantial_format_filter():
 
 
 class AbstractCategory(abc.ABC):
-    needs_diversity = False
+    def __init__(self, *, needs_diversity=False, min_items=1):
+        self.needs_diversity = needs_diversity
+        self.min_items = min_items
 
     @abc.abstractmethod
     def categorize(self, dataset):
@@ -185,9 +187,9 @@ class StudioCategory(AbstractCategory):
 
 class GenreCategory(AbstractCategory):
     description = "Genre"
-    needs_diversity = True
 
-    def __init__(self, nth_genre=0):
+    def __init__(self, nth_genre=0, **kwargs):
+        super().__init__(**kwargs)
         self.nth_genre = nth_genre
 
     def categorize(self, dataset):
@@ -250,8 +252,8 @@ class HiddenGemsCategory(AbstractCategory):
         return mask, sorting
 
 
-class TopMoviesCategory(AbstractCategory):
-    description = "Top Movies for You"
+class MovieNightCategory(AbstractCategory):
+    description = "Movie Night"
 
     def categorize(self, dataset):
         mask = (
@@ -259,6 +261,17 @@ class TopMoviesCategory(AbstractCategory):
             & (pl.col("user_status").ne_missing("COMPLETED"))
             & (pl.col("status").is_in(["RELEASING", "FINISHED"]))
         )
+
+        sorting = {"by": "discovery_score", "descending": True}
+
+        return mask, sorting
+
+
+class AllMoviesCategory(AbstractCategory):
+    description = "All Movies"
+
+    def categorize(self, dataset):
+        mask = (pl.col("format") == "MOVIE") & (pl.col("user_status").ne_missing("COMPLETED"))
 
         sorting = {"by": "discovery_score", "descending": True}
 
@@ -316,7 +329,8 @@ class TopUpcomingCategory(AbstractCategory):
 class BecauseYouLikedCategory(AbstractCategory):
     description = "Because You Liked X"
 
-    def __init__(self, nth_liked, distance_metric="jaccard"):
+    def __init__(self, nth_liked, distance_metric="cosine", **kwargs):
+        super().__init__(**kwargs)
         self.nth_liked = nth_liked
         self.distance_metric = distance_metric
 

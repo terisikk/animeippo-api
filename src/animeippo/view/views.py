@@ -28,9 +28,6 @@ def recommendations_web_view(dataframe, categories=None, tags_and_genres=None, d
         "season_year",
         "season",
         "discovery_score",
-        "overall_confidence",
-        "continuationscore",
-        "continuationscore_confidence",
         "user_status",
         "format",
     ]
@@ -38,6 +35,8 @@ def recommendations_web_view(dataframe, categories=None, tags_and_genres=None, d
     # In debug mode, include all scorer columns
     if debug:
         scorer_fields = [
+            "overall_confidence",
+            "continuationscore",
             "directscore",
             "featurecorrelationscore",
             "clusterscore",

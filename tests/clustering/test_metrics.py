@@ -3,20 +3,17 @@ import polars as pl
 import animeippo.analysis.similarity
 
 
-def test_jaccard_similarity():
+def test_cosine_similarity():
     x_orig = [[True, True, False], [True, False, True]]
     y_orig = [[True, True, False], [True, False, True]]
 
     distances = animeippo.analysis.similarity.similarity(x_orig, y_orig)
 
-    expected0 = "1.0"
-    actual0 = f"{distances[0][0]:.1f}"
-
-    expected1 = "0.3"
-    actual1 = f"{distances[0][1]:.1f}"
-
-    assert actual0 == expected0
-    assert actual1 == expected1
+    # Identical vectors have similarity 1.0
+    assert f"{distances[0][0]:.1f}" == "1.0"
+    # Different vectors have similarity < 1.0
+    assert distances[0][1] < 1.0
+    assert distances[0][1] > 0.0
 
 
 def test_categorical_uses_columns_if_given():

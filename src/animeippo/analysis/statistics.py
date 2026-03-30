@@ -93,6 +93,17 @@ def mean_score_default(compare_df, default=0):
     return mean_score
 
 
+def bounded_rating_modifier(score_col, default_score=5.0):
+    """Rating as a 0.5-1.0 modifier so it influences but doesn't dominate similarity."""
+    return 0.5 + 0.5 * score_col.fill_null(default_score).cast(pl.Float64) / 10.0
+
+
+def weighted_top_k(values, weights):
+    """Weighted average of the top-k values using pre-defined decay weights."""
+    active_weights = weights[: len(values)]
+    return sum(v * w for v, w in zip(values, active_weights, strict=False)) / sum(active_weights)
+
+
 def calculate_residuals(contingency_table, expected):
     return ((contingency_table - expected) * np.abs(contingency_table - expected)) / np.sqrt(
         expected

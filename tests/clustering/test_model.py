@@ -5,23 +5,14 @@ from animeippo.clustering import model
 
 
 def test_clustering():
-    ml = model.AnimeClustering(distance_threshold=0.33)
-
-    series = pl.DataFrame({"encoded": [{"a": 0, "b": 1, "c": 2}, {"a": 1, "b": 2, "c": 3}]})
-    clusters = ml.cluster_by_features(series)
-
-    assert clusters.tolist() == [1, 0]
-
-
-def test_clustering_with_cosine():
-    ml = model.AnimeClustering(distance_metric="cosine")
+    ml = model.AnimeClustering(distance_threshold=0.5)
 
     series = pl.DataFrame(
         {"encoded": [{"a": 0, "b": 0, "c": 0}, {"a": 1, "b": 2, "c": 3}, {"a": 1, "b": 2, "c": 3}]}
     )
     clusters = ml.cluster_by_features(series)
 
-    # Zero-vectors get cluster -1
+    # Zero-vectors get cluster -1, similar items cluster together
     assert clusters.tolist() == [-1, 0, 0]
 
 

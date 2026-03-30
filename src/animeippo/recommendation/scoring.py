@@ -183,10 +183,9 @@ class StudioCorrelationScorer(AbstractScorer):
             data.seasonal_explode_cached("studios"), "studios", weights, median
         )
 
-        user_studios = set(weights["name"].to_list())
         studio_match_count = (
             data.seasonal["studios"]
-            .list.eval(pl.element().is_in(list(user_studios)).sum())
+            .list.eval(pl.element().is_in(weights["name"].to_list()).sum())
             .list.first()
             .fill_null(0)
         )
@@ -209,7 +208,8 @@ class ClusterSimilarityScorer(AbstractScorer):
 
         # Per-cluster mean similarity to each candidate, with bounded rating modifier
         cluster_sims = (
-            sim_matrix.join(compare_df.select("id", "cluster", "score"), how="left", on="id")
+            sim_matrix.with_columns(pl.exclude("id").fill_nan(0.0))
+            .join(compare_df.select("id", "cluster", "score"), how="left", on="id")
             .group_by("cluster", maintain_order=True)
             .agg(
                 pl.exclude("cluster", "id", "score").mean(),
@@ -227,12 +227,13 @@ class ClusterSimilarityScorer(AbstractScorer):
         # For each candidate, pick top-N clusters and aggregate with decay
         cluster_only = cluster_sims.select(pl.exclude("cluster"))
 
-        scores = []
-        for col in candidate_cols:
-            top_vals = cluster_only[col].sort(descending=True).head(self.TOP_N).to_list()
-            weights = self.DECAY_WEIGHTS[: len(top_vals)]
-            score = sum(v * w for v, w in zip(top_vals, weights, strict=False)) / sum(weights)
-            scores.append(score)
+        scores = [
+            statistics.weighted_top_k(
+                cluster_only[col].sort(descending=True).head(self.TOP_N).to_list(),
+                self.DECAY_WEIGHTS,
+            )
+            for col in candidate_cols
+        ]
 
         score_series = pl.Series(scores)
 
@@ -248,38 +249,43 @@ class ClusterSimilarityScorer(AbstractScorer):
         watchlist = data.watchlist
 
         candidate_cols = [c for c in sim_matrix.columns if c != "id"]
-        watchlist_ids = sim_matrix["id"].cast(pl.Utf8).to_list()
+        watchlist_ids = set(sim_matrix["id"].cast(pl.Utf8).to_list())
 
-        # Only use watchlist-to-watchlist similarities
         intra_cols = [c for c in candidate_cols if c in watchlist_ids]
         if not intra_cols:
             return 1.0
 
-        cluster_map = dict(
-            zip(
-                watchlist["id"].to_list(),
-                watchlist["cluster"].to_list(),
-                strict=False,
+        cluster_series = watchlist.select("id", "cluster")
+
+        long = (
+            sim_matrix.select("id", *intra_cols)
+            .unpivot(index="id", on=intra_cols, variable_name="col_id", value_name="similarity")
+            .filter(pl.col("id").cast(pl.Utf8) != pl.col("col_id"))
+            .join(cluster_series, on="id", how="left")
+            .join(
+                cluster_series.rename({"id": "col_id_int", "cluster": "col_cluster"}),
+                left_on=pl.col("col_id").cast(pl.UInt32),
+                right_on="col_id_int",
+                how="left",
             )
+            .filter(pl.col("cluster") == pl.col("col_cluster"))
         )
 
-        # For each row, compute mean similarity to same-cluster members
-        cohesions = []
-        for row in sim_matrix.iter_rows(named=True):
-            row_cluster = cluster_map.get(row["id"])
-            same_cluster = [
-                row[c]
-                for c in intra_cols
-                if cluster_map.get(int(c)) == row_cluster and c != str(row["id"])
-            ]
-            cohesions.append(sum(same_cluster) / len(same_cluster) if same_cluster else 0.5)
+        if len(long) == 0:
+            return 0.5
 
-        mean_cohesion = sum(cohesions) / len(cohesions) if cohesions else 0.5
+        mean_cohesion = long["similarity"].mean()
 
         return min(mean_cohesion / 0.5, 1.0)
 
 
 class DirectSimilarityScorer(AbstractScorer):
+    """Score candidates by structural resemblance to specific watched items.
+
+    Uses top-K matches with geometric decay. Dropped/paused shows contribute
+    negative signal. Zero-overlap candidates get zero score and zero confidence.
+    """
+
     name = "directscore"
 
     TOP_K = 5
@@ -291,65 +297,76 @@ class DirectSimilarityScorer(AbstractScorer):
         compare_df = data.watchlist
         user_mean = statistics.mean_score_default(compare_df, 5.0)
 
-        sim_matrix = data.get_similarity_matrix(filtered=True)
-        candidate_cols = [c for c in sim_matrix.columns if c != "id"]
-
-        # Melt to long format: (watchlist_id, candidate_id, similarity)
-        long = sim_matrix.unpivot(
-            index="id", on=candidate_cols, variable_name="candidate_id", value_name="similarity"
-        )
-
-        # Join watchlist data for rating modifier
-        long = long.join(compare_df.select("id", "score", "user_status"), on="id", how="left")
-
-        # Compute match score with bounded rating modifier and drop penalty
-        long = long.with_columns(
-            rating_mod=pl.when(pl.col("user_status").is_in(["DROPPED", "PAUSED"]))
-            .then(-self.DROP_PENALTY)
-            .otherwise(0.5 + 0.5 * pl.col("score").fill_null(user_mean).cast(pl.Float64) / 10.0),
-            # Replace NaN similarities (zero overlap) with null for proper handling
-            similarity=pl.col("similarity").fill_nan(None),
-        ).with_columns(
-            match_score=pl.col("similarity").fill_null(0.0) * pl.col("rating_mod"),
-        )
-
-        # Rank matches per candidate and take top-K
-        ranked = long.with_columns(
-            rank=pl.col("similarity").rank(method="ordinal", descending=True).over("candidate_id")
-        ).filter(pl.col("rank") <= self.TOP_K)
-
-        # Apply geometric decay weights and aggregate
-        scores_df = (
-            ranked.sort(["candidate_id", "rank"])
-            .with_columns(
-                weight=pl.col("rank")
-                .cast(pl.UInt32)
-                .map_elements(
-                    lambda r: self.DECAY_WEIGHTS[r - 1] if r <= len(self.DECAY_WEIGHTS) else 0.0,
-                    return_dtype=pl.Float64,
-                )
-            )
-            .group_by("candidate_id", maintain_order=True)
-            .agg(
-                score=(pl.col("match_score") * pl.col("weight")).sum() / pl.col("weight").sum(),
-                best_sim=pl.col("similarity").max(),
-            )
-        )
-
-        # Restore original candidate order
-        order = pl.DataFrame({"candidate_id": candidate_cols})
-        result = order.join(scores_df, on="candidate_id", how="left").with_columns(
-            pl.col("score").fill_null(0.0),
-            pl.col("best_sim").fill_null(0.0),
-        )
+        long = self.build_match_table(data, compare_df, user_mean)
+        ranked = self.rank_and_weight_matches(long)
+        result = self.aggregate_scores(ranked, data)
 
         score = result["score"].clip(lower_bound=0.0)
 
-        # Confidence: feature richness * match quality
         match_conf = (result["best_sim"] / self.MIN_SIMILARITY_THRESHOLD).clip(upper_bound=1.0)
         confidence = self.feature_confidence(data.seasonal) * match_conf
 
         return ScorerResult(statistics.rank_series(score), confidence)
+
+    def build_match_table(self, data, compare_df, user_mean):
+        """Melt similarity matrix to long format with rating modifiers."""
+        sim_matrix = data.get_similarity_matrix(filtered=True)
+        candidate_cols = [c for c in sim_matrix.columns if c != "id"]
+
+        return (
+            sim_matrix.unpivot(
+                index="id",
+                on=candidate_cols,
+                variable_name="candidate_id",
+                value_name="similarity",
+            )
+            .join(compare_df.select("id", "score", "user_status"), on="id", how="left")
+            .with_columns(
+                similarity=pl.col("similarity").fill_nan(None),
+                rating_mod=pl.when(pl.col("user_status").is_in(["DROPPED", "PAUSED"]))
+                .then(-self.DROP_PENALTY)
+                .otherwise(statistics.bounded_rating_modifier(pl.col("score"), user_mean)),
+            )
+            .with_columns(
+                match_score=pl.col("similarity").fill_null(0.0) * pl.col("rating_mod"),
+            )
+        )
+
+    def rank_and_weight_matches(self, long):
+        """Rank matches per candidate and apply geometric decay weights via join."""
+        weights_df = pl.DataFrame(
+            {
+                "rank": list(range(1, self.TOP_K + 1)),
+                "weight": self.DECAY_WEIGHTS[: self.TOP_K],
+            }
+        ).cast({"rank": pl.UInt32})
+
+        return (
+            long.with_columns(
+                rank=pl.col("similarity")
+                .rank(method="ordinal", descending=True)
+                .over("candidate_id")
+                .cast(pl.UInt32)
+            )
+            .filter(pl.col("rank") <= self.TOP_K)
+            .join(weights_df, on="rank", how="left")
+        )
+
+    def aggregate_scores(self, ranked, data):
+        """Aggregate weighted match scores per candidate, preserving original order."""
+        sim_matrix = data.get_similarity_matrix(filtered=True)
+        candidate_cols = [c for c in sim_matrix.columns if c != "id"]
+
+        scores_df = ranked.group_by("candidate_id", maintain_order=True).agg(
+            score=(pl.col("match_score") * pl.col("weight")).sum() / pl.col("weight").sum(),
+            best_sim=pl.col("similarity").max(),
+        )
+
+        order = pl.DataFrame({"candidate_id": candidate_cols})
+        return order.join(scores_df, on="candidate_id", how="left").with_columns(
+            pl.col("score").fill_null(0.0),
+            pl.col("best_sim").fill_null(0.0),
+        )
 
 
 class PopularityScorer(AbstractScorer):
@@ -375,7 +392,9 @@ class PopularityScorer(AbstractScorer):
         # Hype mode: normalized member count as signal for unrated shows
         hype_score = (popularity / self.MIN_MEMBER_COUNT).clip(upper_bound=1.0)
 
-        rated_confidence = (popularity / self.MIN_MEMBER_COUNT).clip(upper_bound=1.0)
+        rated_confidence = (popularity.log1p() / pl.lit(self.MIN_MEMBER_COUNT).log1p()).clip(
+            upper_bound=1.0
+        )
 
         result = scoring_target_df.select(
             score=pl.when(has_score).then(rated_score).otherwise(hype_score),
@@ -389,6 +408,8 @@ class PopularityScorer(AbstractScorer):
 
 class ContinuationScorer(AbstractScorer):
     name = "continuationscore"
+
+    DROP_CAP = 0.15
 
     def score(self, data):
         scoring_target_df = data.seasonal
@@ -407,20 +428,29 @@ class ContinuationScorer(AbstractScorer):
             )
             .with_columns(
                 predecessor_rating=pl.col("score").fill_null(user_mean).cast(pl.Float64) / 10.0,
-                # Completion status weight
                 completion_weight=pl.col("user_status")
                 .replace_strict(
                     {"COMPLETED": 1.0, "CURRENT": 0.7, "PAUSED": 0.3, "DROPPED": 0.1},
                     default=0.0,
                 )
                 .cast(pl.Float64),
+                was_dropped=pl.col("user_status") == "DROPPED",
             )
             .with_columns(
-                # Strength = how much the user engaged with the predecessor
                 strength=pl.col("predecessor_rating") * pl.col("completion_weight"),
             )
             .group_by("id", maintain_order=True)
-            .agg(pl.col("strength").max())
+            .agg(
+                pl.col("strength").max(),
+                # A dropped sequel overrides earlier positive signal
+                any_dropped=pl.col("was_dropped").any(),
+            )
+            .with_columns(
+                strength=pl.when(pl.col("any_dropped"))
+                .then(pl.col("strength").clip(upper_bound=self.DROP_CAP))
+                .otherwise(pl.col("strength"))
+            )
+            .drop("any_dropped")
         )
 
         score = joined["strength"].fill_null(0.0)

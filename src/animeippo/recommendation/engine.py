@@ -60,10 +60,17 @@ class AnimeRecommendationEngine:
         for scorer in self.engagement_scorers:
             engagement_results[scorer.name] = self.run_scorer(scorer, dataset, n)
 
-        # Add individual scorer columns (raw scores for debug)
+        # Store confidence-adjusted scores so categories sorting by individual
+        # scorers respect data quality (e.g. unknown studio = low confidence = low score)
         scoring_target_df = scoring_target_df.with_columns(
-            **{name: result.score for name, (result, _) in discovery_results.items()},
-            **{name: result.score for name, result in engagement_results.items()},
+            **{
+                name: result.score * result.confidence
+                for name, (result, _) in discovery_results.items()
+            },
+            **{
+                name: result.score * result.confidence
+                for name, result in engagement_results.items()
+            },
         )
 
         # Confidence-weighted blending for discovery score
@@ -98,22 +105,15 @@ class AnimeRecommendationEngine:
             / total_base_weight
         )
 
+        # Fallback uses uniform weights when all confidences are zero
         raw_discovery = (
             pl.when(total_weight > 0)
             .then(pl.sum_horizontal(*ws_names) / total_weight)
-            .otherwise(
-                pl.sum_horizontal(
-                    *(
-                        pl.col(name) * w / total_base_weight
-                        for name, (_, w) in discovery_results.items()
-                    )
-                )
-            )
+            .otherwise(0.0)
         )
 
         scoring_target_df = scoring_target_df.with_columns(
-            # Dampen score when few scorers have data to prevent inflation
-            discovery_score=raw_discovery * overall_confidence,
+            discovery_score=raw_discovery,
             overall_confidence=overall_confidence,
         )
 
