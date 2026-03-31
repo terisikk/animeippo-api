@@ -40,7 +40,7 @@ def get_engagement_scorers():
     ]
 
 
-def get_default_categorizers(distance_metric="cosine"):
+def get_default_categorizers(distance_metric="cosine", tag_lookup=None, genres=None):
     """Get categorizer layouts for different data volumes.
 
     Returns dict of layouts. The orchestrator selects at render time based
@@ -76,6 +76,8 @@ def get_default_categorizers(distance_metric="cosine"):
         (categories.AdaptationCategory(), None),
     ]
 
+    cluster_kwargs = {"tag_lookup": tag_lookup or {}, "genres": genres or set(), "min_items": 3}
+
     full = [
         *debug,
         (categories.TopReleasedPicksCategory(), 3),
@@ -85,22 +87,24 @@ def get_default_categorizers(distance_metric="cosine"):
         (categories.PlanningCategory(), None),
         (categories.MovieNightCategory(), 3),
         (categories.YourTopPicksCategory(), 35),
+        (categories.ClusterCategory(nth_cluster=0, **cluster_kwargs), 20),
+        (categories.BecauseYouLikedCategory(nth_liked=0, distance_metric=distance_metric), 20),
         (categories.MostPopularCategory(), 20),
         (categories.HiddenGemsCategory(), 3),
-        (categories.AllMoviesCategory(), None),
+        (categories.ClusterCategory(nth_cluster=1, **cluster_kwargs), 20),
         (categories.GenreCategory(nth_genre=0, needs_diversity=True, min_items=2), None),
+        (categories.BecauseYouLikedCategory(nth_liked=1, distance_metric=distance_metric), 20),
         (categories.AdaptationCategory(), None),
+        (categories.ClusterCategory(nth_cluster=2, **cluster_kwargs), 20),
         (categories.GenreCategory(nth_genre=1, needs_diversity=True, min_items=2), None),
+        (categories.StudioCategory(), 25),
+        (categories.ClusterCategory(nth_cluster=3, **cluster_kwargs), 20),
         (categories.GenreCategory(nth_genre=2, needs_diversity=True, min_items=2), None),
         (categories.MangaCategory(), 25),
-        (categories.GenreCategory(nth_genre=3, needs_diversity=True, min_items=2), None),
-        (categories.StudioCategory(), 25),
-        (categories.GenreCategory(nth_genre=4, needs_diversity=True, min_items=2), None),
-        (categories.BecauseYouLikedCategory(nth_liked=0, distance_metric=distance_metric), 20),
-        (categories.GenreCategory(nth_genre=5, needs_diversity=True, min_items=2), None),
-        (categories.BecauseYouLikedCategory(nth_liked=1, distance_metric=distance_metric), 20),
-        (categories.GenreCategory(nth_genre=6, needs_diversity=True, min_items=2), None),
         (categories.BecauseYouLikedCategory(nth_liked=2, distance_metric=distance_metric), 20),
+        (categories.ClusterCategory(nth_cluster=4, **cluster_kwargs), 20),
+        (categories.GenreCategory(nth_genre=3, needs_diversity=True, min_items=2), None),
+        (categories.AllMoviesCategory(), None),
     ]
 
     return {"minimal": minimal, "standard": standard, "full": full}
@@ -143,7 +147,13 @@ def build_recommender(providername):
             encoding.WeightedCategoricalEncoder(),
             discovery_scorers=get_discovery_scorers(),
             engagement_scorers=get_engagement_scorers(),
-            ranking_orchestrator=RankingOrchestrator(get_default_categorizers(metric)),
+            ranking_orchestrator=RankingOrchestrator(
+                get_default_categorizers(
+                    distance_metric=metric,
+                    tag_lookup=provider.get_tag_lookup(),
+                    genres=provider.get_genres(),
+                )
+            ),
         ),
         recommendation_model_cls=RecommendationModel,
         profile_model_cls=UserProfile,

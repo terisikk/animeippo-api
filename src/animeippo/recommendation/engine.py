@@ -36,6 +36,7 @@ class AnimeRecommendationEngine:
         )
         recommendations = recommendations.with_columns(
             cluster=predictions["cluster"].cast(pl.UInt32),
+            cluster_similarity=predictions["similarity"],
         )
 
         return recommendations.sort("discovery_score", descending=True)

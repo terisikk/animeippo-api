@@ -209,7 +209,8 @@ class AnimeClustering:
         sim_cols = [c for c in similarities.columns if c != "id"]
 
         return (
-            similarities.join(self.clustered_series.select("id", "cluster"), on="id")
+            similarities.with_columns(pl.col(sim_cols).fill_nan(0.0))
+            .join(self.clustered_series.select("id", "cluster"), on="id")
             .filter(pl.col("cluster") >= 0)
             .group_by("cluster", maintain_order=True)
             .agg(pl.col(sim_cols).mean())

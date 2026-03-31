@@ -3,9 +3,9 @@ import polars as pl
 from animeippo.analysis import encoding, statistics
 from animeippo.clustering import model
 from animeippo.meta.meta import run_coroutine
-from animeippo.profiling.cluster_namer import ClusterNamer
 from animeippo.profiling.model import UserProfile
 from animeippo.providers.util import filter_continuation
+from animeippo.recommendation.cluster_naming import get_cluster_stats, name_all_clusters
 
 
 class ProfileAnalyser:
@@ -57,7 +57,6 @@ class ProfileAnalyser:
     def add_seasonal_recommendations(self, categories, seasonal):
         seasonal = self.filter_seasonal(seasonal)
 
-        # Exclude items already on the user's watchlist
         watchlist_ids = self.profile.watchlist["id"].to_list()
         seasonal = seasonal.filter(~pl.col("id").is_in(watchlist_ids))
 
@@ -68,7 +67,6 @@ class ProfileAnalyser:
             cluster_similarity=predictions["similarity"],
         )
 
-        # Override cluster for continuations — assign to the prequel's cluster
         if "continuation_to" in seasonal.columns:
             seasonal = self.assign_continuations_to_prequel_cluster(seasonal)
 
@@ -128,6 +126,7 @@ class ProfileAnalyser:
         return filter_continuation(seasonal, previously_watched)
 
     def get_categories(self, profile):
+        """Get top genre and tag highlights for the profile page."""
         categories = []
         top_genre_items = []
         top_tag_items = []
@@ -170,27 +169,14 @@ class ProfileAnalyser:
     def get_cluster_categories(self, profile):
         target = profile.watchlist
 
-        gdf = target.explode("features")
-
-        gdf = gdf.filter(~pl.col("features").is_in(self.provider.get_nsfw_tags()))
-
-        namer = ClusterNamer(
+        cluster_names = name_all_clusters(
+            target,
             tag_lookup=self.provider.get_tag_lookup(),
             genres=self.provider.get_genres(),
-        )
-        cluster_names = namer.name_clusters_from_data(gdf, "features", "cluster")
-
-        cluster_stats = target.group_by("cluster").agg(
-            [
-                pl.col("id").count().alias("count"),
-                pl.col("score").mean().alias("mean_score"),
-                (pl.col("user_status") == "COMPLETED").sum().alias("completed_count"),
-            ]
+            nsfw_tags=self.provider.get_nsfw_tags(),
         )
 
-        cluster_stats = cluster_stats.with_columns(
-            completion_rate=(pl.col("completed_count") / pl.col("count") * 100).round(1)
-        ).with_columns(mean_score=pl.col("mean_score").round(1))
+        cluster_stats = get_cluster_stats(target)
 
         clustergroups = target.sort("user_status", "title").group_by(["cluster"])
 

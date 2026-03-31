@@ -666,6 +666,107 @@ def test_ranking_orchestrator_render_skips_empty_categories():
     assert len(result) == 0
 
 
+def test_cluster_category():
+    watchlist = pl.DataFrame(
+        {
+            "id": [1, 2, 3, 4],
+            "features": [["Action", "Fantasy"], ["Action", "Fantasy"], ["Drama"], ["Drama"]],
+            "cluster": [0, 0, 1, 1],
+            "score": [9, 8, 7, 6],
+        }
+    )
+
+    recommendations = pl.DataFrame(
+        {
+            "id": [10, 11, 12, 13],
+            "title": ["Rec A", "Rec B", "Rec C", "Rec D"],
+            "cluster": [0, 0, 1, 1],
+            "cluster_similarity": [0.8, 0.7, 0.6, 0.5],
+            "discovery_score": [0.9, 0.8, 0.7, 0.6],
+        }
+    )
+
+    uprofile = UserProfile("Test", watchlist)
+    data = RecommendationModel(uprofile, None, None)
+    data.recommendations = recommendations
+
+    cat = categories.ClusterCategory(
+        nth_cluster=0,
+        tag_lookup={},
+        genres={"Action", "Fantasy", "Drama"},
+    )
+
+    mask, sorting_info = cat.categorize(data)
+    result = recommendations.filter(mask).sort(**sorting_info)
+
+    # Should show items from the top-ranked cluster
+    assert len(result) > 0
+    assert cat.description != "Cluster"
+
+
+def test_cluster_category_returns_false_when_no_clusters():
+    watchlist = pl.DataFrame({"id": [1], "score": [8]})
+
+    uprofile = UserProfile("Test", watchlist)
+    data = RecommendationModel(uprofile, None, None)
+    data.recommendations = pl.DataFrame({"id": [10], "discovery_score": [0.9]})
+
+    cat = categories.ClusterCategory(nth_cluster=0)
+    mask, _ = cat.categorize(data)
+    assert mask is False
+
+
+def test_cluster_category_without_features():
+    watchlist = pl.DataFrame({"id": [1, 2, 3], "cluster": [0, 0, 0], "score": [8, 9, 7]})
+
+    recommendations = pl.DataFrame(
+        {
+            "id": [10, 11, 12],
+            "cluster": [0, 0, 0],
+            "cluster_similarity": [0.8, 0.7, 0.6],
+            "discovery_score": [0.9, 0.8, 0.7],
+        }
+    )
+
+    uprofile = UserProfile("Test", watchlist)
+    data = RecommendationModel(uprofile, None, None)
+    data.recommendations = recommendations
+
+    cat = categories.ClusterCategory(nth_cluster=0)
+    mask, _ = cat.categorize(data)
+
+    assert mask is not False
+    assert "Cluster" in cat.description
+
+
+def test_cluster_category_returns_false_for_nonexistent_nth():
+    watchlist = pl.DataFrame(
+        {
+            "id": [1, 2],
+            "features": [["Action"], ["Action"]],
+            "cluster": [0, 0],
+            "score": [9, 8],
+        }
+    )
+
+    recommendations = pl.DataFrame(
+        {
+            "id": [10],
+            "cluster": [0],
+            "cluster_similarity": [0.8],
+            "discovery_score": [0.9],
+        }
+    )
+
+    uprofile = UserProfile("Test", watchlist)
+    data = RecommendationModel(uprofile, None, None)
+    data.recommendations = recommendations
+
+    cat = categories.ClusterCategory(nth_cluster=5, tag_lookup={}, genres={"Action"})
+    mask, _ = cat.categorize(data)
+    assert mask is False
+
+
 def test_debug_category_returns_all_recommendations():
     cat = categories.DebugCategory()
 
@@ -690,9 +791,11 @@ def test_planning_category():
 
     recommendations = pl.DataFrame(
         {
-            "title": ["Test 1", "Test 2", "Test 3"],
-            "user_status": [None, "PLANNING", "in_progress"],
-            "discovery_score": [1, 1, 1],
+            "title": ["Not planned", "Summer", "Spring"],
+            "user_status": [None, "PLANNING", "PLANNING"],
+            "season_year": [2026, 2026, 2026],
+            "season": ["SPRING", "SUMMER", "SPRING"],
+            "discovery_score": [1.0, 0.8, 0.9],
         }
     )
 
@@ -702,7 +805,7 @@ def test_planning_category():
     mask, sorting_info = cat.categorize(data)
 
     result = recommendations.filter(mask).sort(**sorting_info)
-    assert result["title"].to_list() == ["Test 2"]
+    assert result["title"].to_list() == ["Spring", "Summer"]
 
 
 def test_compose_two_pool_lane_pins_strong_continuations():

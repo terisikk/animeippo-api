@@ -4,7 +4,7 @@ from animeippo.recommendation import categories, recommender_builder
 
 class CacheStub:
     def is_available(self):
-        return self.is_available
+        return False
 
 
 def test_builder_creation_returns_correct_builders():
@@ -31,6 +31,22 @@ def test_builder_passes_with_or_without_cache(mocker):
     )
 
     mocker.patch("animeippo.cache.RedisCache", CacheStub)
+
+    assert (
+        recommender_builder.build_recommender("anilist").provider.__class__
+        == providers.anilist.AniListProvider
+    )
+
+
+def test_builder_with_available_cache(mocker):
+    class AvailableCacheStub:
+        def is_available(self):
+            return True
+
+        def get_json(self, key):
+            return None
+
+    mocker.patch("animeippo.cache.RedisCache", AvailableCacheStub)
 
     assert (
         recommender_builder.build_recommender("anilist").provider.__class__

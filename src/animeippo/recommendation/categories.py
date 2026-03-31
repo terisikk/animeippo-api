@@ -3,7 +3,7 @@ import abc
 import polars as pl
 
 from ..meta import meta
-from . import scoring
+from . import cluster_naming, scoring
 
 WEAK_FORMATS = ["TV_SHORT", "SPECIAL", "MUSIC", "ONE_SHOT"]
 MIN_EPISODE_DURATION = 10
@@ -406,6 +406,42 @@ class PlanningCategory(AbstractCategory):
 
     def categorize(self, dataset):
         mask = pl.col("user_status") == "PLANNING"
+        sorting = {
+            "by": ["season_year", "season", "discovery_score"],
+            "descending": [False, False, True],
+        }
+
+        return mask, sorting
+
+
+class ClusterCategory(AbstractCategory):
+    """Show seasonal recommendations matching a specific watchlist taste cluster."""
+
+    description = "Cluster"
+
+    def __init__(self, nth_cluster=0, tag_lookup=None, genres=None, **kwargs):
+        super().__init__(**kwargs)
+        self.nth_cluster = nth_cluster
+        self.tag_lookup = tag_lookup or {}
+        self.genres = genres or set()
+
+    def categorize(self, dataset):
+        watchlist = dataset.watchlist
+        recommendations = dataset.recommendations
+
+        if "cluster" not in watchlist.columns or "cluster" not in recommendations.columns:
+            return False, {}
+
+        ranked = cluster_naming.rank_clusters(watchlist, recommendations)
+
+        if self.nth_cluster >= len(ranked):
+            return False, {}
+
+        cluster_id = ranked[self.nth_cluster]["cluster"]
+        names = cluster_naming.name_all_clusters(watchlist, self.tag_lookup, self.genres)
+        self.description = names.get(str(cluster_id), f"Cluster {cluster_id}")
+
+        mask = pl.col("cluster") == cluster_id
         sorting = {"by": "discovery_score", "descending": True}
 
         return mask, sorting
