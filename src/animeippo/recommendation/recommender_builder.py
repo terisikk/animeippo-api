@@ -72,6 +72,7 @@ def get_default_categorizers(distance_metric="cosine", tag_lookup=None, genres=N
         (categories.YourTopPicksCategory(), 35),
         (categories.MostPopularCategory(), 20),
         (categories.HiddenGemsCategory(), 3),
+        (categories.StudioCategory(min_items=2), None),
         (categories.AllMoviesCategory(), None),
         (categories.AdaptationCategory(), None),
     ]
@@ -97,7 +98,7 @@ def get_default_categorizers(distance_metric="cosine", tag_lookup=None, genres=N
         (categories.AdaptationCategory(), None),
         (categories.ClusterCategory(nth_cluster=2, **cluster_kwargs), 20),
         (categories.GenreCategory(nth_genre=1, needs_diversity=True, min_items=2), None),
-        (categories.StudioCategory(), 25),
+        (categories.StudioCategory(min_items=2), None),
         (categories.ClusterCategory(nth_cluster=3, **cluster_kwargs), 20),
         (categories.GenreCategory(nth_genre=2, needs_diversity=True, min_items=2), None),
         (categories.MangaCategory(), 25),

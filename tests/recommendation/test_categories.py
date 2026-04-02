@@ -90,21 +90,67 @@ def test_studio_category():
 
     recommendations = pl.DataFrame(
         {
-            "studiocorrelationscore": [1, 3, 2],
-            "discovery_score": [1, 3, 2],
-            "title": ["Test 1", "Test 2", "Test 3"],
-            "user_status": [None, None, None],
-            "format": ["TV", "TV", "TV"],
+            "id": [1, 2, 3, 4],
+            "studios": [["Bones"], ["Toei"], ["MAPPA"], ["Bones"]],
+            "discovery_score": [3, 5, 1, 2],
+            "title": ["Test 1", "Test 2", "Test 3", "Test 4"],
+            "user_status": [None, None, None, None],
         }
     )
 
-    data = RecommendationModel(None, None, None)
+    uprofile = UserProfile("Test", None)
+    # MAPPA ranked higher than Bones
+    uprofile.studio_correlations = pl.DataFrame({"name": ["MAPPA", "Bones"], "weight": [0.5, 0.3]})
+
+    data = RecommendationModel(uprofile, None, None)
     data.recommendations = recommendations
 
     mask, sorting_info = cat.categorize(data)
 
-    result = recommendations.filter(mask).sort(**sorting_info)
-    assert result["title"].to_list() == ["Test 2", "Test 3", "Test 1"]
+    filtered = recommendations.filter(mask).sort(**sorting_info)
+    # Toei excluded
+    assert len(filtered) == 3
+
+    # get_items sorts by best studio weight then discovery score
+    items = cat.get_items(filtered, top_n=10)
+    id_to_title = dict(
+        zip(recommendations["id"].to_list(), recommendations["title"].to_list(), strict=True)
+    )
+    ordered = [id_to_title[i] for i in items]
+    # MAPPA (0.5) first, then Bones (0.3) by discovery_score
+    assert ordered == ["Test 3", "Test 1", "Test 4"]
+
+    # top_n=None returns all items
+    all_items = cat.get_items(filtered, top_n=None)
+    assert len(all_items) == 3
+
+
+def test_studio_category_returns_false_without_correlations():
+    cat = categories.StudioCategory()
+
+    uprofile = UserProfile("Test", None)
+    uprofile.studio_correlations = None
+    data = RecommendationModel(uprofile, None, None)
+
+    mask, sorting_info = cat.categorize(data)
+
+    assert mask is False
+    assert sorting_info == {}
+
+
+def test_studio_category_returns_false_when_all_weights_zero():
+    cat = categories.StudioCategory()
+
+    uprofile = UserProfile("Test", None)
+    uprofile.studio_correlations = pl.DataFrame(
+        {"name": ["StudioA", "StudioB"], "weight": [0.0, -0.1]}
+    )
+    data = RecommendationModel(uprofile, None, None)
+
+    mask, sorting_info = cat.categorize(data)
+
+    assert mask is False
+    assert sorting_info == {}
 
 
 def test_your_top_picks_category():

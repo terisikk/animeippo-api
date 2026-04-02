@@ -121,12 +121,27 @@ class AnimeClustering:
         if not small_labels or not large_labels:
             return
 
-        large_indices = [np.where(masked_labels == lab)[0] for lab in large_labels]
+        n_points = len(masked_labels)
+        large_arr = np.array(large_labels)
 
-        for small_label in small_labels:
-            small_indices = np.where(masked_labels == small_label)[0]
-            avg_dists = [dist_matrix[np.ix_(small_indices, li)].mean() for li in large_indices]
-            masked_labels[small_indices] = large_labels[np.argmin(avg_dists)]
+        # Build normalized mask matrices: one row per cluster, normalized by size
+        small_masks = np.zeros((len(small_labels), n_points))
+        large_masks = np.zeros((len(large_labels), n_points))
+
+        for i, lab in enumerate(small_labels):
+            idx = masked_labels == lab
+            small_masks[i, idx] = 1.0 / idx.sum()
+
+        for i, lab in enumerate(large_labels):
+            idx = masked_labels == lab
+            large_masks[i, idx] = 1.0 / idx.sum()
+
+        # (n_small, n_large) mean distance matrix in two matmuls
+        mean_dists = small_masks @ dist_matrix @ large_masks.T
+        nearest = large_arr[mean_dists.argmin(axis=1)]
+
+        for i, small_label in enumerate(small_labels):
+            masked_labels[masked_labels == small_label] = nearest[i]
 
         clusters[mask] = masked_labels
 

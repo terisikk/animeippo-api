@@ -3,7 +3,7 @@ import abc
 import polars as pl
 
 from ..meta import meta
-from . import cluster_naming, scoring
+from . import scoring
 
 WEAK_FORMATS = ["TV_SHORT", "SPECIAL", "MUSIC", "ONE_SHOT"]
 MIN_EPISODE_DURATION = 10
@@ -169,20 +169,68 @@ class MangaCategory(AbstractCategory):
 class StudioCategory(AbstractCategory):
     description = "From Your Favourite Studios"
 
+    TOP_N_STUDIOS = 8
+
     def categorize(self, dataset):
-        mask = pl.col("user_status").is_null()
+        studio_correlations = dataset.user_profile.studio_correlations
 
-        by = [
-            scoring.StudioCorrelationScorer.name,
-            pl.col("format"),
-            "discovery_score",
-        ]
-        descending = [True, False, True]
+        if studio_correlations is None or len(studio_correlations) == 0:
+            return False, {}
 
-        return mask, {
-            "by": by,
-            "descending": descending,
-        }
+        top_studios = (
+            studio_correlations.head(self.TOP_N_STUDIOS)
+            .filter(pl.col("weight") > 0)["name"]
+            .to_list()
+        )
+
+        if not top_studios:
+            return False, {}
+
+        self.studio_weights = dict(
+            zip(
+                studio_correlations.head(self.TOP_N_STUDIOS)
+                .filter(pl.col("weight") > 0)["name"]
+                .to_list(),
+                studio_correlations.head(self.TOP_N_STUDIOS)
+                .filter(pl.col("weight") > 0)["weight"]
+                .to_list(),
+                strict=True,
+            )
+        )
+
+        mask = (
+            ~(pl.col("user_status").is_in(["COMPLETED", "DROPPED"]))
+            | (pl.col("user_status").is_null())
+        ) & (pl.col("studios").list.set_intersection(top_studios).list.len() > 0)
+
+        sorting = {"by": "discovery_score", "descending": True}
+
+        return mask, sorting
+
+    def get_items(self, df, top_n):
+        """Sort by best matching studio weight, then discovery score."""
+        weights_df = pl.DataFrame(
+            {
+                "studios": list(self.studio_weights.keys()),
+                "studio_weight": list(self.studio_weights.values()),
+            }
+        )
+
+        result = (
+            df.explode("studios")
+            .join(weights_df, on="studios", how="left")
+            .group_by("id", maintain_order=True)
+            .agg(
+                pl.exclude("studios", "studio_weight").first(),
+                pl.col("studio_weight").max().alias("_best_studio_weight"),
+            )
+            .sort("_best_studio_weight", "discovery_score", descending=True)
+        )
+
+        if top_n:
+            result = result.head(top_n)
+
+        return result["id"].to_list()
 
 
 class GenreCategory(AbstractCategory):
@@ -432,13 +480,13 @@ class ClusterCategory(AbstractCategory):
         if "cluster" not in watchlist.columns or "cluster" not in recommendations.columns:
             return False, {}
 
-        ranked = cluster_naming.rank_clusters(watchlist, recommendations)
+        ranked = dataset.get_cluster_rankings()
 
         if self.nth_cluster >= len(ranked):
             return False, {}
 
         cluster_id = ranked[self.nth_cluster]["cluster"]
-        names = cluster_naming.name_all_clusters(watchlist, self.tag_lookup, self.genres)
+        names = dataset.get_cluster_names(self.tag_lookup, self.genres)
         self.description = names.get(str(cluster_id), f"Cluster {cluster_id}")
 
         mask = pl.col("cluster") == cluster_id

@@ -171,9 +171,10 @@ def test_categorize():
         ranking_orchestrator=RankingOrchestrator(categorizers_with_limits),
     )
 
-    data = RecommendationModel(
-        UserProfile("Test", pl.DataFrame(test_data.FORMATTED_MAL_USER_LIST)), None, None
-    )
+    uprofile = UserProfile("Test", pl.DataFrame(test_data.FORMATTED_MAL_USER_LIST))
+    uprofile.studio_correlations = pl.DataFrame({"name": ["Test Studio 1"], "weight": [0.5]})
+
+    data = RecommendationModel(uprofile, None, None)
 
     data.recommendations = pl.DataFrame(
         {
@@ -183,6 +184,7 @@ def test_categorize():
             "directscore": [4],
             "clusterscore": [5],
             "studiocorrelationscore": [6],
+            "studios": [["Test Studio 1"]],
             "cluster": [1],
             "features": [["test"]],
             "source": ["ORIGINAL"],

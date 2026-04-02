@@ -4,6 +4,7 @@ import polars as pl
 
 from ..analysis import similarity
 from ..providers.util import filter_continuation
+from ..recommendation import cluster_naming
 
 
 class RecommendationModel:
@@ -20,6 +21,8 @@ class RecommendationModel:
         self.all_features = features
         self.nsfw_tags = []
         self.similarity_matrix = None
+        self._cluster_names = None
+        self._cluster_rankings = None
 
     def validate(self):
         is_missing_seasonal = self.seasonal is None
@@ -102,6 +105,20 @@ class RecommendationModel:
 
     def get_similarity_matrix(self, filtered=False, transposed=False):
         return get_similarity_matrix(self, filtered, transposed)
+
+    def get_cluster_names(self, tag_lookup, genres):
+        if self._cluster_names is None:
+            self._cluster_names = cluster_naming.name_all_clusters(
+                self.watchlist, tag_lookup, genres
+            )
+        return self._cluster_names
+
+    def get_cluster_rankings(self):
+        if self._cluster_rankings is None:
+            self._cluster_rankings = cluster_naming.rank_clusters(
+                self.watchlist, self.recommendations
+            )
+        return self._cluster_rankings
 
 
 # These are here to avoid memory leaks with lru_cached methods,
