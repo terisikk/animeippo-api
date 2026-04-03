@@ -72,6 +72,7 @@ def test_manga_category():
             "source": ["MANGA", "MANGA", "LIGHT_NOVEL"],
             "user_status": [None, None, None],
             "format": ["TV", "TV", "TV"],
+            "duration": [24, 24, 24],
         }
     )
 
@@ -205,13 +206,14 @@ def test_hidden_gems_category():
 
     recommendations = pl.DataFrame(
         {
-            "title": ["Test 1", "Test 2", "Test 3", "Test 4", "Test 5"],
-            "status": ["FINISHED", "RELEASING", "FINISHED", "FINISHED", "FINISHED"],
-            "user_status": [None, None, None, "COMPLETED", None],
-            "format": ["TV", "TV", "OVA", "TV", "MOVIE"],
-            "discovery_score": [8.0, 7.0, 6.0, 9.0, 10.0],
-            "popularity": [100, 50000, 500, 200, 10],
-            "continuationscore": [0, 0, 0, 0, 0],
+            "title": ["Test 1", "Test 2", "Test 3", "Test 4", "Test 5", "Test 6"],
+            "status": ["FINISHED", "RELEASING", "FINISHED", "FINISHED", "FINISHED", "FINISHED"],
+            "user_status": [None, None, None, "COMPLETED", None, None],
+            "format": ["TV", "TV", "OVA", "TV", "MOVIE", "TV_SHORT"],
+            "duration": [24, 24, 30, 24, 90, 5],
+            "discovery_score": [8.0, 7.0, 6.0, 9.0, 10.0, 5.0],
+            "popularity": [100, 50000, 500, 200, 10, 300],
+            "continuationscore": [0, 0, 0, 0, 0, 0],
         }
     )
 
@@ -220,7 +222,8 @@ def test_hidden_gems_category():
 
     mask, sorting_info = cat.categorize(data)
 
-    # Test 4 excluded (COMPLETED), Test 5 excluded (MOVIE)
+    # Test 4 excluded (COMPLETED), Test 5 excluded (MOVIE),
+    # Test 6 excluded (TV_SHORT, duration < 10)
     # Remaining sorted by discovery_score * (1 - 0.5 * pop_rank)
     result = recommendations.filter(mask).sort(**sorting_info)
     assert result["title"].to_list() == ["Test 1", "Test 3", "Test 2"]

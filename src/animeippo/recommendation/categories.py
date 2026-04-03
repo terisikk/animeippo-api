@@ -127,10 +127,7 @@ class ContinueWatchingCategory(AbstractCategory):
             & (pl.col("user_status").ne_missing("COMPLETED"))
         ) | (pl.col("user_status") == "PAUSED")
 
-        by = [pl.col("format"), "discovery_score"]
-        descending = [False, True]
-
-        sorting = {"by": by, "descending": descending}
+        sorting = {"by": "discovery_score", "descending": True}
 
         return mask, sorting
 
@@ -143,10 +140,7 @@ class AdaptationCategory(AbstractCategory):
             pl.col("user_status").ne_missing("COMPLETED")
         )
 
-        by = [pl.col("format"), scoring.AdaptationScorer.name]
-        descending = [False, True]
-
-        sorting = {"by": by, "descending": descending}
+        sorting = {"by": scoring.AdaptationScorer.name, "descending": True}
 
         return mask, sorting
 
@@ -158,7 +152,7 @@ class MangaCategory(AbstractCategory):
         mask = (
             (pl.col("user_status").is_null())
             & (pl.col("source") == "MANGA")
-            & (pl.col("format").is_in(["TV", "MOVIE"]))
+            & substantial_format_filter()
         )
 
         sorting = {"by": "discovery_score", "descending": True}
@@ -286,7 +280,8 @@ class HiddenGemsCategory(AbstractCategory):
             (pl.col("user_status").is_null() | (pl.col("user_status") == "PLANNING"))
             & (pl.col(scoring.ContinuationScorer.name) == 0)
             & (pl.col("status").is_in(["RELEASING", "FINISHED"]))
-            & (pl.col("format").is_in(["TV", "OVA"]))
+            & (pl.col("format") != "MOVIE")
+            & substantial_format_filter()
         )
 
         sorting = {
@@ -490,7 +485,10 @@ class ClusterCategory(AbstractCategory):
         self.description = names.get(str(cluster_id), f"Cluster {cluster_id}")
 
         mask = pl.col("cluster") == cluster_id
-        sorting = {"by": "discovery_score", "descending": True}
+        sorting = {
+            "by": pl.col("discovery_score") * 0.5 + pl.col("cluster_similarity") * 0.5,
+            "descending": True,
+        }
 
         return mask, sorting
 
