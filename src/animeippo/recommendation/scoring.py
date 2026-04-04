@@ -213,14 +213,9 @@ class ClusterSimilarityScorer(AbstractScorer):
             .group_by("cluster", maintain_order=True)
             .agg(
                 pl.exclude("cluster", "id", "score").mean(),
-                rating=pl.col("score").mean().fill_null(5.0) / 10.0,
+                rating=statistics.bounded_rating_modifier(pl.col("score").mean()),
             )
-            .with_columns(
-                *(
-                    (pl.col(col) * (0.5 + 0.5 * pl.col("rating"))).alias(col)
-                    for col in candidate_cols
-                )
-            )
+            .with_columns(*((pl.col(col) * pl.col("rating")).alias(col) for col in candidate_cols))
             .drop("rating")
         )
 
@@ -410,6 +405,7 @@ class ContinuationScorer(AbstractScorer):
     name = "continuationscore"
 
     DROP_CAP = 0.15
+    SUMMARY_FACTOR = 0.3
 
     def score(self, data):
         scoring_target_df = data.seasonal
@@ -454,6 +450,13 @@ class ContinuationScorer(AbstractScorer):
         )
 
         score = joined["strength"].fill_null(0.0)
+
+        if "is_summary" in scoring_target_df.columns:
+            summary_mask = scoring_target_df["is_summary"]
+            score = pl.select(
+                pl.when(summary_mask).then(score * self.SUMMARY_FACTOR).otherwise(score)
+            ).to_series()
+
         confidence = score
 
         return ScorerResult(score, confidence)

@@ -61,6 +61,9 @@ ANI_SEASONAL_SCHEMA = {
     Columns.SEASON: Season,
     # Columns.DIRECTOR: pl.List(pl.UInt32),
     Columns.USER_COMPLETE_DATE: pl.Date,
+    Columns.FRANCHISE_RELATIONS: pl.List(
+        pl.Struct({"related_id": pl.UInt32, "relation_type": pl.Utf8})
+    ),
 }
 
 ANI_MANGA_SCHEMA = {

@@ -55,6 +55,51 @@ def test_features_can_be_extracted_from_ranks():
     assert dset.all_features is not None
 
 
+def test_build_relation_context_tags_summaries():
+    watchlist = pl.DataFrame(
+        {
+            "id": [1, 2],
+            "franchise_relations": [
+                [
+                    {"related_id": 10, "relation_type": "SUMMARY"},
+                    {"related_id": 11, "relation_type": "SEQUEL"},
+                ],
+                [{"related_id": 12, "relation_type": "COMPILATION"}],
+            ],
+        },
+        schema={
+            "id": pl.UInt32,
+            "franchise_relations": pl.List(
+                pl.Struct({"related_id": pl.UInt32, "relation_type": pl.Utf8})
+            ),
+        },
+    )
+    seasonal = pl.DataFrame({"id": pl.Series([10, 11, 12, 13], dtype=pl.UInt32)})
+
+    dset = model.RecommendationModel(None, seasonal)
+    dset.watchlist = watchlist
+    dset.build_relation_context()
+
+    result = dict(
+        zip(dset.seasonal["id"].to_list(), dset.seasonal["is_summary"].to_list(), strict=True)
+    )
+    assert result[10] is True  # SUMMARY
+    assert result[11] is False  # SEQUEL
+    assert result[12] is True  # COMPILATION
+    assert result[13] is False  # not related
+
+
+def test_build_relation_context_handles_missing_column():
+    watchlist = pl.DataFrame({"id": [1, 2]})
+    seasonal = pl.DataFrame({"id": pl.Series([10], dtype=pl.UInt32)})
+
+    dset = model.RecommendationModel(None, seasonal)
+    dset.watchlist = watchlist
+    dset.build_relation_context()
+
+    assert dset.seasonal["is_summary"].to_list() == [False]
+
+
 def test_cluster_names_and_rankings_are_cached():
     watchlist = pl.DataFrame(
         {

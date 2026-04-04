@@ -8,12 +8,20 @@ from . import scoring
 WEAK_FORMATS = ["TV_SHORT", "SPECIAL", "MUSIC", "ONE_SHOT"]
 MIN_EPISODE_DURATION = 10
 
+CONTINUATION_THRESHOLD = 0.7
+WEAK_INTERLEAVE_INTERVAL = 5
+
 
 def substantial_format_filter():
     """Filter out short-form and weak formats from premium lanes."""
     return ~pl.col("format").is_in(WEAK_FORMATS) & (
         pl.col("duration").fill_null(MIN_EPISODE_DURATION) >= MIN_EPISODE_DURATION
     )
+
+
+def substantial_relation_filter():
+    """Filter out for example summary/compilation movies from premium lanes."""
+    return ~pl.col("is_summary")
 
 
 class AbstractCategory(abc.ABC):
@@ -127,7 +135,11 @@ class ContinueWatchingCategory(AbstractCategory):
             & (pl.col("user_status").ne_missing("COMPLETED"))
         ) | (pl.col("user_status") == "PAUSED")
 
-        sorting = {"by": "discovery_score", "descending": True}
+        sorting = {
+            "by": pl.col("discovery_score")
+            * pl.when(pl.col("is_summary")).then(0.3).otherwise(1.0),
+            "descending": True,
+        }
 
         return mask, sorting
 
@@ -265,6 +277,7 @@ class TopReleasedPicksCategory(AbstractCategory):
             (pl.col("status").is_in(["RELEASING", "FINISHED"]))
             & (pl.col("user_status").ne_missing("COMPLETED"))
             & substantial_format_filter()
+            & substantial_relation_filter()
         )
 
         sorting = {"by": "discovery_score", "descending": True}
@@ -282,6 +295,7 @@ class HiddenGemsCategory(AbstractCategory):
             & (pl.col("status").is_in(["RELEASING", "FINISHED"]))
             & (pl.col("format") != "MOVIE")
             & substantial_format_filter()
+            & substantial_relation_filter()
         )
 
         sorting = {
@@ -303,6 +317,7 @@ class MovieNightCategory(AbstractCategory):
             (pl.col("format") == "MOVIE")
             & (pl.col("user_status").ne_missing("COMPLETED"))
             & (pl.col("status").is_in(["RELEASING", "FINISHED"]))
+            & substantial_relation_filter()
         )
 
         sorting = {"by": "discovery_score", "descending": True}
@@ -340,9 +355,6 @@ class YourTopPicksCategory(AbstractCategory):
 class TopUpcomingCategory(AbstractCategory):
     description = "Top Picks from Upcoming Anime"
 
-    CONTINUATION_THRESHOLD = 0.7
-    WEAK_INTERLEAVE_INTERVAL = 5
-
     def categorize(self, dataset):
         year, season = meta.get_current_anime_season()
 
@@ -362,8 +374,8 @@ class TopUpcomingCategory(AbstractCategory):
     def get_items(self, df, top_n):
         return compose_two_pool_lane(
             df,
-            continuation_threshold=self.CONTINUATION_THRESHOLD,
-            weak_interleave_interval=self.WEAK_INTERLEAVE_INTERVAL,
+            continuation_threshold=CONTINUATION_THRESHOLD,
+            weak_interleave_interval=WEAK_INTERLEAVE_INTERVAL,
             max_total=top_n,
             group_by=["season_year", "season"],
         )
@@ -421,9 +433,6 @@ class BecauseYouLikedCategory(AbstractCategory):
 class SimulcastsCategory(AbstractCategory):
     description = "Top Simulcasts for You"
 
-    CONTINUATION_THRESHOLD = 0.7
-    WEAK_INTERLEAVE_INTERVAL = 5
-
     def categorize(self, dataset):
         year, season = meta.get_current_anime_season()
         mask = (
@@ -438,8 +447,8 @@ class SimulcastsCategory(AbstractCategory):
     def get_items(self, df, top_n):
         return compose_two_pool_lane(
             df,
-            continuation_threshold=self.CONTINUATION_THRESHOLD,
-            weak_interleave_interval=self.WEAK_INTERLEAVE_INTERVAL,
+            continuation_threshold=CONTINUATION_THRESHOLD,
+            weak_interleave_interval=WEAK_INTERLEAVE_INTERVAL,
             max_total=top_n,
         )
 

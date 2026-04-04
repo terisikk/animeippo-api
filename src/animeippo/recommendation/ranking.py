@@ -9,8 +9,6 @@ class RankingOrchestrator:
     MINIMAL_THRESHOLD = 20
     FULL_THRESHOLD = 100
 
-    diversity_adjustment = None
-
     def __init__(self, layouts):
         """Initialize with layouts dict.
 
@@ -39,11 +37,10 @@ class RankingOrchestrator:
         """
         rendered_categories = []
         recommendations_df = data.recommendations
-        self.recommendations_df = recommendations_df
 
         layout = self.select_layout(len(recommendations_df))
 
-        self.diversity_adjustment = pl.DataFrame(
+        diversity_adjustment = pl.DataFrame(
             {
                 "id": recommendations_df["id"],
                 "diversity_adjustment": 0,
@@ -64,34 +61,46 @@ class RankingOrchestrator:
             item_ids = category.get_items(filtered_sorted, top_n)
 
             if category.needs_diversity:
-                item_ids = self.adjust_by_diversity(item_ids, top_n=top_n)
+                item_ids, diversity_adjustment = _adjust_by_diversity(
+                    item_ids,
+                    recommendations_df,
+                    diversity_adjustment,
+                    top_n=top_n,
+                    discourage_max=self.DISCOURAGE_MAX,
+                )
 
             rendered_categories.append({"name": category.description, "items": item_ids})
 
         return rendered_categories
 
-    def adjust_by_diversity(self, candidate_ids, top_n):
-        """Select top_n from candidates, penalizing items shown in other genre lanes."""
-        if not candidate_ids:
-            return []
 
-        candidates = pl.DataFrame({"id": pl.Series(candidate_ids, dtype=pl.UInt32)})
+def _adjust_by_diversity(
+    candidate_ids, recommendations_df, diversity_adjustment, *, top_n, discourage_max
+):
+    """Select top_n from candidates, penalizing items shown in other genre lanes.
 
-        selected = (
-            candidates.join(self.diversity_adjustment, on="id", how="left")
-            .join(self.recommendations_df.select("id", "discovery_score"), on="id", how="left")
-            .with_columns(
-                adjusted_score=pl.col("discovery_score") - pl.col("diversity_adjustment"),
-            )
-            .sort(by="adjusted_score", descending=True)[0:top_n]["id"]
-            .to_list()
+    Returns (selected_ids, updated_diversity_adjustment).
+    """
+    if not candidate_ids:
+        return [], diversity_adjustment
+
+    candidates = pl.DataFrame({"id": pl.Series(candidate_ids, dtype=pl.UInt32)})
+
+    selected = (
+        candidates.join(diversity_adjustment, on="id", how="left")
+        .join(recommendations_df.select("id", "discovery_score"), on="id", how="left")
+        .with_columns(
+            adjusted_score=pl.col("discovery_score") - pl.col("diversity_adjustment"),
         )
+        .sort(by="adjusted_score", descending=True)[0:top_n]["id"]
+        .to_list()
+    )
 
-        self.diversity_adjustment = self.diversity_adjustment.with_columns(
-            diversity_adjustment=pl.when(pl.col("id").is_in(selected))
-            .then(pl.col("diversity_adjustment") + 0.25)
-            .otherwise(pl.col("diversity_adjustment"))
-            .clip(upper_bound=self.DISCOURAGE_MAX)
-        )
+    diversity_adjustment = diversity_adjustment.with_columns(
+        diversity_adjustment=pl.when(pl.col("id").is_in(selected))
+        .then(pl.col("diversity_adjustment") + 0.25)
+        .otherwise(pl.col("diversity_adjustment"))
+        .clip(upper_bound=discourage_max)
+    )
 
-        return selected
+    return selected, diversity_adjustment

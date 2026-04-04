@@ -57,11 +57,40 @@ class RecommendationModel:
 
             self.seasonal = filter_continuation(self.seasonal, previously_watched)
 
+    def build_relation_context(self):
+        """Tag seasonal items that are summaries/compilations of watched anime.
+
+        Uses the reverse lookup: if a watchlist item lists a seasonal item
+        as SUMMARY/COMPILATION in its franchise_relations, that seasonal item
+        is a recap rather than a real sequel.
+        """
+        if (
+            self.watchlist is None
+            or self.seasonal is None
+            or "franchise_relations" not in self.watchlist.columns
+        ):
+            self.seasonal = self.seasonal.with_columns(is_summary=pl.lit(False))
+            return
+
+        summary_ids = (
+            self.watchlist.explode("franchise_relations")
+            .unnest("franchise_relations")
+            .filter(pl.col("relation_type").is_in(["SUMMARY", "COMPILATION"]))
+            .select("related_id")
+            .unique()
+            .to_series()
+        )
+
+        self.seasonal = self.seasonal.with_columns(
+            is_summary=pl.col("id").is_in(summary_ids.implode())
+        )
+
     def fit(self, encoder, clustering_model):
         self.validate()
 
         self.fill_user_status_data_from_watchlist()
         self.filter_continuation()
+        self.build_relation_context()
 
         self.encode(encoder)
 

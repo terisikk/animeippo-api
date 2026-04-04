@@ -398,6 +398,35 @@ def test_continuation_scorer_takes_max_of_duplicate_relations():
     assert result.score.to_list() == [0.8, 0.0]
 
 
+def test_continuation_scorer_penalizes_summaries():
+    compare = pl.DataFrame(
+        {
+            "id": [1],
+            "title": ["Anime A"],
+            "user_status": ["COMPLETED"],
+            "score": [8],
+        }
+    )
+
+    original = pl.DataFrame(
+        {
+            "id": [5, 6],
+            "title": ["Anime A Season 2", "Anime A Summary"],
+            "continuation_to": [[1], [1]],
+            "is_summary": [False, True],
+        }
+    )
+
+    scorer = scoring.ContinuationScorer()
+
+    uprofile = UserProfile("Test", compare)
+    result = scorer.score(RecommendationModel(uprofile, original))
+
+    # Normal sequel gets full score, summary gets SUMMARY_FACTOR (0.3) applied
+    assert result.score[0] == 0.8
+    assert round(result.score[1], 2) == round(0.8 * 0.3, 2)
+
+
 def test_cluster_similarity_scorer_cohesion():
     source_df = pl.DataFrame(
         {

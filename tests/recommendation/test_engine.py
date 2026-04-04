@@ -192,6 +192,7 @@ def test_categorize():
             "user_status": [None],
             "discovery_score": [1],
             "format": ["TV"],
+            "is_summary": [False],
         }
     )
 

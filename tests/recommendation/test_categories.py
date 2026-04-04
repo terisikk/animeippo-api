@@ -3,7 +3,7 @@ import polars as pl
 from animeippo.profiling.model import UserProfile
 from animeippo.recommendation import categories
 from animeippo.recommendation.model import RecommendationModel
-from animeippo.recommendation.ranking import RankingOrchestrator
+from animeippo.recommendation.ranking import RankingOrchestrator, _adjust_by_diversity
 
 
 def test_abstract_category_default_behavior():
@@ -47,6 +47,7 @@ def test_continue_watching_category():
             "user_status": ["in_progress", "COMPLETED", "in_progress"],
             "title": ["Test 1", "Test 2", "Test 3"],
             "format": ["TV", "TV", "TV"],
+            "is_summary": [False, False, False],
         }
     )
 
@@ -189,6 +190,7 @@ def test_top_released_picks_category():
             "discovery_score": [3, 2, 1, 5, 4],
             "format": ["TV", "TV", "TV", "TV", "TV"],
             "duration": [24, 24, 24, 24, 24],
+            "is_summary": [False, False, False, False, False],
         }
     )
 
@@ -214,6 +216,7 @@ def test_hidden_gems_category():
             "discovery_score": [8.0, 7.0, 6.0, 9.0, 10.0, 5.0],
             "popularity": [100, 50000, 500, 200, 10, 300],
             "continuationscore": [0, 0, 0, 0, 0, 0],
+            "is_summary": [False, False, False, False, False, False],
         }
     )
 
@@ -239,6 +242,7 @@ def test_top_movies_category():
             "user_status": [None, None, "COMPLETED", None, None],
             "status": ["FINISHED", "FINISHED", "FINISHED", "NOT_YET_RELEASED", "FINISHED"],
             "discovery_score": [8.0, 9.0, 10.0, 11.0, 7.0],
+            "is_summary": [False, False, False, False, False],
         }
     )
 
@@ -249,6 +253,29 @@ def test_top_movies_category():
 
     result = recommendations.filter(mask).sort(**sorting_info)
     assert result["title"].to_list() == ["Test 1", "Test 5"]
+
+
+def test_top_movies_excludes_summaries():
+    cat = categories.MovieNightCategory()
+
+    recommendations = pl.DataFrame(
+        {
+            "title": ["Real Movie", "Recap Movie"],
+            "format": ["MOVIE", "MOVIE"],
+            "user_status": [None, None],
+            "status": ["FINISHED", "FINISHED"],
+            "discovery_score": [5.0, 10.0],
+            "is_summary": [False, True],
+        }
+    )
+
+    data = RecommendationModel(None, None, None)
+    data.recommendations = recommendations
+
+    mask, sorting_info = cat.categorize(data)
+
+    result = recommendations.filter(mask).sort(**sorting_info)
+    assert result["title"].to_list() == ["Real Movie"]
 
 
 def test_all_movies_category():
@@ -578,8 +605,12 @@ def test_ranking_orchestrator_skips_categories_below_min_items():
 
 
 def test_ranking_orchestrator_diversity_adjustment_empty_list():
-    orchestrator = RankingOrchestrator([])
-    result = orchestrator.adjust_by_diversity([], top_n=5)
+    diversity_adjustment = pl.DataFrame(
+        {"id": pl.Series([], dtype=pl.UInt32), "diversity_adjustment": []}
+    )
+    result, _ = _adjust_by_diversity(
+        [], pl.DataFrame(), diversity_adjustment, top_n=5, discourage_max=0.75
+    )
     assert result == []
 
 
@@ -592,10 +623,7 @@ def test_ranking_orchestrator_diversity_adjustment():
         }
     )
 
-    orchestrator = RankingOrchestrator([])
-    orchestrator.recommendations_df = recommendations
-
-    orchestrator.diversity_adjustment = pl.DataFrame(
+    diversity_adjustment = pl.DataFrame(
         {
             "id": recommendations["id"],
             "diversity_adjustment": 0,
@@ -605,16 +633,20 @@ def test_ranking_orchestrator_diversity_adjustment():
     all_ids = recommendations["id"].to_list()
 
     # First call - should return items in order of discovery_score
-    result_ids = orchestrator.adjust_by_diversity(all_ids, top_n=2)
+    result_ids, diversity_adjustment = _adjust_by_diversity(
+        all_ids, recommendations, diversity_adjustment, top_n=2, discourage_max=0.75
+    )
 
     assert result_ids == [2, 1]
-    assert orchestrator.diversity_adjustment["diversity_adjustment"].to_list() == [0.25, 0.25, 0]
+    assert diversity_adjustment["diversity_adjustment"].to_list() == [0.25, 0.25, 0]
 
     # Second call - items 1 and 2 are discouraged, so Test 3 should come up
-    result_ids = orchestrator.adjust_by_diversity(all_ids, top_n=2)
+    result_ids, diversity_adjustment = _adjust_by_diversity(
+        all_ids, recommendations, diversity_adjustment, top_n=2, discourage_max=0.75
+    )
 
     assert result_ids == [3, 2]
-    assert orchestrator.diversity_adjustment["diversity_adjustment"].to_list() == [0.25, 0.5, 0.25]
+    assert diversity_adjustment["diversity_adjustment"].to_list() == [0.25, 0.5, 0.25]
 
 
 def test_ranking_orchestrator_render_with_diversity_adjusted_categories():
