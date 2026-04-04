@@ -25,8 +25,9 @@ def substantial_relation_filter():
 
 
 class AbstractCategory(abc.ABC):
-    def __init__(self, *, needs_diversity=False, min_items=1):
+    def __init__(self, *, needs_diversity=False, exclusive=False, min_items=1):
         self.needs_diversity = needs_diversity
+        self.exclusive = exclusive
         self.min_items = min_items
 
     @abc.abstractmethod

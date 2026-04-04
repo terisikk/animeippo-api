@@ -714,6 +714,34 @@ def test_ranking_orchestrator_render_with_non_diversity_adjusted_categories():
     assert result[0]["items"] == [3, 2, 1]  # Sorted by popularity descending
 
 
+def test_ranking_orchestrator_exclusive_categories_dedupe():
+    recommendations = pl.DataFrame(
+        {
+            "id": [1, 2, 3, 4],
+            "title": ["A", "B", "C", "D"],
+            "discovery_score": [4.0, 3.0, 2.0, 1.0],
+            "popularity": [100, 200, 300, 400],
+        }
+    )
+
+    data = RecommendationModel(None, None, None)
+    data.recommendations = recommendations
+
+    # Two exclusive categories that would normally overlap
+    cat1 = categories.MostPopularCategory(exclusive=True)
+    cat2 = categories.MostPopularCategory(exclusive=True)
+
+    orchestrator = RankingOrchestrator([(cat1, 2), (cat2, 2)])
+    result = orchestrator.render(data)
+
+    assert len(result) == 2
+    # First category gets top 2 by popularity
+    first_items = set(result[0]["items"])
+    second_items = set(result[1]["items"])
+    # No overlap between exclusive categories
+    assert first_items & second_items == set()
+
+
 def test_ranking_orchestrator_render_skips_empty_categories():
     watchlist = pl.DataFrame(
         {

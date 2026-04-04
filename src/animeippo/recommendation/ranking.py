@@ -47,6 +47,8 @@ class RankingOrchestrator:
             }
         )
 
+        exclusive_ids = set()
+
         for category, top_n in layout:
             mask, sorting_info = category.categorize(data)
 
@@ -55,10 +57,16 @@ class RankingOrchestrator:
 
             filtered_sorted = recommendations_df.filter(mask).sort(**sorting_info)
 
+            if category.exclusive and exclusive_ids:
+                filtered_sorted = filtered_sorted.filter(~pl.col("id").is_in(list(exclusive_ids)))
+
             if len(filtered_sorted) < category.min_items:
                 continue
 
             item_ids = category.get_items(filtered_sorted, top_n)
+
+            if category.exclusive:
+                exclusive_ids.update(item_ids)
 
             if category.needs_diversity:
                 item_ids, diversity_adjustment = _adjust_by_diversity(
