@@ -296,6 +296,19 @@ async def test_error_status_raises_client_error(mocker):
         await connection.request_single(session, "", {})
 
 
+@pytest.mark.asyncio
+async def test_not_found_status_raises_client_error():
+    error_stub = ResponseStub({"errors": [{"message": "User not found"}]})
+    error_stub.status = 404
+
+    session = SessionStub(error_stub)
+
+    connection = animeippo.providers.anilist.AnilistConnection()
+
+    with pytest.raises(aiohttp.ClientResponseError):
+        await connection.request_single(session, "", {})
+
+
 def test_features_can_be_fetched():
     provider = anilist.AniListProvider()
 

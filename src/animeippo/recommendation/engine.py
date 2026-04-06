@@ -141,7 +141,7 @@ class AnimeRecommendationEngine:
         try:
             return scorer.score(dataset)
         except Exception:
-            logger.error("scorer_error", scorer=scorer.name, exc_info=True)
+            logger.exception("scorer_error", scorer=scorer.name)
             return ScorerResult(
                 score=pl.Series([0.0] * n),
                 confidence=pl.Series([0.0] * n),

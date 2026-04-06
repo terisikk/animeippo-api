@@ -36,7 +36,7 @@ async def preload_year_anime(provider, year):
     try:
         anime_list = await provider.get_seasonal_anime_list(str(year), None)
     except Exception:
-        logger.error("preload_year_error", year=year, exc_info=True)
+        logger.exception("preload_year_error", year=year)
         return 0
 
     if anime_list is not None:
@@ -60,7 +60,7 @@ async def fetch_and_cache_genres(connection, cache):
         async with aiohttp.ClientSession() as session:
             response = await connection.request_single(session, query, {})
     except Exception:
-        logger.error("genres_fetch_error", exc_info=True)
+        logger.exception("genres_fetch_error")
         return None
 
     genres = response.get("data", {}).get("GenreCollection", [])
@@ -91,7 +91,7 @@ async def fetch_and_cache_tags(connection, cache):
         async with aiohttp.ClientSession() as session:
             response = await connection.request_single(session, query, {})
     except Exception:
-        logger.error("tags_fetch_error", exc_info=True)
+        logger.exception("tags_fetch_error")
         return None
 
     tags_data = response.get("data", {}).get("MediaTagCollection", [])

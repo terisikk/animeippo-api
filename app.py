@@ -1,9 +1,9 @@
 import os
 
 import structlog
-from aiohttp.client_exceptions import ClientError
+from aiohttp.client_exceptions import ClientError, ClientResponseError
 from dotenv import load_dotenv
-from fastapi import FastAPI, Query, Request
+from fastapi import FastAPI, Query, Request, status
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse, Response
 
@@ -50,6 +50,42 @@ def get_provider_instances(provider):
     )
 
 
+@app.exception_handler(ClientResponseError)
+async def client_response_error_handler(request: Request, exc: ClientResponseError):
+    user = request.query_params.get("user", "?")
+    if exc.status == status.HTTP_404_NOT_FOUND:
+        logger.debug("user_not_found", user=user)
+        return JSONResponse(
+            {"error": f"User '{user}' not found or has no anime list."},
+            status_code=status.HTTP_404_NOT_FOUND,
+        )
+    logger.exception("data_fetch_failed")
+    return JSONResponse(
+        {"error": f"Could not fetch data for '{user}'."},
+        status_code=status.HTTP_502_BAD_GATEWAY,
+    )
+
+
+@app.exception_handler(ClientError)
+async def client_error_handler(request: Request, exc: ClientError):
+    user = request.query_params.get("user", "?")
+    logger.exception("data_fetch_failed")
+    return JSONResponse(
+        {"error": f"Could not fetch data for '{user}'."},
+        status_code=status.HTTP_502_BAD_GATEWAY,
+    )
+
+
+@app.exception_handler(RuntimeError)
+async def runtime_error_handler(request: Request, exc: RuntimeError):
+    user = request.query_params.get("user", "?")
+    logger.debug("user_data_invalid", user=user)
+    return JSONResponse(
+        {"error": f"User '{user}' not found or has no anime list."},
+        status_code=status.HTTP_404_NOT_FOUND,
+    )
+
+
 @app.middleware("http")
 async def log_requests(request: Request, call_next):
     structlog.contextvars.clear_contextvars()
@@ -73,7 +109,10 @@ async def seasonal_anime(
 ):
     """Returns a json-list of seasonal or yearly anime titles."""
     if not year:
-        return JSONResponse("Validation error", status_code=400)
+        return JSONResponse(
+            {"error": "Missing required parameter: year"},
+            status_code=status.HTTP_400_BAD_REQUEST,
+        )
 
     recommender, _ = get_provider_instances(provider)
     dataset = await recommender.recommend_seasonal_anime(year, season)
@@ -95,17 +134,20 @@ async def recommend_anime(
     """Recommends new anime to a user, either from a year or a single season.
     Accepts provider parameter: 'anilist' (default) or 'mixed' (for MAL users).
     """
-    if not all([user, year]):
-        return JSONResponse("Validation error", status_code=400)
+    if not user:
+        return JSONResponse(
+            {"error": "Missing required parameter: user"},
+            status_code=status.HTTP_400_BAD_REQUEST,
+        )
+    if not year:
+        return JSONResponse(
+            {"error": "Missing required parameter: year"},
+            status_code=status.HTTP_400_BAD_REQUEST,
+        )
 
     recommender, _ = get_provider_instances(provider)
-
-    try:
-        dataset = await recommender.recommend_seasonal_anime(year, season, user)
-        categories = recommender.get_categories(dataset)
-    except ClientError:
-        logger.error("data_fetch_failed", exc_info=True)
-        return JSONResponse(f"Could not fetch data for user {user}.", status_code=404)
+    dataset = await recommender.recommend_seasonal_anime(year, season, user)
+    categories = recommender.get_categories(dataset)
 
     return Response(
         content=views.recommendations_web_view(
@@ -128,11 +170,13 @@ async def analyze_profile(
     """Analyses a user profile and clusters the watchlist.
     Accepts provider parameter: 'anilist' (default) or 'mixed' (for MAL users).
     """
-    if user is None:
-        return JSONResponse("Validation error", status_code=400)
+    if not user:
+        return JSONResponse(
+            {"error": "Missing required parameter: user"},
+            status_code=status.HTTP_400_BAD_REQUEST,
+        )
 
     _, profiler = get_provider_instances(provider)
-
     profile, categories, seasonal = await profiler.analyse(user, year=year, season=season)
 
     return Response(
@@ -153,11 +197,13 @@ async def profile_characteristics(
     """Analyses a user profile and returns statistics.
     Accepts provider parameter: 'anilist' (default) or 'mixed' (for MAL users).
     """
-    if user is None:
-        return JSONResponse("Validation error", status_code=400)
+    if not user:
+        return JSONResponse(
+            {"error": "Missing required parameter: user"},
+            status_code=status.HTTP_400_BAD_REQUEST,
+        )
 
     _, profiler = get_provider_instances(provider)
-
     profile, _, _ = await profiler.analyse(user)
     profile.characteristics = Characteristics(profile.watchlist, profiler.provider.get_genres())
 

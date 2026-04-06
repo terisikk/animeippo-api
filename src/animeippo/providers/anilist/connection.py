@@ -2,6 +2,7 @@ import asyncio
 import functools
 import types
 from datetime import timedelta
+from http import HTTPStatus
 
 import aiohttp
 import structlog
@@ -10,8 +11,6 @@ from .. import caching as animecache
 
 REQUEST_TIMEOUT = 30
 ANI_API_URL = "https://graphql.anilist.co"
-HTTP_BAD_REQUEST = 400
-HTTP_TOO_MANY_REQUESTS = 429
 RATE_LIMIT_WARNING_THRESHOLD = 10
 
 logger = structlog.get_logger()
@@ -36,20 +35,27 @@ def rate_limited(func):
                 limit=self.rate_limit,
             )
 
-        if response.status == HTTP_TOO_MANY_REQUESTS:
+        if response.status == HTTPStatus.TOO_MANY_REQUESTS:
             retry_after = int(response.headers.get("Retry-After", 60))
             logger.warning("rate_limited", retry_after=retry_after)
             await asyncio.sleep(retry_after)
             response, result = await func(self, *args, **kwargs)
 
-        if response.status >= HTTP_BAD_REQUEST:
-            logger.error(
-                "anilist_api_error",
-                status=response.status,
-                errors=result.get("errors", "Unknown error"),
-                rate_remaining=self.rate_remaining,
-                rate_limit=self.rate_limit,
-            )
+        if response.status >= HTTPStatus.BAD_REQUEST:
+            if response.status == HTTPStatus.NOT_FOUND:
+                logger.debug(
+                    "anilist_not_found",
+                    status=response.status,
+                    errors=result.get("errors", "Unknown error"),
+                )
+            else:
+                logger.error(
+                    "anilist_api_error",
+                    status=response.status,
+                    errors=result.get("errors", "Unknown error"),
+                    rate_remaining=self.rate_remaining,
+                    rate_limit=self.rate_limit,
+                )
             raise aiohttp.ClientResponseError(
                 request_info=aiohttp.RequestInfo(
                     url=ANI_API_URL, method="POST", headers={}, real_url=ANI_API_URL
