@@ -4,25 +4,26 @@ import polars as pl
 
 from animeippo.analysis import encoding, statistics
 from animeippo.clustering import model
-from animeippo.meta.meta import run_coroutine
 from animeippo.profiling.model import UserProfile
 from animeippo.providers.util import filter_continuation
 from animeippo.recommendation.cluster_naming import get_cluster_stats, name_all_clusters
+
+CLUSTERING_DEFAULTS = {
+    "distance_metric": "cosine",
+    "distance_threshold": 0.63,
+    "linkage": "average",
+    "min_cluster_size": 3,
+    "franchise_reduction": True,
+}
 
 
 class ProfileAnalyser:
     """Clusters a user watchlist titles to clusters of similar anime."""
 
-    def __init__(self, provider):
+    def __init__(self, provider, clustering_defaults=None):
         self.provider = provider
         self.encoder = encoding.WeightedCategoricalEncoder()
-        self.clusterer = model.AnimeClustering(
-            distance_metric="cosine",
-            distance_threshold=0.63,
-            linkage="average",
-            min_cluster_size=3,
-            franchise_reduction=True,
-        )
+        self.clusterer = model.AnimeClustering(**(clustering_defaults or CLUSTERING_DEFAULTS))
 
     async def databuilder(self, user, year=None, season=None):
         # Fresh copies so concurrent requests don't share mutable fit state
@@ -49,8 +50,8 @@ class ProfileAnalyser:
 
         return user_profile, seasonal, clusterer
 
-    def analyse(self, user, year=None, season=None):
-        profile, seasonal, clusterer = run_coroutine(self.databuilder(user, year, season))
+    async def analyse(self, user, year=None, season=None):
+        profile, seasonal, clusterer = await self.databuilder(user, year, season)
 
         categories = self.get_cluster_categories(profile)
 

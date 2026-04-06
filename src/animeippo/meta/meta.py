@@ -1,20 +1,4 @@
-import asyncio
 import datetime
-from concurrent.futures import ThreadPoolExecutor
-
-
-def run_coroutine(coro):
-    """Run an async coroutine, handling both running and non-running event loops.
-
-    When called from within a running event loop (e.g. Jupyter, Flask),
-    uses a thread pool to avoid 'loop already running' errors.
-    """
-    try:
-        asyncio.get_running_loop()
-        with ThreadPoolExecutor(1) as pool:
-            return pool.submit(lambda: asyncio.run(coro)).result()
-    except RuntimeError:
-        return asyncio.run(coro)
 
 
 def get_current_anime_season():

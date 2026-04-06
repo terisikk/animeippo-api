@@ -30,7 +30,7 @@ FROM base AS final
 
 COPY --from=builder /app/.venv ./.venv
 COPY --from=builder /app/dist .
-COPY docker-entrypoint.sh wsgi.py app.py ./
+COPY docker-entrypoint.sh app.py ./
 COPY conf ./conf
 
 CMD ["./docker-entrypoint.sh"]

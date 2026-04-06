@@ -10,20 +10,22 @@ from animeippo.recommendation.model import RecommendationModel
 from tests import test_data, test_provider
 
 
-def test_profile_analyser_can_run():
+@pytest.mark.asyncio
+async def test_profile_analyser_can_run():
     profiler = analyser.ProfileAnalyser(test_provider.AsyncProviderStub())
     profiler.encoder = encoding.CategoricalEncoder()
 
-    categories = profiler.analyse("Janiskeisari")
+    _, categories, _ = await profiler.analyse("Janiskeisari")
 
     assert len(categories) > 0
 
 
-def test_profile_analyser_can_run_with_seasonal():
+@pytest.mark.asyncio
+async def test_profile_analyser_can_run_with_seasonal():
     profiler = analyser.ProfileAnalyser(test_provider.AsyncProviderStub())
     profiler.encoder = encoding.CategoricalEncoder()
 
-    categories = profiler.analyse("Janiskeisari", year="2023", season="SPRING")
+    _, categories, _ = await profiler.analyse("Janiskeisari", year="2023", season="SPRING")
 
     assert len(categories) > 0
 
@@ -33,7 +35,7 @@ async def test_profile_analyser_seasonal_works_with_running_loop():
     profiler = analyser.ProfileAnalyser(test_provider.AsyncProviderStub())
     profiler.encoder = encoding.CategoricalEncoder()
 
-    categories = profiler.analyse("Janiskeisari", year="2023", season="SPRING")
+    _, categories, _ = await profiler.analyse("Janiskeisari", year="2023", season="SPRING")
 
     assert len(categories) > 0
 
@@ -43,7 +45,7 @@ async def test_profile_analyser_can_run_when_async_loop_is_already_running():
     profiler = analyser.ProfileAnalyser(test_provider.AsyncProviderStub())
     profiler.encoder = encoding.CategoricalEncoder()
 
-    categories = profiler.analyse("Janiskeisari")
+    _, categories, _ = await profiler.analyse("Janiskeisari")
 
     assert len(categories) > 0
 

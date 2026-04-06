@@ -37,4 +37,4 @@ pydeps:
 
 .PHONY: serve
 serve:
-	uv run flask run --host=0.0.0.0
+	uv run uvicorn app:app --host 0.0.0.0 --port 5000 --reload

@@ -4,4 +4,4 @@ set -e
 
 . ./.venv/bin/activate
 
-exec gunicorn --bind 0.0.0.0:5000 --access-logfile - --error-logfile - wsgi:app
+exec uvicorn app:app --host 0.0.0.0 --port 5000 --access-log

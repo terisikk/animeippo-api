@@ -35,7 +35,8 @@ class SimpleProviderStub:
         return []
 
 
-def test_recommender_can_return_plain_seasonal_data():
+@pytest.mark.asyncio
+async def test_recommender_can_return_plain_seasonal_data():
     seasonal = pl.DataFrame(test_data.FORMATTED_MAL_SEASONAL_LIST)
 
     provider = ProviderStub()
@@ -47,12 +48,13 @@ def test_recommender_can_return_plain_seasonal_data():
         recommendation_model_cls=RecommendationModel,
         profile_model_cls=UserProfile,
     )
-    data = rec.recommend_seasonal_anime("2013", "winter")
+    data = await rec.recommend_seasonal_anime("2013", "winter")
 
     assert seasonal.item(0, "title") in data.recommendations["title"].to_list()
 
 
-def test_recommender_can_recommend_seasonal_data_for_user():
+@pytest.mark.asyncio
+async def test_recommender_can_recommend_seasonal_data_for_user():
     seasonal = pl.DataFrame(test_data.FORMATTED_MAL_SEASONAL_LIST)
 
     provider = ProviderStub()
@@ -64,12 +66,13 @@ def test_recommender_can_recommend_seasonal_data_for_user():
         recommendation_model_cls=RecommendationModel,
         profile_model_cls=UserProfile,
     )
-    data = rec.recommend_seasonal_anime("2013", "winter", "Janiskeisari")
+    data = await rec.recommend_seasonal_anime("2013", "winter", "Janiskeisari")
 
     assert seasonal.item(0, "title") in data.recommendations["title"].to_list()
 
 
-def test_recommender_can_fetch_related_anime_when_needed():
+@pytest.mark.asyncio
+async def test_recommender_can_fetch_related_anime_when_needed():
     provider = ProviderStub()
     engine = EngineStub()
 
@@ -80,12 +83,13 @@ def test_recommender_can_fetch_related_anime_when_needed():
         profile_model_cls=UserProfile,
         fetch_related_anime=True,
     )
-    data = rec.recommend_seasonal_anime("2013", "winter", "Janiskeisari")
+    data = await rec.recommend_seasonal_anime("2013", "winter", "Janiskeisari")
 
     assert data.seasonal["continuation_to"].to_list()[0] == [1]
 
 
-def test_recommender_categories():
+@pytest.mark.asyncio
+async def test_recommender_categories():
     provider = ProviderStub()
     engine = EngineStub()
 
@@ -95,7 +99,7 @@ def test_recommender_categories():
         recommendation_model_cls=RecommendationModel,
         profile_model_cls=UserProfile,
     )
-    data = rec.recommend_seasonal_anime("2013", "winter", "Janiskeisari")
+    data = await rec.recommend_seasonal_anime("2013", "winter", "Janiskeisari")
     categories = rec.get_categories(data)
 
     assert len(categories) > 0
@@ -115,7 +119,7 @@ async def test_recommender_can_get_data_when_async_loop_is_already_running():
         recommendation_model_cls=RecommendationModel,
         profile_model_cls=UserProfile,
     )
-    data = rec.recommend_seasonal_anime("2013", "winter", "Janiskeisari")
+    data = await rec.recommend_seasonal_anime("2013", "winter", "Janiskeisari")
 
     assert seasonal.item(0, "title") in data.recommendations["title"].to_list()
 

@@ -2,8 +2,6 @@ import asyncio
 
 import polars as pl
 
-from animeippo.meta.meta import run_coroutine
-
 
 class AnimeRecommender:
     """Recommends new anime to a user if provided,
@@ -64,11 +62,8 @@ class AnimeRecommender:
 
         return data
 
-    def async_get_dataset(self, year, season, user=None):
-        return run_coroutine(self.databuilder(year, season, user))
-
-    def recommend_seasonal_anime(self, year, season, user=None):
-        dataset = self.async_get_dataset(year, season, user)
+    async def recommend_seasonal_anime(self, year, season, user=None):
+        dataset = await self.databuilder(year, season, user)
 
         if user:
             dataset.recommendations = self.engine.fit_predict(dataset)

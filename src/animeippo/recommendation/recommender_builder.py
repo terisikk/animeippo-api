@@ -14,6 +14,14 @@ from .recommender import AnimeRecommender
 
 logger = structlog.get_logger()
 
+CLUSTERING_DEFAULTS = {
+    "distance_metric": "cosine",
+    "distance_threshold": 0.63,
+    "linkage": "average",
+    "min_cluster_size": 3,
+    "franchise_reduction": True,
+}
+
 
 def get_discovery_scorers():
     """Scorers for discovering new anime based on taste similarity."""
@@ -133,18 +141,12 @@ def build_recommender(providername):
         case _:
             provider = providers.mixed.MixedProvider(rcache)
 
-    metric = "cosine"
+    metric = CLUSTERING_DEFAULTS["distance_metric"]
 
     return AnimeRecommender(
         provider=provider,
         engine=engine.AnimeRecommendationEngine(
-            model.AnimeClustering(
-                distance_metric=metric,
-                distance_threshold=0.63,
-                linkage="average",
-                min_cluster_size=3,
-                franchise_reduction=True,
-            ),
+            model.AnimeClustering(**CLUSTERING_DEFAULTS),
             encoding.WeightedCategoricalEncoder(),
             discovery_scorers=get_discovery_scorers(),
             engagement_scorers=get_engagement_scorers(),
