@@ -123,13 +123,13 @@ def analyze_profile():
 
     _, profiler = get_provider_instances(request)
 
-    categories = profiler.analyse(user, year=year, season=season)
+    profile, categories, seasonal = profiler.analyse(user, year=year, season=season)
 
     return Response(
         views.profile_cluster_web_view(
-            profiler.profile.watchlist.sort("title"),
+            profile.watchlist.sort("title"),
             sorted(categories, key=lambda item: len(item["items"]), reverse=True),
-            seasonal=profiler.seasonal,
+            seasonal=seasonal,
         ),
         mimetype="application/json",
     )
@@ -147,19 +147,17 @@ def profile_characteristics():
 
     _, profiler = get_provider_instances(request)
 
-    profiler.analyse(user)
-    profiler.profile.characteristics = Characteristics(
-        profiler.profile.watchlist, profiler.provider.get_genres()
-    )
+    profile, _, _ = profiler.analyse(user)
+    profile.characteristics = Characteristics(profile.watchlist, profiler.provider.get_genres())
 
     logger.debug(
         "profile_computed",
-        genre_variance=profiler.profile.characteristics.genre_variance,
+        genre_variance=profile.characteristics.genre_variance,
     )
 
     return Response(
         views.profile_characteristics_web_view(
-            profiler.profile,
+            profile,
         ),
         mimetype="application/json",
     )

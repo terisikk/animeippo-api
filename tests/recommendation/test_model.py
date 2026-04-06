@@ -55,6 +55,19 @@ def test_features_can_be_extracted_from_ranks():
     assert dset.all_features is not None
 
 
+def test_explode_cache_returns_same_object():
+    dset = model.RecommendationModel(None, None)
+    dset.watchlist = pl.DataFrame({"features": [["A", "B"], ["C"]]})
+    dset.recommendations = pl.DataFrame({"features": [["X"]]})
+    dset.seasonal = pl.DataFrame({"features": [["Y"]]})
+
+    assert dset.watchlist_explode_cached("features") is dset.watchlist_explode_cached("features")
+    assert dset.recommendations_explode_cached("features") is dset.recommendations_explode_cached(
+        "features"
+    )
+    assert dset.seasonal_explode_cached("features") is dset.seasonal_explode_cached("features")
+
+
 def test_build_relation_context_tags_summaries():
     watchlist = pl.DataFrame(
         {

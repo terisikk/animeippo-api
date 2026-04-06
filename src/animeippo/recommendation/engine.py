@@ -1,3 +1,5 @@
+import copy
+
 import polars as pl
 import structlog
 
@@ -27,11 +29,15 @@ class AnimeRecommendationEngine:
         self.ranking_orchestrator = ranking_orchestrator
 
     def fit_predict(self, dataset):
-        dataset.fit(self.encoder, self.clustering_model)
+        # Fresh copies so concurrent requests don't share mutable fit state
+        encoder = copy.copy(self.encoder)
+        clustering_model = copy.copy(self.clustering_model)
+
+        dataset.fit(encoder, clustering_model)
 
         recommendations = self.score_anime(dataset)
 
-        predictions = self.clustering_model.predict(
+        predictions = clustering_model.predict(
             dataset.seasonal["encoded"], dataset.get_similarity_matrix(filtered=False)
         )
         recommendations = recommendations.with_columns(

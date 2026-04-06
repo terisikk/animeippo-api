@@ -1,5 +1,3 @@
-from functools import lru_cache
-
 import polars as pl
 
 from ..analysis import similarity
@@ -23,6 +21,8 @@ class RecommendationModel:
         self.similarity_matrix = None
         self._cluster_names = None
         self._cluster_rankings = None
+        self._explode_cache = {}
+        self._sim_matrix_cache = {}
 
     def validate(self):
         is_missing_seasonal = self.seasonal is None
@@ -124,16 +124,39 @@ class RecommendationModel:
         )
 
     def watchlist_explode_cached(self, column):
-        return watchlist_explode_cached(self, column)
+        key = ("watchlist", column)
+        if key not in self._explode_cache:
+            self._explode_cache[key] = self.watchlist.explode(column)
+        return self._explode_cache[key]
 
     def recommendations_explode_cached(self, column):
-        return recommendations_explode_cached(self, column)
+        key = ("recommendations", column)
+        if key not in self._explode_cache:
+            self._explode_cache[key] = self.recommendations.explode(column)
+        return self._explode_cache[key]
 
     def seasonal_explode_cached(self, column):
-        return seasonal_explode_cached(self, column)
+        key = ("seasonal", column)
+        if key not in self._explode_cache:
+            self._explode_cache[key] = self.seasonal.explode(column)
+        return self._explode_cache[key]
 
     def get_similarity_matrix(self, filtered=False, transposed=False):
-        return get_similarity_matrix(self, filtered, transposed)
+        key = (filtered, transposed)
+        if key not in self._sim_matrix_cache:
+            ret = self.similarity_matrix
+
+            if filtered:
+                ret = ret.filter(~pl.col("id").is_in(self.seasonal["id"].implode()))
+
+            if transposed:
+                column_names = ret["id"].cast(pl.Utf8).to_list()
+                ret = ret.select(pl.exclude("id")).transpose(
+                    include_header=True, header_name="id", column_names=column_names
+                )
+
+            self._sim_matrix_cache[key] = ret
+        return self._sim_matrix_cache[key]
 
     def get_cluster_names(self, tag_lookup, genres):
         if self._cluster_names is None:
@@ -148,39 +171,3 @@ class RecommendationModel:
                 self.watchlist, self.recommendations
             )
         return self._cluster_rankings
-
-
-# These are here to avoid memory leaks with lru_cached methods,
-# so model methods call these inside the class.
-# Not sure if this actually really works as I think though
-
-
-@lru_cache(maxsize=20)
-def watchlist_explode_cached(self, column):
-    return self.watchlist.explode(column)
-
-
-@lru_cache(maxsize=20)
-def recommendations_explode_cached(self, column):
-    return self.recommendations.explode(column)
-
-
-@lru_cache(maxsize=20)
-def seasonal_explode_cached(self, column):
-    return self.seasonal.explode(column)
-
-
-@lru_cache(maxsize=10)
-def get_similarity_matrix(self, filtered=False, transposed=False):
-    ret = self.similarity_matrix
-
-    if filtered:
-        ret = ret.filter(~pl.col("id").is_in(self.seasonal["id"].implode()))
-
-    if transposed:
-        column_names = ret["id"].cast(pl.Utf8).to_list()
-        ret = ret.select(pl.exclude("id")).transpose(
-            include_header=True, header_name="id", column_names=column_names
-        )
-
-    return ret

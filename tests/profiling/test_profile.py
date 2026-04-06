@@ -170,32 +170,34 @@ def test_seasonal_recommendations_added_to_clusters():
     dset = RecommendationModel(uprofile, None)
 
     profiler = analyser.ProfileAnalyser(ProviderStub())
-    profiler.profile = uprofile
-    profiler.profile.watchlist = data
+    profile = uprofile
+    profile.watchlist = data
 
     # Fit encoder and clusterer like databuilder would
     all_features = data.explode("features")["features"].unique().drop_nulls()
     profiler.encoder.fit(all_features)
     data = data.with_columns(encoded=profiler.encoder.encode(data))
     data = data.with_columns(cluster=profiler.clusterer.cluster_by_features(data))
-    profiler.profile.watchlist = data
+    profile.watchlist = data
 
     categories = profiler.get_cluster_categories(dset)
 
     seasonal = asyncio.run(ProviderStub().get_seasonal_anime_list("2026", None))
-    profiler.add_seasonal_recommendations(categories, seasonal)
+    result_seasonal = profiler.add_seasonal_recommendations(
+        profile, categories, seasonal, profiler.clusterer
+    )
 
     has_recs = any("recommendations" in cat for cat in categories)
     assert has_recs
-    assert profiler.seasonal is not None
+    assert result_seasonal is not None
 
 
 def test_filter_seasonal_without_continuation_column():
     profiler = analyser.ProfileAnalyser(None)
-    profiler.profile = UserProfile("Test", pl.DataFrame({"id": [1], "user_status": ["COMPLETED"]}))
+    profile = UserProfile("Test", pl.DataFrame({"id": [1], "user_status": ["COMPLETED"]}))
 
     seasonal = pl.DataFrame({"id": [100], "title": ["Test"]})
-    result = profiler.filter_seasonal(seasonal)
+    result = profiler.filter_seasonal(profile, seasonal)
 
     assert len(result) == 1
 
@@ -230,20 +232,22 @@ def test_seasonal_recommendations_without_continuation_column():
     )
 
     profiler = analyser.ProfileAnalyser(ProviderStub())
-    profiler.profile = UserProfile("Test", data)
+    profile = UserProfile("Test", data)
 
     all_features = data.explode("features")["features"].unique().drop_nulls()
     profiler.encoder.fit(all_features)
     data = data.with_columns(encoded=profiler.encoder.encode(data))
     data = data.with_columns(cluster=profiler.clusterer.cluster_by_features(data))
-    profiler.profile.watchlist = data
+    profile.watchlist = data
 
-    categories = profiler.get_cluster_categories(RecommendationModel(profiler.profile, None))
+    categories = profiler.get_cluster_categories(RecommendationModel(profile, None))
 
     seasonal = asyncio.run(ProviderStub().get_seasonal_anime_list("2026", None))
-    profiler.add_seasonal_recommendations(categories, seasonal)
+    result_seasonal = profiler.add_seasonal_recommendations(
+        profile, categories, seasonal, profiler.clusterer
+    )
 
-    assert profiler.seasonal is not None
+    assert result_seasonal is not None
 
 
 def test_clusters_can_be_categorized_with_nsfw_filtering():
