@@ -159,8 +159,8 @@ class FeatureCorrelationScorer(AbstractScorer):
         feature_counts = scoring_target_df["features"].list.len().fill_null(0)
         contested_counts = (
             scoring_target_df["features"]
-            .list.eval(pl.element().is_in(list(contested_features)).sum())
-            .list.first()
+            .list.filter(pl.element().is_in(contested_features))
+            .list.len()
             .fill_null(0)
         )
 
@@ -185,8 +185,8 @@ class StudioCorrelationScorer(AbstractScorer):
 
         studio_match_count = (
             data.seasonal["studios"]
-            .list.eval(pl.element().is_in(weights["name"].to_list()).sum())
-            .list.first()
+            .list.filter(pl.element().is_in(weights["name"]))
+            .list.len()
             .fill_null(0)
         )
         confidence = (studio_match_count / self.MIN_STUDIO_HISTORY).clip(upper_bound=1.0)

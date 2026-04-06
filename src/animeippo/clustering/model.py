@@ -229,17 +229,13 @@ class AnimeClustering:
             .filter(pl.col("cluster") >= 0)
             .group_by("cluster", maintain_order=True)
             .agg(pl.col(sim_cols).mean())
-            .select(
-                "cluster",
-                pl.concat_list(pl.exclude("cluster")).alias("avg_sims"),
-            )
-            .explode("avg_sims")
-            .with_columns(idx=pl.int_range(pl.len()) % len(sim_cols))
-            .group_by("idx", maintain_order=True)
+            .unpivot(index="cluster", variable_name="item", value_name="avg_sim")
+            .sort("avg_sim", descending=True)
+            .group_by("item", maintain_order=True)
             .agg(
-                pl.col("cluster").sort_by("avg_sims", descending=True).first(),
-                pl.col("avg_sims").sort(descending=True).first().alias("similarity"),
+                pl.col("cluster").first(),
+                pl.col("avg_sim").first().alias("similarity"),
             )
-            .sort("idx")
+            .sort("item")
             .select("cluster", "similarity")
         )

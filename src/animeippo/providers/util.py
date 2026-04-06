@@ -54,7 +54,7 @@ def run_mappers(original, mapping, schema):
 
 
 def get_feature_selector(columns):
-    return pl.concat_list(columns).cast(pl.List(pl.Categorical(ordering="lexical")))
+    return pl.concat_list(columns).cast(pl.List(pl.Categorical))
 
 
 # UnionFind is used instead of Polars joins for connected components because

@@ -81,9 +81,7 @@ class RecommendationModel:
             .to_series()
         )
 
-        self.seasonal = self.seasonal.with_columns(
-            is_summary=pl.col("id").is_in(summary_ids.implode())
-        )
+        self.seasonal = self.seasonal.with_columns(is_summary=pl.col("id").is_in(summary_ids))
 
     def fit(self, encoder, clustering_model):
         self.validate()
@@ -111,17 +109,9 @@ class RecommendationModel:
         self.watchlist = self.watchlist.rechunk()
 
     def extract_features(self):
-        return set(
-            pl.concat(
-                [
-                    self.seasonal.select(pl.col("features").explode().cat.get_categories()),
-                    self.watchlist.select(pl.col("features").explode().cat.get_categories()),
-                ]
-            )
-            .select(pl.col("features").unique())
-            .to_series()
-            .to_list()
-        )
+        seasonal_cats = set(self.seasonal["features"].explode().cat.get_categories().to_list())
+        watchlist_cats = set(self.watchlist["features"].explode().cat.get_categories().to_list())
+        return seasonal_cats | watchlist_cats
 
     def watchlist_explode_cached(self, column):
         key = ("watchlist", column)

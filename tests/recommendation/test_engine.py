@@ -23,13 +23,11 @@ class ProviderStub:
     async def get_seasonal_anime_list(self, *args, **kwargs):
         return pl.DataFrame(
             self.seasonal,
-            schema_overrides={"features": pl.List(pl.Categorical(ordering="lexical"))},
+            schema_overrides={"features": pl.List(pl.Categorical)},
         )
 
     async def get_user_anime_list(self, *args, **kwargs):
-        return pl.DataFrame(
-            self.user, schema_overrides={"features": pl.List(pl.Categorical(ordering="lexical"))}
-        )
+        return pl.DataFrame(self.user, schema_overrides={"features": pl.List(pl.Categorical)})
 
     async def get_related_anime(self, *args, **kwargs):
         return [1]
