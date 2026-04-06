@@ -81,7 +81,9 @@ class RecommendationModel:
             .to_series()
         )
 
-        self.seasonal = self.seasonal.with_columns(is_summary=pl.col("id").is_in(summary_ids))
+        self.seasonal = self.seasonal.with_columns(
+            is_summary=pl.col("id").is_in(summary_ids.to_list())
+        )
 
     def fit(self, encoder, clustering_model):
         self.validate()

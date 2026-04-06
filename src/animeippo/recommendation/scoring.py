@@ -185,7 +185,7 @@ class StudioCorrelationScorer(AbstractScorer):
 
         studio_match_count = (
             data.seasonal["studios"]
-            .list.filter(pl.element().is_in(weights["name"]))
+            .list.filter(pl.element().is_in(weights["name"].to_list()))
             .list.len()
             .fill_null(0)
         )
