@@ -37,6 +37,14 @@ def test_franchise_column_is_built_from_relations():
     assert franchises[0] == franchises[1]
 
 
+def test_extract_recommendations_without_column():
+    df = pl.DataFrame({"id": [1, 2]})
+    result = formatter.extract_recommendations(df)
+
+    assert len(result) == 2
+    assert result[0] is None
+
+
 def test_get_staff_extracts_directors():
     original = pl.DataFrame(
         {

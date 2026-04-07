@@ -163,6 +163,32 @@ def build_typed_franchise_relations(df):
     ).to_series()
 
 
+def extract_recommendations(df):
+    """Extract community recommendation links as list of {recommended_id, rating} structs."""
+    col_name = "recommendations.edges"
+    if col_name not in df.columns:
+        return pl.Series([None] * len(df))
+
+    return df.select(
+        pl.col(col_name)
+        .list.eval(
+            pl.when(
+                pl.element().struct.field("node").struct.field("mediaRecommendation").is_not_null()
+            ).then(
+                pl.struct(
+                    pl.element()
+                    .struct.field("node")
+                    .struct.field("mediaRecommendation")
+                    .struct.field("id")
+                    .alias("recommended_id"),
+                    pl.element().struct.field("node").struct.field("rating").alias("rating"),
+                )
+            )
+        )
+        .list.drop_nulls()
+    ).to_series()
+
+
 def build_franchise_column(df):
     relations = get_franchise_relations(df)
     ids = df["id"]
@@ -240,5 +266,6 @@ ANILIST_MAPPING = {
                                 ),
     Columns.FRANCHISE:          QueryMapper(build_franchise_column),
     Columns.FRANCHISE_RELATIONS: QueryMapper(build_typed_franchise_relations),
+    Columns.RECOMMENDATIONS:     QueryMapper(extract_recommendations),
 }
 # fmt: on

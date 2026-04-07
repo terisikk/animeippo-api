@@ -512,3 +512,120 @@ class AdaptationScorer(AbstractScorer):
         confidence = grouped["rating_confidence"]
 
         return ScorerResult(score, confidence)
+
+
+class CollaborativeRecommendationScorer(AbstractScorer):
+    """Score candidates using AniList community recommendation links.
+
+    For each watchlist item that has recommendation links pointing to a seasonal
+    candidate, compute a signal based on normalized thumbs, user rating, and
+    watch status. Sum signals per candidate — more links means more evidence.
+    """
+
+    name = "collaborativescore"
+
+    MIN_LINK_COUNT = 3
+
+    STATUS_MODIFIERS: ClassVar[dict[str, float]] = {
+        "COMPLETED": 1.0,
+        "REPEATING": 1.0,
+        "CURRENT": 0.8,
+        "PAUSED": 0.3,
+        "DROPPED": -0.5,
+    }
+
+    def score(self, data):
+        watchlist = data.watchlist
+        seasonal = data.seasonal
+        n = len(seasonal)
+
+        if watchlist is None or "recommendations" not in watchlist.columns:
+            return ScorerResult(pl.Series([0.0] * n), pl.Series([0.0] * n))
+
+        user_mean = statistics.mean_score_default(watchlist, 5.0)
+        links = self._build_link_table(watchlist, seasonal, user_mean)
+
+        if len(links) == 0:
+            return ScorerResult(pl.Series([0.0] * n), pl.Series([0.0] * n))
+
+        aggregated = self._aggregate_signals(links)
+        result = self._join_to_seasonal(aggregated, seasonal)
+
+        return ScorerResult(statistics.rank_series(result["signal"]), result["confidence"])
+
+    def _build_link_table(self, watchlist, seasonal, user_mean):
+        """Explode recommendations, filter to seasonal candidates, compute per-link signal."""
+        seasonal_ids = seasonal["id"].to_list()
+
+        # Sum of absolute ratings per watchlist item for normalization
+        wl = watchlist.with_columns(
+            total_thumbs=pl.col("recommendations")
+            .list.eval(pl.element().struct.field("rating").abs())
+            .list.sum()
+            .cast(pl.Float64)
+        )
+
+        exploded = (
+            wl.select("id", "score", "user_status", "total_thumbs", "recommendations")
+            .explode("recommendations")
+            .filter(pl.col("recommendations").is_not_null())
+            .unnest("recommendations")
+            .filter(pl.col("recommended_id").is_in(seasonal_ids))
+        )
+
+        if len(exploded) == 0:
+            return exploded
+
+        return exploded.with_columns(
+            normalized_thumbs=pl.when(pl.col("total_thumbs") > 0)
+            .then(pl.col("rating").cast(pl.Float64) / pl.col("total_thumbs"))
+            .otherwise(0.0),
+            status_modifier=pl.col("user_status")
+            .replace_strict(self.STATUS_MODIFIERS, default=0.0)
+            .cast(pl.Float64),
+            rating_modifier=statistics.bounded_rating_modifier(pl.col("score"), user_mean),
+        ).with_columns(
+            link_signal=pl.when(pl.col("user_status") == "DROPPED")
+            .then(pl.col("normalized_thumbs") * pl.col("status_modifier"))
+            .otherwise(
+                pl.col("normalized_thumbs") * pl.col("rating_modifier") * pl.col("status_modifier")
+            ),
+        )
+
+    def _aggregate_signals(self, links):
+        """Group by candidate, sum signals, compute confidence.
+
+        Confidence is purely link-count based — thumb strength already
+        modulates the signal itself via normalized_thumbs.
+        """
+        return (
+            links.group_by("recommended_id", maintain_order=True)
+            .agg(
+                signal=pl.col("link_signal").sum(),
+                link_count=pl.len(),
+            )
+            .with_columns(
+                confidence=(pl.col("link_count").cast(pl.Float64) / self.MIN_LINK_COUNT).clip(
+                    upper_bound=1.0
+                ),
+            )
+        )
+
+    def _join_to_seasonal(self, aggregated, seasonal):
+        """Join aggregated scores back to seasonal ordering."""
+        return (
+            seasonal.select("id")
+            .join(
+                aggregated.select(
+                    pl.col("recommended_id").alias("id"),
+                    "signal",
+                    "confidence",
+                ),
+                on="id",
+                how="left",
+            )
+            .with_columns(
+                pl.col("signal").fill_null(0.0),
+                pl.col("confidence").fill_null(0.0),
+            )
+        )

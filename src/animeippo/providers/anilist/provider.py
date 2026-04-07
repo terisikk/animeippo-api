@@ -58,6 +58,14 @@ class AniListProvider(abstract_provider.AbstractAnimeProvider):
                             season
                             coverImage { large }
                             relations { edges { relationType, node { id, idMal }}}
+                            recommendations(sort: RATING_DESC, perPage: 25) {
+                                edges {
+                                    node {
+                                        rating
+                                        mediaRecommendation { id }
+                                    }
+                                }
+                            }
                         }
                     }
                 }

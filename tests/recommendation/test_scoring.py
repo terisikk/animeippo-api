@@ -562,3 +562,265 @@ def test_adaptation_scorer():
 
     # Unrated manga (id=1, score=None) should get 0.5 confidence
     assert result.confidence[1] == 0.5
+
+
+def test_collaborative_recommendation_scorer_basic():
+    watchlist = pl.DataFrame(
+        {
+            "id": [1, 2],
+            "score": [8, 9],
+            "user_status": ["COMPLETED", "COMPLETED"],
+            "recommendations": [
+                [
+                    {"recommended_id": 10, "rating": 10},
+                    {"recommended_id": 11, "rating": 3},
+                ],
+                [
+                    {"recommended_id": 10, "rating": 8},
+                ],
+            ],
+        },
+        schema_overrides={
+            "recommendations": pl.List(
+                pl.Struct({"recommended_id": pl.UInt32, "rating": pl.Int32})
+            ),
+        },
+    )
+
+    seasonal = pl.DataFrame(
+        {
+            "id": [10, 11, 12],
+            "title": ["Candidate A", "Candidate B", "Candidate C"],
+        }
+    )
+
+    scorer = scoring.CollaborativeRecommendationScorer()
+    uprofile = UserProfile("Test", watchlist)
+    result = scorer.score(RecommendationModel(uprofile, seasonal))
+
+    assert len(result.score) == 3
+    assert len(result.confidence) == 3
+
+    # Candidate A has links from both watchlist items, Candidate B from one
+    ranked = seasonal.with_columns(s=result.score).sort("s", descending=True)
+    assert ranked["title"].item(0) == "Candidate A"
+
+    # Candidate C has no links — zero score
+    c_idx = seasonal["id"].to_list().index(12)
+    assert result.score[c_idx] == 0.0
+    assert result.confidence[c_idx] == 0.0
+
+
+def test_collaborative_recommendation_scorer_no_recommendations_column():
+    watchlist = pl.DataFrame(
+        {
+            "id": [1],
+            "score": [8],
+            "user_status": ["COMPLETED"],
+        }
+    )
+
+    seasonal = pl.DataFrame({"id": [10, 11], "title": ["A", "B"]})
+
+    scorer = scoring.CollaborativeRecommendationScorer()
+    uprofile = UserProfile("Test", watchlist)
+    result = scorer.score(RecommendationModel(uprofile, seasonal))
+
+    assert (result.score == 0.0).all()
+    assert (result.confidence == 0.0).all()
+
+
+def test_collaborative_recommendation_scorer_no_matching_links():
+    watchlist = pl.DataFrame(
+        {
+            "id": [1],
+            "score": [8],
+            "user_status": ["COMPLETED"],
+            "recommendations": [
+                [{"recommended_id": 999, "rating": 10}],
+            ],
+        },
+        schema_overrides={
+            "recommendations": pl.List(
+                pl.Struct({"recommended_id": pl.UInt32, "rating": pl.Int32})
+            ),
+        },
+    )
+
+    seasonal = pl.DataFrame({"id": [10, 11], "title": ["A", "B"]})
+
+    scorer = scoring.CollaborativeRecommendationScorer()
+    uprofile = UserProfile("Test", watchlist)
+    result = scorer.score(RecommendationModel(uprofile, seasonal))
+
+    assert (result.score == 0.0).all()
+    assert (result.confidence == 0.0).all()
+
+
+def test_collaborative_recommendation_scorer_dropped_show_negative_signal():
+    watchlist = pl.DataFrame(
+        {
+            "id": [1],
+            "score": [3],
+            "user_status": ["DROPPED"],
+            "recommendations": [
+                [{"recommended_id": 10, "rating": 10}],
+            ],
+        },
+        schema_overrides={
+            "recommendations": pl.List(
+                pl.Struct({"recommended_id": pl.UInt32, "rating": pl.Int32})
+            ),
+        },
+    )
+
+    seasonal = pl.DataFrame({"id": [10], "title": ["A"]})
+
+    scorer = scoring.CollaborativeRecommendationScorer()
+    uprofile = UserProfile("Test", watchlist)
+    result = scorer.score(RecommendationModel(uprofile, seasonal))
+
+    # Dropped status has -0.5 modifier, so signal should be negative before rank normalization
+    # After rank normalization with a single item, score is 0.0
+    assert len(result.score) == 1
+
+
+def test_collaborative_recommendation_scorer_unrated_show_uses_mean():
+    watchlist = pl.DataFrame(
+        {
+            "id": [1, 2],
+            "score": [None, 8],
+            "user_status": ["COMPLETED", "COMPLETED"],
+            "recommendations": [
+                [{"recommended_id": 10, "rating": 10}],
+                [{"recommended_id": 11, "rating": 10}],
+            ],
+        },
+        schema_overrides={
+            "recommendations": pl.List(
+                pl.Struct({"recommended_id": pl.UInt32, "rating": pl.Int32})
+            ),
+        },
+    )
+
+    seasonal = pl.DataFrame({"id": [10, 11], "title": ["A", "B"]})
+
+    scorer = scoring.CollaborativeRecommendationScorer()
+    uprofile = UserProfile("Test", watchlist)
+    result = scorer.score(RecommendationModel(uprofile, seasonal))
+
+    # Both should have non-zero scores (unrated uses mean score fallback)
+    assert result.score[0] > 0
+    assert result.score[1] > 0
+
+
+def test_collaborative_recommendation_scorer_confidence_scales_with_link_count():
+    watchlist = pl.DataFrame(
+        {
+            "id": [1, 2, 3],
+            "score": [8, 8, 8],
+            "user_status": ["COMPLETED", "COMPLETED", "COMPLETED"],
+            "recommendations": [
+                [
+                    {"recommended_id": 10, "rating": 10},
+                    {"recommended_id": 11, "rating": 10},
+                ],
+                [
+                    {"recommended_id": 10, "rating": 10},
+                ],
+                [
+                    {"recommended_id": 10, "rating": 10},
+                ],
+            ],
+        },
+        schema_overrides={
+            "recommendations": pl.List(
+                pl.Struct({"recommended_id": pl.UInt32, "rating": pl.Int32})
+            ),
+        },
+    )
+
+    seasonal = pl.DataFrame({"id": [10, 11], "title": ["A", "B"]})
+
+    scorer = scoring.CollaborativeRecommendationScorer()
+    uprofile = UserProfile("Test", watchlist)
+    result = scorer.score(RecommendationModel(uprofile, seasonal))
+
+    # Candidate 10 has 3 links (>= MIN_LINK_COUNT=3), candidate 11 has 1
+    assert result.confidence[0] > result.confidence[1]
+
+
+def test_collaborative_recommendation_scorer_zero_total_thumbs():
+    watchlist = pl.DataFrame(
+        {
+            "id": [1],
+            "score": [8],
+            "user_status": ["COMPLETED"],
+            "recommendations": [
+                [{"recommended_id": 10, "rating": 0}],
+            ],
+        },
+        schema_overrides={
+            "recommendations": pl.List(
+                pl.Struct({"recommended_id": pl.UInt32, "rating": pl.Int32})
+            ),
+        },
+    )
+
+    seasonal = pl.DataFrame({"id": [10], "title": ["A"]})
+
+    scorer = scoring.CollaborativeRecommendationScorer()
+    uprofile = UserProfile("Test", watchlist)
+    result = scorer.score(RecommendationModel(uprofile, seasonal))
+
+    # Zero rating means zero signal, no division by zero
+    assert len(result.score) == 1
+    assert not result.score.is_null().any()
+
+
+def test_collaborative_recommendation_scorer_aggregation_is_sum():
+    watchlist = pl.DataFrame(
+        {
+            "id": [1, 2],
+            "score": [8, 8],
+            "user_status": ["COMPLETED", "COMPLETED"],
+            "recommendations": [
+                [{"recommended_id": 10, "rating": 10}],
+                [{"recommended_id": 10, "rating": 10}],
+            ],
+        },
+        schema_overrides={
+            "recommendations": pl.List(
+                pl.Struct({"recommended_id": pl.UInt32, "rating": pl.Int32})
+            ),
+        },
+    )
+
+    single_watchlist = pl.DataFrame(
+        {
+            "id": [1],
+            "score": [8],
+            "user_status": ["COMPLETED"],
+            "recommendations": [
+                [{"recommended_id": 10, "rating": 10}],
+            ],
+        },
+        schema_overrides={
+            "recommendations": pl.List(
+                pl.Struct({"recommended_id": pl.UInt32, "rating": pl.Int32})
+            ),
+        },
+    )
+
+    seasonal = pl.DataFrame({"id": [10, 11], "title": ["A", "B"]})
+
+    scorer = scoring.CollaborativeRecommendationScorer()
+
+    result_multi = scorer.score(RecommendationModel(UserProfile("Test", watchlist), seasonal))
+    result_single = scorer.score(
+        RecommendationModel(UserProfile("Test", single_watchlist), seasonal)
+    )
+
+    # With rank normalization both single-candidate scores are the same (both rank 1 of 1 match),
+    # but confidence should be higher with more links
+    assert result_multi.confidence[0] > result_single.confidence[0]

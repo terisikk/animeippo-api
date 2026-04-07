@@ -194,6 +194,22 @@ ANI_USER_LIST = {
                                         }
                                     ]
                                 },
+                                "recommendations": {
+                                    "edges": [
+                                        {
+                                            "node": {
+                                                "rating": 10,
+                                                "mediaRecommendation": {"id": 144932},
+                                            }
+                                        },
+                                        {
+                                            "node": {
+                                                "rating": 5,
+                                                "mediaRecommendation": {"id": 145139},
+                                            }
+                                        },
+                                    ]
+                                },
                             },
                         },
                         {
@@ -269,6 +285,16 @@ ANI_USER_LIST = {
                                             "relationType": "PREQUEL",
                                             "node": {"id": 131518, "idMal": None},
                                         }
+                                    ]
+                                },
+                                "recommendations": {
+                                    "edges": [
+                                        {
+                                            "node": {
+                                                "rating": 8,
+                                                "mediaRecommendation": {"id": 144932},
+                                            }
+                                        },
                                     ]
                                 },
                             },

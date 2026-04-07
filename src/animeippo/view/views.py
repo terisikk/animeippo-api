@@ -36,14 +36,14 @@ def recommendations_web_view(dataframe, categories=None, tags_and_genres=None, d
     if debug:
         scorer_fields = [
             "overall_confidence",
-            "continuationscore",
             "directscore",
             "featurecorrelationscore",
             "clusterscore",
-            "continuationscore",
-            "adaptationscore",
-            "popularityscore",
+            "collaborativescore",
             "studiocorrelationscore",
+            "popularityscore",
+            "adaptationscore",
+            "continuationscore",
         ]
         fields.extend(scorer_fields)
 

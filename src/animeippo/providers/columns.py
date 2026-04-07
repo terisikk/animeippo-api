@@ -31,6 +31,7 @@ class Columns(StrEnum):
     FEATURES = "features"
     FRANCHISE = "franchise"
     FRANCHISE_RELATIONS = "franchise_relations"
+    RECOMMENDATIONS = "recommendations"
     DIRECTOR = "directors"
 
 

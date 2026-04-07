@@ -35,6 +35,7 @@ ANI_WATCHLIST_SCHEMA = {
     Columns.FRANCHISE_RELATIONS: pl.List(
         pl.Struct({"related_id": pl.UInt32, "relation_type": pl.Utf8})
     ),
+    Columns.RECOMMENDATIONS: pl.List(pl.Struct({"recommended_id": pl.UInt32, "rating": pl.Int32})),
 }
 
 ANI_SEASONAL_SCHEMA = {
