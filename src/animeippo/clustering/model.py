@@ -222,6 +222,7 @@ class AnimeClustering:
             ).with_columns(id=self.clustered_series["id"])
 
         sim_cols = [c for c in similarities.columns if c != "id"]
+        col_order = pl.Enum(sim_cols)
 
         return (
             similarities.with_columns(pl.col(sim_cols).fill_nan(0.0))
@@ -236,6 +237,6 @@ class AnimeClustering:
                 pl.col("cluster").first(),
                 pl.col("avg_sim").first().alias("similarity"),
             )
-            .sort("item")
+            .sort(pl.col("item").cast(col_order))
             .select("cluster", "similarity")
         )

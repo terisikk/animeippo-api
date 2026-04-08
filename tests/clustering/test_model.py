@@ -241,3 +241,43 @@ def test_predict_preserves_order_for_multiple_items():
     assert predicted["cluster"][2] == cluster_b
     assert predicted["cluster"][3] == cluster_a
     assert predicted["similarity"][0] > 0
+
+
+def test_predict_preserves_order_beyond_ten_items():
+    """Column names like column_0..column_11 must sort positionally, not lexicographically.
+
+    With 12+ items, lexicographic sort puts column_10 before column_2,
+    scrambling the output order. Items 0-9 are cluster A, 10-11 are cluster C,
+    so any misordering is detectable.
+    """
+    ml = model.AnimeClustering(distance_metric="cosine", distance_threshold=0.5)
+
+    watchlist = pl.DataFrame(
+        {
+            "id": list(range(4)),
+            "encoded": [
+                {"a": 10, "b": 0, "c": 0},
+                {"a": 10, "b": 1, "c": 0},
+                {"a": 0, "b": 0, "c": 10},
+                {"a": 0, "b": 0, "c": 10},
+            ],
+        }
+    )
+    clusters = ml.cluster_by_features(watchlist)
+
+    cluster_a = clusters[0]
+    cluster_c = clusters[2]
+
+    # First 10 items similar to cluster A, last 2 similar to cluster C
+    new_items = pl.Series([{"a": 10, "b": 0, "c": 0}] * 10 + [{"a": 0, "b": 0, "c": 10}] * 2)
+
+    predicted = ml.predict(new_items)
+
+    for i in range(10):
+        assert predicted["cluster"][i] == cluster_a, (
+            f"Item {i}: expected cluster A ({cluster_a}), got {predicted['cluster'][i]}"
+        )
+    for i in range(10, 12):
+        assert predicted["cluster"][i] == cluster_c, (
+            f"Item {i}: expected cluster C ({cluster_c}), got {predicted['cluster'][i]}"
+        )
