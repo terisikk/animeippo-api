@@ -184,13 +184,16 @@ def get_descriptive_features(  # noqa: PLR0913
     if not n_features:
         n_features = len(tfidf_df)
 
-    # Select top N features per cluster
-    top_k = tfidf_df.sort(feature_column).select(
-        pl.col(feature_column).top_k_by(pl.col(col), n_features).alias(str(col))
-        for col in cluster_columns
+    # Unpivot to long format, keep only non-zero scores, pick top N per cluster
+    return (
+        tfidf_df.unpivot(index=feature_column, variable_name="cluster", value_name="tfidf")
+        .filter(pl.col("tfidf") > 0)
+        .sort("tfidf", descending=True)
+        .group_by("cluster", maintain_order=True)
+        .head(n_features)
+        .group_by("cluster", maintain_order=True)
+        .agg(pl.col(feature_column).alias("description"))
     )
-
-    return top_k.transpose(include_header=True, header_name="cluster")
 
 
 def catalogue_frequency(df: pl.DataFrame, list_col: str, value_col: str = "value") -> pl.DataFrame:

@@ -1,7 +1,5 @@
 from typing import ClassVar
 
-import polars as pl
-
 from animeippo.analysis import statistics
 
 
@@ -300,14 +298,10 @@ class ClusterNamer:
             cluster_column,
             n_features=5,
             boost_features=self.genres,
-        ).select(
-            pl.col(cluster_column),
-            pl.concat_list(pl.exclude(cluster_column)).alias("description"),
         )
 
         cluster_features = {
-            row[cluster_column]: list(row["description"])
-            for row in descriptions.iter_rows(named=True)
+            row["cluster"]: row["description"] for row in descriptions.iter_rows(named=True)
         }
 
         return self.name_clusters(cluster_features)
