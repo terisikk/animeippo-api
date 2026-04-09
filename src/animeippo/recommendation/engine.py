@@ -3,6 +3,7 @@ import copy
 import polars as pl
 import structlog
 
+from .funnel import add_funnel_metadata
 from .scoring import ScorerResult
 
 logger = structlog.get_logger()
@@ -44,6 +45,8 @@ class AnimeRecommendationEngine:
             cluster=predictions["cluster"].cast(pl.UInt32),
             cluster_similarity=predictions["similarity"],
         )
+
+        recommendations = add_funnel_metadata(recommendations)
 
         return recommendations.sort("discovery_score", descending=True)
 
