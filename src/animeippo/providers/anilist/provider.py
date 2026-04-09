@@ -231,28 +231,10 @@ class AniListProvider(abstract_provider.AbstractAnimeProvider):
         pass
 
     def get_nsfw_tags(self):
-        """Get NSFW tags from cache if available, otherwise use static data."""
-        if self.cache and self.cache.is_available():
-            cached_tags = self.cache.get_json("anilist:nsfw_tags")
-            if cached_tags:
-                return set(cached_tags)
-
         return data.NSFW_TAGS
 
     def get_genres(self):
-        """Get genres from cache if available, otherwise use static data."""
-        if self.cache and self.cache.is_available():
-            cached_genres = self.cache.get_json("anilist:genres")
-            if cached_genres:
-                return set(cached_genres)
-
         return data.ALL_GENRES
 
     def get_tag_lookup(self):
-        """Get tag lookup dict (id -> {name, category, isAdult}) from cache or static data."""
-        if self.cache and self.cache.is_available():
-            tag_lookup = self.cache.get_json("anilist:tag_lookup")
-            if tag_lookup:
-                return {int(k): v for k, v in tag_lookup.items()}
-
         return data.ALL_TAGS

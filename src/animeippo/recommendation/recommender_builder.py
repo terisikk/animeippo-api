@@ -145,6 +145,8 @@ def build_recommender(providername):
 
     metric = CLUSTERING_DEFAULTS["distance_metric"]
 
+    tag_lookup = provider.get_tag_lookup()
+
     return AnimeRecommender(
         provider=provider,
         engine=engine.AnimeRecommendationEngine(
@@ -155,10 +157,11 @@ def build_recommender(providername):
             ranking_orchestrator=RankingOrchestrator(
                 get_default_categorizers(
                     distance_metric=metric,
-                    tag_lookup=provider.get_tag_lookup(),
+                    tag_lookup=tag_lookup,
                     genres=provider.get_genres(),
                 )
             ),
+            tag_lookup=tag_lookup,
         ),
         recommendation_model_cls=RecommendationModel,
         profile_model_cls=UserProfile,

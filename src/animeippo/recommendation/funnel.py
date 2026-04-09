@@ -7,102 +7,75 @@ and that the category system can use for mood-based categories.
 from typing import ClassVar
 
 import polars as pl
+import structlog
+
+logger = structlog.get_logger()
 
 MOOD_THRESHOLD = 1.0
+GENRE_WEIGHT = 1.0
+
+# Genre-to-mood mapping (tags get their mood from data.py)
+MOOD_GENRES: dict[str, list[str]] = {
+    "chill": ["Slice of Life"],
+    "hype": ["Action", "Mecha"],
+    "emotional": ["Drama", "Romance"],
+    "dark": ["Horror", "Thriller"],
+    "funny": ["Comedy"],
+    "cerebral": ["Mystery", "Psychological"],
+    "adventurous": ["Adventure", "Fantasy", "Sci-Fi"],
+    "sporty": ["Sports"],
+}
+
+# Intensity genre tiers
+INTENSITY_GENRE_TIERS: dict[str, str] = {
+    "Psychological": "heavy",
+    "Thriller": "heavy",
+    "Horror": "heavy",
+    "Drama": "heavy",
+    "Slice of Life": "light",
+    "Comedy": "light",
+    "Mystery": "moderate",
+}
+
+TIER_SIGNS = {"heavy": 1.0, "light": -1.0, "moderate": 0.5}
+
+# Override threshold for dark-only shows
+DARK_ONLY_OVERRIDE_THRESHOLD = 3.0
 
 
 class MoodClassifier:
     """Classifies anime into moods based on tags and genres."""
 
-    MOOD_TAGS: ClassVar[dict[str, list[str]]] = {
-        "chill": [
-            "Iyashikei",
-            "Cute Girls Doing Cute Things",
-            "Cute Boys Doing Cute Things",
-            "Family Life",
-            "Agriculture",
-            "Horticulture",
-            "Food",
-            "Camping",
-            "Outdoor Activities",
-        ],
-        "hype": [
-            "Martial Arts",
-            "Swordplay",
-            "Battle Royale",
-            "Super Power",
-            "Superhero",
-            "Kaiju",
-            "Guns",
-            "Espionage",
-            "Fugitive",
-        ],
-        "emotional": [
-            "Tragedy",
-            "Coming of Age",
-            "Unrequited Love",
-            "Love Triangle",
-            "Rehabilitation",
-            "Found Family",
-            "Bullying",
-            "Suicide",
-            "Disability",
-        ],
-        "dark": [
-            "Gore",
-            "Cosmic Horror",
-            "Body Horror",
-            "Denpa",
-            "Torture",
-            "Death Game",
-            "Cannibalism",
-            "Slavery",
-            "Drugs",
-            "Ero Guro",
-            "Survival",
-            "Noir",
-        ],
-        "funny": [
-            "Parody",
-            "Satire",
-            "Slapstick",
-            "Surreal Comedy",
-        ],
-    }
-
-    MOOD_GENRES: ClassVar[dict[str, list[str]]] = {
-        "chill": ["Slice of Life"],
-        "hype": ["Action", "Mecha"],
-        "emotional": ["Drama", "Romance"],
-        "dark": ["Horror", "Thriller", "Psychological"],
-        "funny": ["Comedy"],
-    }
-
-    # Tags that build up per-mood lookup: {tag_name: mood}
-    _tag_to_mood: ClassVar[dict[str, str]] = {
-        tag: mood for mood, tags in MOOD_TAGS.items() for tag in tags
-    }
-
+    _tag_to_mood: ClassVar[dict[str, str]] = {}
     _genre_to_moods: ClassVar[dict[str, list[str]]] = {}
+    _mood_names: ClassVar[list[str]] = []
+    _initialized: ClassVar[bool] = False
 
     @classmethod
-    def _build_genre_lookup(cls):
-        if not cls._genre_to_moods:
-            for mood, genres in cls.MOOD_GENRES.items():
-                for genre in genres:
-                    cls._genre_to_moods.setdefault(genre, []).append(mood)
+    def initialize(cls, tag_lookup=None):
+        """Build lookup tables from tag_lookup data."""
+        cls._tag_to_mood = {}
+        if tag_lookup:
+            for info in tag_lookup.values():
+                mood = info.get("mood")
+                if mood:
+                    cls._tag_to_mood[info["name"]] = mood
+
+        cls._genre_to_moods = {}
+        for mood, genres in MOOD_GENRES.items():
+            for genre in genres:
+                cls._genre_to_moods.setdefault(genre, []).append(mood)
+
+        cls._mood_names = list(MOOD_GENRES.keys())
+        cls._initialized = True
 
     @classmethod
     def classify(cls, temp_ranks, genres):
-        """Compute mood scores and return list of moods above threshold.
+        """Compute mood scores and return moods above threshold with raw scores."""
+        if not cls._initialized:
+            cls.initialize()
 
-        Args:
-            temp_ranks: list of {name, rank, category} dicts
-            genres: list of genre strings
-        """
-        cls._build_genre_lookup()
-
-        scores = dict.fromkeys(cls.MOOD_TAGS, 0.0)
+        scores = dict.fromkeys(cls._mood_names, 0.0)
 
         if temp_ranks:
             for tag in temp_ranks:
@@ -113,85 +86,98 @@ class MoodClassifier:
         if genres:
             for genre in genres:
                 for mood in cls._genre_to_moods.get(genre, []):
-                    scores[mood] += 1.0
+                    scores[mood] += GENRE_WEIGHT
 
-        return [mood for mood, score in scores.items() if score >= MOOD_THRESHOLD]
+        moods = [mood for mood, score in scores.items() if score >= MOOD_THRESHOLD]
+        return moods, scores
 
 
-ALL_IN_THRESHOLD = 1.5
-LIGHT_THRESHOLD = -0.5
+# Intensity tag tier lookup built from tag_lookup data
+_intensity_tag_tiers: dict[str, str] = {}
 
-# Genres/tags that push toward heavy or light intensity
-INTENSITY_WEIGHTS = {
-    "heavy_genres": {"Drama", "Psychological", "Thriller", "Horror"},
-    "light_genres": {"Comedy", "Slice of Life", "Music"},
-    "heavy_tags": {
-        "Conspiracy",
-        "Revenge",
-        "Suicide",
-        "Tragedy",
-        "Death Game",
-        "Gore",
-        "Cosmic Horror",
-        "Denpa",
-        "Torture",
-        "Body Horror",
-        "War",
-        "Military",
-        "Slavery",
-        "Cannibalism",
-        "Drugs",
-        "Noir",
-        "Ero Guro",
-        "Philosophy",
-    },
-    "light_tags": {
-        "Iyashikei",
-        "Parody",
-        "Satire",
-        "Slapstick",
-        "Surreal Comedy",
-        "Chibi",
-        "Cute Girls Doing Cute Things",
-        "Cute Boys Doing Cute Things",
-        "Food",
-        "Camping",
-        "Outdoor Activities",
-    },
-}
+
+def _initialize_intensity(tag_lookup):
+    global _intensity_tag_tiers  # noqa: PLW0603
+    _intensity_tag_tiers = {}
+    if tag_lookup:
+        for info in tag_lookup.values():
+            intensity = info.get("intensity")
+            if intensity:
+                _intensity_tag_tiers[info["name"]] = intensity
 
 
 def _intensity_score(temp_ranks, genres):
     score = 0.0
+
     if genres:
         for genre in genres:
-            if genre in INTENSITY_WEIGHTS["heavy_genres"]:
-                score += 1.0
-            elif genre in INTENSITY_WEIGHTS["light_genres"]:
-                score -= 1.0
+            tier = INTENSITY_GENRE_TIERS.get(genre)
+            if tier:
+                score += TIER_SIGNS[tier]
+
     if temp_ranks:
         for tag in temp_ranks:
-            rank = tag["rank"] / 100.0
-            if tag["name"] in INTENSITY_WEIGHTS["heavy_tags"]:
-                score += rank
-            elif tag["name"] in INTENSITY_WEIGHTS["light_tags"]:
-                score -= rank
+            tier = _intensity_tag_tiers.get(tag["name"])
+            if tier:
+                score += tag["rank"] / 100.0 * TIER_SIGNS[tier]
+
     return score
 
 
-def classify_intensity(temp_ranks, genres):
-    """Classify narrative depth as light/moderate/all_in."""
-    score = _intensity_score(temp_ranks, genres)
+def _bucket_intensity(scores, moods_list):
+    """Bucket intensity scores using percentile thirds.
 
-    if score >= ALL_IN_THRESHOLD:
-        return "all_in"
-    if score <= LIGHT_THRESHOLD:
-        return "light"
-    return "moderate"
+    Chill-only shows are auto-assigned light; dark-only high-score shows
+    are auto-assigned all_in. Remaining shows are split into percentile thirds.
+    """
+    results = [None] * len(scores)
+    remaining_indices = []
+
+    for i, (score, moods) in enumerate(zip(scores, moods_list, strict=True)):
+        if moods == ["chill"]:
+            results[i] = "light"
+        elif moods == ["dark"] and score > DARK_ONLY_OVERRIDE_THRESHOLD:
+            results[i] = "all_in"
+        else:
+            remaining_indices.append(i)
+
+    if remaining_indices:
+        remaining_scores = sorted(scores[i] for i in remaining_indices)
+        n = len(remaining_scores)
+        low_cutoff = remaining_scores[n // 3]
+        high_cutoff = remaining_scores[2 * n // 3]
+
+        for i in remaining_indices:
+            if scores[i] <= low_cutoff:
+                results[i] = "light"
+            elif scores[i] >= high_cutoff:
+                results[i] = "all_in"
+            else:
+                results[i] = "moderate"
+
+    return results
 
 
-def add_funnel_metadata(recommendations):
-    """Add mood and intensity columns to recommendations DataFrame."""
+def _log_unknown_tags(recommendations, tag_lookup):
+    """Log warning if anime have tags not in the static tag lookup."""
+    if tag_lookup is None or "temp_ranks" not in recommendations.columns:
+        return
+
+    known_names = {info["name"] for info in tag_lookup.values()}
+    all_tag_names = set(
+        recommendations["temp_ranks"].explode().struct.field("name").drop_nulls().unique().to_list()
+    )
+    unknown = all_tag_names - known_names
+    if unknown:
+        logger.warning("unknown_tags", count=len(unknown), tags=sorted(unknown))
+
+
+def add_funnel_metadata(recommendations, tag_lookup=None):
+    """Add mood, mood scores, and intensity columns to recommendations DataFrame."""
+    MoodClassifier.initialize(tag_lookup)
+    _initialize_intensity(tag_lookup)
+    _log_unknown_tags(recommendations, tag_lookup)
+
     ranks_data = (
         recommendations["temp_ranks"].to_list()
         if "temp_ranks" in recommendations.columns
@@ -204,13 +190,26 @@ def add_funnel_metadata(recommendations):
     )
 
     moods_list = []
-    intensity_list = []
+    mood_scores_list = []
+    intensity_scores = []
 
     for ranks, genres in zip(ranks_data, genres_data, strict=True):
-        moods_list.append(MoodClassifier.classify(ranks, genres))
-        intensity_list.append(classify_intensity(ranks, genres))
+        moods, scores = MoodClassifier.classify(ranks, genres)
+        moods_list.append(moods)
+        mood_scores_list.append(scores)
+        intensity_scores.append(_intensity_score(ranks, genres))
+
+    intensity_labels = _bucket_intensity(intensity_scores, moods_list)
+
+    mood_names = MoodClassifier._mood_names
+    mood_score_columns = {
+        f"mood_{mood}": pl.Series([scores[mood] for scores in mood_scores_list], dtype=pl.Float64)
+        for mood in mood_names
+    }
 
     return recommendations.with_columns(
         moods=pl.Series(moods_list, dtype=pl.List(pl.Utf8)),
-        intensity=pl.Series(intensity_list, dtype=pl.Utf8),
+        intensity=pl.Series(intensity_labels, dtype=pl.Utf8),
+        intensity_score=pl.Series(intensity_scores, dtype=pl.Float64),
+        **mood_score_columns,
     )

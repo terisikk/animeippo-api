@@ -1,10 +1,9 @@
 #!/usr/bin/env python3
-"""Pre-load cache with yearly anime and static data.
+"""Pre-load cache with yearly anime and check tag freshness.
 
 This script should be run nightly (via cron) to:
 1. Warm the cache with previous, current, and next year anime (full years)
-2. Cache Genre/Tag collections from AniList API in Redis
-3. Pre-cache data for better user experience
+2. Compare AniList API tags against static data and log new/removed tags
 
 Usage:
     python scripts/preload_cache.py [--skip-static]
@@ -12,7 +11,7 @@ Usage:
 
 import argparse
 import asyncio
-from datetime import datetime, timedelta
+from datetime import datetime
 
 import aiohttp
 import dotenv
@@ -48,34 +47,10 @@ async def preload_year_anime(provider, year):
     return 0
 
 
-async def fetch_and_cache_genres(connection, cache):
-    """Fetch all genres from AniList API and cache them."""
-    query = """
-    query {
-        GenreCollection
-    }
-    """
+async def check_tag_freshness(connection):
+    """Compare AniList API tags against static data and log differences."""
+    from animeippo.providers.anilist import data
 
-    try:
-        async with aiohttp.ClientSession() as session:
-            response = await connection.request_single(session, query, {})
-    except Exception:
-        logger.exception("genres_fetch_error")
-        return None
-
-    genres = response.get("data", {}).get("GenreCollection", [])
-
-    if cache and cache.is_available():
-        cache.set_json("anilist:genres", genres, ttl=timedelta(days=30))
-        logger.info("genres_cached", count=len(genres))
-    else:
-        logger.warning("genres_fetched_no_cache", count=len(genres))
-
-    return genres
-
-
-async def fetch_and_cache_tags(connection, cache):
-    """Fetch all media tags from AniList API and cache them."""
     query = """
     query {
         MediaTagCollection {
@@ -92,31 +67,29 @@ async def fetch_and_cache_tags(connection, cache):
             response = await connection.request_single(session, query, {})
     except Exception:
         logger.exception("tags_fetch_error")
-        return None
+        return
 
-    tags_data = response.get("data", {}).get("MediaTagCollection", [])
+    api_tags = response.get("data", {}).get("MediaTagCollection", [])
+    api_ids = {tag["id"] for tag in api_tags}
+    static_ids = set(data.ALL_TAGS.keys())
 
-    if cache and cache.is_available():
-        cache.set_json("anilist:tags", tags_data, ttl=timedelta(days=30))
+    new_tags = [tag for tag in api_tags if tag["id"] not in static_ids]
+    removed_ids = static_ids - api_ids
 
-        tag_lookup = {
-            tag["id"]: {
-                "name": tag["name"],
-                "category": tag["category"],
-                "isAdult": tag.get("isAdult", False),
-            }
-            for tag in tags_data
-        }
-        cache.set_json("anilist:tag_lookup", tag_lookup, ttl=timedelta(days=30))
-
-        nsfw_tags = [tag["name"] for tag in tags_data if tag.get("isAdult", False)]
-        cache.set_json("anilist:nsfw_tags", nsfw_tags, ttl=timedelta(days=30))
-
-        logger.info("tags_cached", total=len(tags_data), nsfw=len(nsfw_tags))
-    else:
-        logger.warning("tags_fetched_no_cache", total=len(tags_data))
-
-    return tags_data
+    if new_tags:
+        logger.warning(
+            "new_tags_on_anilist",
+            count=len(new_tags),
+            tags=[t["name"] for t in new_tags],
+        )
+    if removed_ids:
+        logger.warning(
+            "removed_tags_on_anilist",
+            count=len(removed_ids),
+            ids=sorted(removed_ids),
+        )
+    if not new_tags and not removed_ids:
+        logger.info("tags_up_to_date", count=len(api_tags))
 
 
 async def main():
@@ -152,9 +125,8 @@ async def main():
     logger.info("preload_years_done", total=total_cached)
 
     if not args.skip_static:
-        logger.info("preload_static_start")
-        await fetch_and_cache_genres(provider.connection, cache)
-        await fetch_and_cache_tags(provider.connection, cache)
+        logger.info("preload_static_check")
+        await check_tag_freshness(provider.connection)
 
     logger.info("preload_complete")
     return 0
