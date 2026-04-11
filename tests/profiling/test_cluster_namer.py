@@ -244,7 +244,10 @@ def test_deduplicate_no_duplicates_is_noop():
 
 
 def test_cast_composition_tags_become_short_modifiers():
-    """Cast composition tags like 'Primarily Male Cast' should be shortened and placed as modifiers."""
+    """
+    Cast composition tags like 'Primarily Male Cast'
+    should be shortened and placed as modifiers.
+    """
     namer = ClusterNamer(
         tag_lookup={
             1: {"name": "Primarily Male Cast", "category": "Cast-Main Cast", "isAdult": False},
