@@ -243,6 +243,25 @@ def test_deduplicate_no_duplicates_is_noop():
     assert names["1"] == "Detective Fantasy"
 
 
+def test_cast_composition_tags_become_short_modifiers():
+    """Cast composition tags like 'Primarily Male Cast' should be shortened and placed as modifiers."""
+    namer = ClusterNamer(
+        tag_lookup={
+            1: {"name": "Primarily Male Cast", "category": "Cast-Main Cast", "isAdult": False},
+            2: {"name": "Primarily Adult Cast", "category": "Cast-Main Cast", "isAdult": False},
+            3: {"name": "Primarily Child Cast", "category": "Cast-Main Cast", "isAdult": False},
+            4: {"name": "Torture", "category": "Theme-Other", "isAdult": False},
+            5: {"name": "Work", "category": "Setting-Scene", "isAdult": False},
+        },
+        genres={"Horror", "Yuri"},
+    )
+
+    assert namer.name_single_cluster(["Primarily Male Cast", "Horror"]) == "Male-Led Horror"
+    assert namer.name_single_cluster(["Primarily Adult Cast", "Work"]) == "Adult Work"
+    assert namer.name_single_cluster(["Primarily Child Cast", "Torture"]) == "Children's Torture"
+    assert namer.name_single_cluster(["Yuri", "Primarily Male Cast"]) == "Male-Led Yuri"
+
+
 def test_adjective_only_core_swaps_with_noun_modifier():
     """When core is adjective-only but modifier is noun-capable, swap them."""
     namer = ClusterNamer(

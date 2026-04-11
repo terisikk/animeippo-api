@@ -1,3 +1,3 @@
-__all__ = ["RedisCache"]
+__all__ = ["CacheMode", "RedisCache"]
 
-from .redis_cache import RedisCache
+from .redis_cache import CacheMode, RedisCache

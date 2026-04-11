@@ -167,6 +167,28 @@ async def test_cached_dataframe_decorator_stores_and_retrieves(mocker):
     assert second["title"].to_list() == ["A", "B"]
 
 
+def test_write_only_mode_skips_reads(mocker):
+    mocker.patch("redis.Redis", RedisStub)
+
+    rcache = cache.RedisCache(mode=cache.CacheMode.WRITE_ONLY)
+
+    rcache.set_json("test", {"key": "value"})
+    assert rcache.get_json("test") is None
+
+    data = pl.DataFrame({"id": [1, 2]})
+    rcache.set_dataframe("test_df", data)
+    assert rcache.get_dataframe("test_df") is None
+
+
+def test_read_write_mode_returns_data(mocker):
+    mocker.patch("redis.Redis", RedisStub)
+
+    rcache = cache.RedisCache(mode=cache.CacheMode.READ_WRITE)
+
+    rcache.set_json("test", {"key": "value"})
+    assert rcache.get_json("test") == {"key": "value"}
+
+
 @pytest.mark.asyncio
 async def test_data_can_be_fetched_even_with_cache_connection_error(mocker):
     mocker.patch("redis.Redis", RedisStub)

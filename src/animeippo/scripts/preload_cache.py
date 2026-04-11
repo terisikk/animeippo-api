@@ -102,10 +102,10 @@ async def main():
     )
     args = parser.parse_args()
 
-    from animeippo.cache import RedisCache
+    from animeippo.cache import CacheMode, RedisCache
     from animeippo.providers.anilist import AniListProvider
 
-    cache = RedisCache()
+    cache = RedisCache(mode=CacheMode.WRITE_ONLY)
 
     if not cache.is_available():
         logger.error("redis_unavailable")

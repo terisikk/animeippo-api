@@ -45,13 +45,25 @@ class ClusterNamer:
         "Vikings": "Viking",
         "Witches": "Witch",
         # Nouns with better adjectival forms
+        "Anachronism": "Anachronistic",
         "Agriculture": "Agricultural",
         "Anthropomorphism": "Anthropomorphic",
         "Cannibalism": "Cannibal",
         "Crime": "Criminal",
         "Mythology": "Mythological",
+        "Philosophy": "Philosophical",
         "Politics": "Political",
         "Terrorism": "Terrorist",
+        # Long tag names shortened for readability
+        "Cute Boys Doing Cute Things": "Cute Boys",
+        "Cute Girls Doing Cute Things": "Cute Girls",
+        # Cast composition tags shortened to modifiers
+        "Primarily Male Cast": "Male-Led",
+        "Primarily Female Cast": "Female-Led",
+        "Primarily Adult Cast": "Adult",
+        "Primarily Child Cast": "Children's",
+        "Primarily Teen Cast": "Teen",
+        "Primarily Animal Cast": "Animal",
     }
 
     # Modifier priority: lower number = placed first (modifier position)
@@ -77,6 +89,12 @@ class ClusterNamer:
         "Historical",
         "Medieval",
         "Post-Apocalyptic",
+        "Primarily Adult Cast",
+        "Primarily Animal Cast",
+        "Primarily Child Cast",
+        "Primarily Female Cast",
+        "Primarily Male Cast",
+        "Primarily Teen Cast",
         "Psychological",
         "Rural",
         "Supernatural",
