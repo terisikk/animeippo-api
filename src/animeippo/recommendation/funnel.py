@@ -13,12 +13,13 @@ logger = structlog.get_logger()
 
 MOOD_THRESHOLD = 1.0
 GENRE_WEIGHT = 1.0
+MOOD_TAG_RANK_CUTOFF = 60
 
 # Genre-to-mood mapping (tags get their mood from data.py)
 MOOD_GENRES: dict[str, list[str]] = {
     "chill": ["Slice of Life"],
     "hype": ["Action", "Mecha"],
-    "emotional": ["Drama", "Romance"],
+    "emotional": ["Drama", "Music", "Romance"],
     "dark": ["Horror", "Thriller"],
     "funny": ["Comedy"],
     "cerebral": ["Mystery", "Psychological"],
@@ -79,6 +80,8 @@ class MoodClassifier:
 
         if temp_ranks:
             for tag in temp_ranks:
+                if tag["rank"] < MOOD_TAG_RANK_CUTOFF:
+                    continue
                 mood = cls._tag_to_mood.get(tag["name"])
                 if mood:
                     scores[mood] += tag["rank"] / 100.0
