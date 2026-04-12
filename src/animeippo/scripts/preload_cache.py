@@ -11,13 +11,16 @@ Usage:
 
 import argparse
 import asyncio
+import sys
 from datetime import datetime
 
 import aiohttp
 import dotenv
 import structlog
 
+from animeippo.cache import CacheMode, RedisCache
 from animeippo.logging import configure_logging
+from animeippo.providers.anilist import AniListProvider, data
 
 dotenv.load_dotenv("conf/prod.env")
 configure_logging()
@@ -49,7 +52,6 @@ async def preload_year_anime(provider, year):
 
 async def check_tag_freshness(connection):
     """Compare AniList API tags against static data and log differences."""
-    from animeippo.providers.anilist import data
 
     query = """
     query {
@@ -102,9 +104,6 @@ async def main():
     )
     args = parser.parse_args()
 
-    from animeippo.cache import CacheMode, RedisCache
-    from animeippo.providers.anilist import AniListProvider
-
     cache = RedisCache(mode=CacheMode.WRITE_ONLY)
 
     if not cache.is_available():
@@ -134,8 +133,6 @@ async def main():
 
 def cli():
     """CLI entry point for the preload cache script."""
-    import sys
-
     exit_code = asyncio.run(main())
     sys.exit(exit_code)
 

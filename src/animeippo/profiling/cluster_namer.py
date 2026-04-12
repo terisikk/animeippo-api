@@ -1,6 +1,7 @@
 from typing import ClassVar
 
 from animeippo.analysis import statistics
+from animeippo.providers.anilist.data import ALL_TAGS, TAG_BY_NAME
 
 
 class ClusterNamer:
@@ -131,7 +132,11 @@ class ClusterNamer:
     def __init__(self, tag_lookup, genres):
         self.tag_lookup = tag_lookup
         self.genres = genres
-        self.tag_by_name = {tag_info["name"]: tag_info for tag_info in tag_lookup.values()}
+
+        if tag_lookup is ALL_TAGS:
+            self.tag_by_name = TAG_BY_NAME
+        else:
+            self.tag_by_name = {tag_info["name"]: tag_info for tag_info in tag_lookup.values()}
 
     def classify_feature(self, feature):
         """Determine the category of a feature (Genre, Theme, Setting, Cast, etc.)."""

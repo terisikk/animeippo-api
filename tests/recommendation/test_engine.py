@@ -6,6 +6,7 @@ from animeippo.clustering import model as clustering
 from animeippo.profiling.model import UserProfile
 from animeippo.recommendation import categories, engine, scoring
 from animeippo.recommendation.model import RecommendationModel
+from animeippo.recommendation.ranking import RankingOrchestrator
 from tests import test_data
 
 
@@ -155,8 +156,6 @@ async def test_engagement_scorers_produce_separate_columns():
 
 
 def test_categorize():
-    from animeippo.recommendation.ranking import RankingOrchestrator
-
     categorizers_with_limits = [
         (categories.ContinueWatchingCategory(), None),
         (categories.StudioCategory(), 25),

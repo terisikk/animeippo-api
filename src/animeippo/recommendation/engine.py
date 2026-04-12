@@ -15,21 +15,19 @@ class AnimeRecommendationEngine:
     Optionally accepts a custom clustering model and feature encoder.
     """
 
-    def __init__(  # noqa: PLR0913
+    def __init__(
         self,
         clustering_model,
         encoder,
         discovery_scorers=None,
         engagement_scorers=None,
         ranking_orchestrator=None,
-        tag_lookup=None,
     ):
         self.clustering_model = clustering_model
         self.encoder = encoder
         self.discovery_scorers = discovery_scorers or []
         self.engagement_scorers = engagement_scorers or []
         self.ranking_orchestrator = ranking_orchestrator
-        self.tag_lookup = tag_lookup
 
     def fit_predict(self, dataset):
         # Fresh copies so concurrent requests don't share mutable fit state
@@ -48,7 +46,7 @@ class AnimeRecommendationEngine:
             cluster_similarity=predictions["similarity"],
         )
 
-        recommendations = add_funnel_metadata(recommendations, tag_lookup=self.tag_lookup)
+        recommendations = add_funnel_metadata(recommendations)
 
         return recommendations.sort("discovery_score", descending=True)
 

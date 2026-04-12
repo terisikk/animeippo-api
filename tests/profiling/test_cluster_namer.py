@@ -1,4 +1,5 @@
 from animeippo.profiling.cluster_namer import ClusterNamer
+from animeippo.providers.anilist.data import ALL_GENRES, ALL_TAGS
 
 
 def test_cluster_name_generation_with_various_categories():
@@ -263,6 +264,14 @@ def test_cast_composition_tags_become_short_modifiers():
     assert namer.name_single_cluster(["Primarily Adult Cast", "Work"]) == "Adult Work"
     assert namer.name_single_cluster(["Primarily Child Cast", "Torture"]) == "Children's Torture"
     assert namer.name_single_cluster(["Yuri", "Primarily Male Cast"]) == "Male-Led Yuri"
+
+
+def test_default_tag_lookup_uses_precomputed():
+    """When ALL_TAGS is passed, the pre-computed TAG_BY_NAME is used directly."""
+    namer = ClusterNamer(tag_lookup=ALL_TAGS, genres=ALL_GENRES)
+
+    assert namer.tag_by_name is not None
+    assert "Action" in namer.name_single_cluster(["Historical", "Action"])
 
 
 def test_adjective_only_core_swaps_with_noun_modifier():

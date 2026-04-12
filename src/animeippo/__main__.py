@@ -1,3 +1,5 @@
+import asyncio
+
 from profilehooks import profile as pr
 
 
@@ -20,8 +22,6 @@ async def get_recs_async():
 
 @pr(filename=".profiling/cprofile.pstats")
 def get_recs():
-    import asyncio
-
     return asyncio.run(get_recs_async())
 
 

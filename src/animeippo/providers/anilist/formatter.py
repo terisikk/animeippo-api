@@ -21,7 +21,13 @@ def get_anilist_mapping(tag_lookup):
     """Get ANILIST_MAPPING with tag enrichment based on tag_lookup."""
     tag_lookup_df = pl.DataFrame(
         [
-            {"tag_id": tag_id, "tag_name": info["name"], "tag_category": info["category"]}
+            {
+                "tag_id": tag_id,
+                "tag_name": info["name"],
+                "tag_category": info["category"],
+                "tag_mood": info.get("mood"),
+                "tag_intensity": info.get("intensity"),
+            }
             for tag_id, info in tag_lookup.items()
         ]
     )
@@ -52,6 +58,8 @@ def get_anilist_mapping(tag_lookup):
                 pl.col("tag_name").alias("name"),
                 "rank",
                 pl.col("tag_category").alias("category"),
+                pl.col("tag_mood").alias("mood"),
+                pl.col("tag_intensity").alias("intensity"),
             )
         )
 
@@ -59,12 +67,13 @@ def get_anilist_mapping(tag_lookup):
         return (
             enriched.filter(pl.col("name").is_not_null())
             .group_by("anime_id", maintain_order=True)
-            .agg(pl.struct(["name", "rank", "category"]).alias("temp_ranks"))
+            .agg(pl.struct(["name", "rank", "category", "mood", "intensity"]).alias("temp_ranks"))
             .join(
                 df.select(pl.col("id").alias("anime_id")),
                 on="anime_id",
                 how="right",
             )
+            .with_columns(pl.col("temp_ranks").fill_null([]))
             .select("temp_ranks")
             .to_series()
         )

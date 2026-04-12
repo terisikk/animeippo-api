@@ -1,6 +1,7 @@
 import polars as pl
 from fast_json_normalize import fast_json_normalize
 
+from animeippo.providers.anilist.data import TAG_BY_NAME
 from animeippo.providers.columns import Columns
 from animeippo.providers.mappers import SelectorMapper, SingleMapper
 
@@ -15,6 +16,9 @@ from .schema import (
     MIXED_MAL_WATCHLIST_SCHEMA,
 )
 
+_TAG_MOOD_MAP = {name: info.get("mood", "") for name, info in TAG_BY_NAME.items()}
+_TAG_INTENSITY_MAP = {name: info.get("intensity", "") for name, info in TAG_BY_NAME.items()}
+
 # Mixed provider gets tags pre-enriched with name/category from AniList,
 # unlike the standard AniList path which gets tag IDs and enriches them
 MIXED_ANI_MAPPING = {
@@ -26,6 +30,14 @@ MIXED_ANI_MAPPING = {
                 pl.element().struct.field("name"),
                 pl.element().struct.field("rank"),
                 pl.element().struct.field("category"),
+                pl.element()
+                .struct.field("name")
+                .replace_strict(_TAG_MOOD_MAP, default=None)
+                .alias("mood"),
+                pl.element()
+                .struct.field("name")
+                .replace_strict(_TAG_INTENSITY_MAP, default=None)
+                .alias("intensity"),
             )
         )
     ),

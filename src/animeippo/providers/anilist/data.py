@@ -427,26 +427,28 @@ ALL_TAGS = {
 
 NSFW_TAGS = {tag["name"] for _, tag in ALL_TAGS.items() if tag["isAdult"]}
 
+TAG_BY_NAME = {info["name"]: info for info in ALL_TAGS.values()}
+
 ALL_GENRES = {
-    "Action",
-    "Adventure",
-    "Comedy",
-    "Drama",
-    "Ecchi",
-    "Fantasy",
-    "Hentai",
-    "Horror",
-    "Mahou Shoujo",
-    "Mecha",
-    "Music",
-    "Mystery",
-    "Psychological",
-    "Romance",
-    "Sci-Fi",
-    "Slice of Life",
-    "Sports",
-    "Supernatural",
-    "Thriller",
+    "Action": {"mood": "hype"},
+    "Adventure": {"mood": "adventurous"},
+    "Comedy": {"mood": "funny", "intensity": "light"},
+    "Drama": {"mood": "emotional", "intensity": "heavy"},
+    "Ecchi": {},
+    "Fantasy": {"mood": "adventurous"},
+    "Hentai": {},
+    "Horror": {"mood": "dark", "intensity": "heavy"},
+    "Mahou Shoujo": {},
+    "Mecha": {"mood": "hype"},
+    "Music": {"mood": "emotional"},
+    "Mystery": {"mood": "cerebral", "intensity": "moderate"},
+    "Psychological": {"mood": "cerebral", "intensity": "heavy"},
+    "Romance": {"mood": "emotional"},
+    "Sci-Fi": {"mood": "adventurous"},
+    "Slice of Life": {"mood": "chill", "intensity": "light"},
+    "Sports": {"mood": "sporty"},
+    "Supernatural": {},
+    "Thriller": {"mood": "dark", "intensity": "heavy"},
 }
 
-ALL_FEATURES = ALL_GENRES.union(ALL_TAGS.keys())
+ALL_FEATURES = set(ALL_GENRES.keys()).union(ALL_TAGS.keys())

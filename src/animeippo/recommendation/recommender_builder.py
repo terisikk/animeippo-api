@@ -161,7 +161,6 @@ def build_recommender(providername):
                     genres=provider.get_genres(),
                 )
             ),
-            tag_lookup=tag_lookup,
         ),
         recommendation_model_cls=RecommendationModel,
         profile_model_cls=UserProfile,

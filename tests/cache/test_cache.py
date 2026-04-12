@@ -1,8 +1,11 @@
+from datetime import timedelta
+
 import polars as pl
 import pytest
 import redis
 
 from animeippo import cache
+from animeippo.providers import caching
 from animeippo.providers.myanimelist.connection import MyAnimeListConnection
 from tests import test_data
 
@@ -140,10 +143,6 @@ def test_none_frames_are_not_added_to_cache(mocker):
 
 @pytest.mark.asyncio
 async def test_cached_dataframe_decorator_stores_and_retrieves(mocker):
-    from datetime import timedelta
-
-    from animeippo.providers import caching
-
     mocker.patch("redis.Redis", RedisStub)
 
     rcache = cache.RedisCache()
