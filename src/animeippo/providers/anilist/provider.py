@@ -83,9 +83,7 @@ class AniListProvider(abstract_provider.AbstractAnimeProvider):
                 for entry in coll["entries"]:
                     anime_list["data"].append(entry)
 
-        return formatter.transform_watchlist_data(
-            anime_list, self.get_feature_fields(), self.get_tag_lookup()
-        )
+        return formatter.transform_watchlist_data(anime_list, self.get_tag_lookup())
 
     @animecache.cached_dataframe(ttl=timedelta(days=SEASONAL_DATA_TTL_DAYS))
     async def get_seasonal_anime_list(self, year, season):
@@ -168,9 +166,7 @@ class AniListProvider(abstract_provider.AbstractAnimeProvider):
 
         anime_list = await self.connection.request_paginated(query, variables)
 
-        return formatter.transform_seasonal_data(
-            anime_list, self.get_feature_fields(), self.get_tag_lookup()
-        )
+        return formatter.transform_seasonal_data(anime_list, self.get_tag_lookup())
 
     @animecache.cached_dataframe(ttl=timedelta(days=USER_DATA_TTL_DAYS))
     async def get_user_manga_list(self, user_id):
@@ -220,12 +216,7 @@ class AniListProvider(abstract_provider.AbstractAnimeProvider):
                 for entry in coll["entries"]:
                     manga_list["data"].append(entry)
 
-        return formatter.transform_user_manga_list_data(
-            manga_list, self.get_feature_fields(), self.get_tag_lookup()
-        )
-
-    def get_feature_fields(self):
-        return ["genres", "tags"]
+        return formatter.transform_user_manga_list_data(manga_list, self.get_tag_lookup())
 
     def get_related_anime(self, related_id):
         pass

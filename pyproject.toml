@@ -26,6 +26,7 @@ readme = "README.md"
 
 [project.scripts]
 animeippo-preload-cache = "animeippo.scripts.preload_cache:cli"
+animeippo-clear-cache = "animeippo.scripts.clear_cache:cli"
 
 [dependency-groups]
 dev = [

@@ -11,11 +11,16 @@ Personalized anime recommendation engine backed by AniList data, with a FastAPI 
 - When leaving comments to code, prefer *why* something is done instead of explaining *what* something does, especially if it's evident from the code. If leaving a *what* comment, consider if it should be a small function instead.
 - Use `make format` to format code, not manual ruff commands.
 - Avoid using getattr, hasattr, type checking etc. Use known architectural patterns to avoid these.
+- Don't use _ as a prefix for private constructs, no need.
 
 ## Workflow
 
 - When asked to create a todo item, write it to `.claude/todos/` as a markdown file and update `.claude/todos/index.md`. Move completed items from Active to Completed in the index.
 - Always use redis cache when debugging, unless testing direct provider network code
+
+# Testing
+
+When updating tests, don't create new code paths just to satisfy the test set. Consider first if the tests are still valid for production data.
 
 ## Running
 

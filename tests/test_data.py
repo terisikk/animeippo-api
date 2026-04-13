@@ -552,6 +552,7 @@ ANI_SEASONAL_LIST = {
                         ]
                     },
                     "genres": ["Action", "Adventure", "Drama", "Fantasy", "Supernatural"],
+                    "tags": [{"id": 66, "rank": 90}, {"id": 34, "rank": 80}],
                     "coverImage": {"medium": "https://localhost/test.png"},
                     "popularity": 14090,
                     "directors": ["Haha Miyazaki"],
@@ -568,6 +569,7 @@ ANI_SEASONAL_LIST = {
                         ]
                     },
                     "genres": ["Action", "Adventure", "Comedy", "Fantasy", "Sci-Fi"],
+                    "tags": [{"id": 56, "rank": 85}],
                     "coverImage": {"medium": "https://localhost/test.png"},
                     "popularity": 131620,
                     "directors": ["Mago Senkai"],
@@ -693,6 +695,9 @@ FORMATTED_MAL_SEASONAL_LIST = [
         "cluster": 1,
         "source": "ORIGINAL",
         "directors": [12345],
+        "feature_info": [
+            {"name": "Action", "rank": 100, "category": "Genre", "mood": "hype", "intensity": None},
+        ],
     },
     {
         "id": 51535,
@@ -732,6 +737,23 @@ FORMATTED_MAL_SEASONAL_LIST = [
         "cluster": 0,
         "source": "MANGA",
         "directors": [34567],
+        "feature_info": [
+            {"name": "Action", "rank": 100, "category": "Genre", "mood": "hype", "intensity": None},
+            {
+                "name": "Drama",
+                "rank": 100,
+                "category": "Genre",
+                "mood": "emotional",
+                "intensity": "heavy",
+            },
+            {
+                "name": "Gore",
+                "rank": 85,
+                "category": "Theme-Other",
+                "mood": "dark",
+                "intensity": "heavy",
+            },
+        ],
     },
 ]
 
@@ -756,7 +778,17 @@ FORMATTED_ANI_SEASONAL_LIST = [
             "Shounen",
             "Super Power",
         ],
-        "ranks": {"Shounen": 1, "Super Power": 2},
+        "clustering_ranks": {"Shounen": 1, "Super Power": 2},
+        "feature_info": [
+            {"name": "Action", "rank": 100, "category": "Genre", "mood": "hype", "intensity": None},
+            {
+                "name": "Shounen",
+                "rank": 90,
+                "category": "Demographic",
+                "mood": None,
+                "intensity": None,
+            },
+        ],
         "directors": [12345],
     },
     {
@@ -769,7 +801,17 @@ FORMATTED_ANI_SEASONAL_LIST = [
         "popularity": 131620,
         "genres": ["Action", "Adventure", "Comedy", "Fantasy", "Sci-Fi"],
         "tags": ["Mythology", "Gore"],
-        "ranks": {"Mythology": 1, "Gore": 2},
+        "clustering_ranks": {"Mythology": 1, "Gore": 2},
+        "feature_info": [
+            {"name": "Action", "rank": 100, "category": "Genre", "mood": "hype", "intensity": None},
+            {
+                "name": "Gore",
+                "rank": 80,
+                "category": "Theme-Other",
+                "mood": "dark",
+                "intensity": "heavy",
+            },
+        ],
         "status": "NOT_YET_RELEASED",
         "features": ["Action", "Adventure", "Comedy", "Fantasy", "Sci-Fi", "Mythology", "Gore"],
         "directors": [456],
@@ -815,7 +857,17 @@ FORMATTED_ANI_USER_LIST = [
         "source": "ORIGINAL",
         "cluster": 1,
         "directors": ["Haha Miyazaki"],
-        "ranks": {"Action": 1, "Avant Garde": 2},
+        "clustering_ranks": {"Action": 1, "Avant Garde": 2},
+        "feature_info": [
+            {"name": "Action", "rank": 100, "category": "Genre", "mood": "hype", "intensity": None},
+            {
+                "name": "Drama",
+                "rank": 100,
+                "category": "Genre",
+                "mood": "emotional",
+                "intensity": "heavy",
+            },
+        ],
     },
     {
         "id": 270,
@@ -852,7 +904,24 @@ FORMATTED_ANI_USER_LIST = [
         "source": "MANGA",
         "cluster": 2,
         "directors": ["Mago Senkai"],
-        "ranks": {"Action": 1, "Adult Cast": 2},
+        "clustering_ranks": {"Action": 1, "Adult Cast": 2},
+        "feature_info": [
+            {"name": "Action", "rank": 100, "category": "Genre", "mood": "hype", "intensity": None},
+            {
+                "name": "Horror",
+                "rank": 100,
+                "category": "Genre",
+                "mood": "dark",
+                "intensity": "heavy",
+            },
+            {
+                "name": "Gore",
+                "rank": 85,
+                "category": "Theme-Other",
+                "mood": "dark",
+                "intensity": "heavy",
+            },
+        ],
     },
 ]
 

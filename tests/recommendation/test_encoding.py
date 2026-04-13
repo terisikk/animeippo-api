@@ -22,7 +22,7 @@ def test_weighted_encoder():
     encoder.fit(classes)
 
     original = pl.DataFrame(
-        {"features": [["Test 3", "Test 2"]], "ranks": [{"Test 3": 85, "Test 2": 50}]}
+        {"features": [["Test 3", "Test 2"]], "clustering_ranks": [{"Test 3": 85, "Test 2": 50}]}
     )
 
     actual = encoder.encode(original).struct.unnest().fill_null(0).to_numpy()[0]

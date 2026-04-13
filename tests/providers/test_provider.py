@@ -17,16 +17,12 @@ def test_new_provider_can_be_instantiated():
         def get_user_manga_list(self, user_id):
             return super().get_user_manga_list(user_id)
 
-        def get_feature_fields(self):
-            super().get_feature_fields()
-
         def get_related_anime(self, rid):
             super().get_related_anime(rid)
 
     actual = ConcreteAnimeProvider()
     actual.get_user_anime_list(None)
     actual.get_seasonal_anime_list(None, None)
-    actual.get_feature_fields()
     actual.get_related_anime(None)
     actual.get_user_manga_list(None)
 

@@ -7,7 +7,7 @@ from tests import test_data
 def test_dataframe_can_be_constructed_from_mal():
     animelist = test_data.MAL_USER_LIST
 
-    data = formatter.transform_watchlist_data(animelist, ["genres"])
+    data = formatter.transform_watchlist_data(animelist)
 
     assert type(data) is pl.DataFrame
     assert len(data) == 2
@@ -20,7 +20,7 @@ def test_dataframe_can_be_constructed_from_incomplete_data():
     del animelist["data"][0]["list_status"]
     del animelist["data"][1]["list_status"]
 
-    data = formatter.transform_watchlist_data(animelist, ["genres"])
+    data = formatter.transform_watchlist_data(animelist)
 
     assert type(data) is pl.DataFrame
     assert len(data) == 2

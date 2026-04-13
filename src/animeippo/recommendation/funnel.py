@@ -6,101 +6,83 @@ and that the category system can use for mood-based categories.
 
 import polars as pl
 
-from animeippo.providers.anilist.data import ALL_GENRES
-
 MOOD_THRESHOLD = 1.0
-GENRE_WEIGHT = 1.0
 MOOD_TAG_RANK_CUTOFF = 60
 
 TIER_SIGNS = {"heavy": 1.0, "light": -1.0, "moderate": 0.5}
 
 MOOD_NAMES = ["chill", "hype", "emotional", "dark", "funny", "cerebral", "adventurous", "sporty"]
 
-# Override threshold for dark-only shows
-DARK_ONLY_OVERRIDE_THRESHOLD = 3.0
+
+def _explode_features(recommendations):
+    return (
+        recommendations.select("id", "feature_info")
+        .explode("feature_info")
+        .filter(pl.col("feature_info").is_not_null())
+        .unnest("feature_info")
+    )
 
 
-def classify_mood(temp_ranks, genres):
-    """Compute mood scores and return moods above threshold."""
-    scores = dict.fromkeys(MOOD_NAMES, 0.0)
+def _compute_moods(exploded, all_ids):
+    """Compute moods list per show: group mood scores, threshold, collect into list."""
+    mood_scores = (
+        exploded.filter((pl.col("rank") >= MOOD_TAG_RANK_CUTOFF) & pl.col("mood").is_not_null())
+        .group_by("id", "mood")
+        .agg(score=(pl.col("rank").cast(pl.Float64) / 100.0).sum())
+        .filter(pl.col("score") >= MOOD_THRESHOLD)
+        .group_by("id")
+        .agg(moods=pl.col("mood").sort())
+    )
 
-    for tag in temp_ranks:
-        mood = tag.get("mood")
-        if tag["rank"] >= MOOD_TAG_RANK_CUTOFF and mood:
-            scores[mood] += tag["rank"] / 100.0
-
-    for genre in genres:
-        mood = ALL_GENRES.get(genre, {}).get("mood")
-        if mood:
-            scores[mood] += GENRE_WEIGHT
-
-    return [mood for mood, score in scores.items() if score >= MOOD_THRESHOLD]
-
-
-def classify_intensity(temp_ranks, genres):
-    """Compute raw intensity score from tags and genres."""
-    score = 0.0
-
-    for genre in genres:
-        score += TIER_SIGNS.get(ALL_GENRES.get(genre, {}).get("intensity"), 0.0)
-
-    for tag in temp_ranks:
-        score += tag["rank"] / 100.0 * TIER_SIGNS.get(tag.get("intensity"), 0.0)
-
-    return score
+    return (
+        all_ids.join(mood_scores, on="id", how="left")
+        .with_columns(pl.col("moods").fill_null([]).cast(pl.List(pl.Utf8)))
+        .select("id", "moods")
+    )
 
 
-def _bucket_intensity(scores, moods_list):
-    """Bucket intensity scores using percentile thirds.
+def _compute_intensity(exploded, all_ids):
+    """Compute raw intensity score per show from tag/genre intensity tiers."""
+    scores = (
+        exploded.with_columns(
+            sign=pl.col("intensity").cast(pl.Utf8).replace_strict(TIER_SIGNS, default=0.0)
+        )
+        .with_columns(contribution=pl.col("rank").cast(pl.Float64) / 100.0 * pl.col("sign"))
+        .group_by("id")
+        .agg(intensity_score=pl.col("contribution").sum())
+    )
 
-    Chill-only shows are auto-assigned light; dark-only high-score shows
-    are auto-assigned all_in. Remaining shows are split into percentile thirds.
-    """
-    results = [None] * len(scores)
-    remaining_indices = []
+    return (
+        all_ids.join(scores, on="id", how="left")
+        .with_columns(pl.col("intensity_score").fill_null(0.0))
+        .select("id", "intensity_score")
+    )
 
-    for i, (score, moods) in enumerate(zip(scores, moods_list, strict=True)):
-        if moods == ["chill"]:
-            results[i] = "light"
-        elif moods == ["dark"] and score > DARK_ONLY_OVERRIDE_THRESHOLD:
-            results[i] = "all_in"
-        else:
-            remaining_indices.append(i)
 
-    if remaining_indices:
-        remaining_scores = sorted(scores[i] for i in remaining_indices)
-        n = len(remaining_scores)
-        low_cutoff = remaining_scores[n // 3]
-        high_cutoff = remaining_scores[2 * n // 3]
+def _bucket_intensity(df):
+    """Bucket intensity scores into thirds: light, moderate, all_in."""
+    scores = df["intensity_score"].sort()
+    n = len(scores)
+    low_cutoff = scores[n // 3]
+    high_cutoff = scores[2 * n // 3]
 
-        for i in remaining_indices:
-            if scores[i] <= low_cutoff:
-                results[i] = "light"
-            elif scores[i] >= high_cutoff:
-                results[i] = "all_in"
-            else:
-                results[i] = "moderate"
-
-    return results
+    return df.with_columns(
+        intensity=pl.when(pl.col("intensity_score") <= low_cutoff)
+        .then(pl.lit("light"))
+        .when(pl.col("intensity_score") >= high_cutoff)
+        .then(pl.lit("all_in"))
+        .otherwise(pl.lit("moderate"))
+    )
 
 
 def add_funnel_metadata(recommendations):
     """Add mood and intensity columns to recommendations DataFrame."""
-    moods_list = []
-    intensity_scores = []
+    all_ids = recommendations.select("id")
+    exploded = _explode_features(recommendations)
 
-    for row in recommendations.iter_rows(named=True):
-        ranks = row.get("temp_ranks", [])
-        genres = row.get("genres", [])
+    moods_df = _compute_moods(exploded, all_ids)
+    intensity_df = _compute_intensity(exploded, all_ids)
 
-        moods = classify_mood(ranks, genres)
-        moods_list.append(moods)
-        intensity_scores.append(classify_intensity(ranks, genres))
+    result = recommendations.join(moods_df, on="id").join(intensity_df, on="id")
 
-    intensity_labels = _bucket_intensity(intensity_scores, moods_list)
-
-    return recommendations.with_columns(
-        moods=pl.Series(moods_list, dtype=pl.List(pl.Utf8)),
-        intensity=pl.Series(intensity_labels, dtype=pl.Utf8),
-        intensity_score=pl.Series(intensity_scores, dtype=pl.Float64),
-    )
+    return _bucket_intensity(result)

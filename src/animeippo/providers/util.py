@@ -1,5 +1,3 @@
-import math
-
 import polars as pl
 
 
@@ -21,19 +19,26 @@ def filter_continuation(seasonal, watchlist_ids):
     return seasonal.filter(mask)
 
 
-def transform_to_animeippo_format(original, feature_names, schema, mapping):
+def transform_to_animeippo_format(original, schema, mapping):
     if len(original) == 0:
         return pl.DataFrame(schema=schema)
 
     df = run_mappers(original, mapping, schema)
 
-    existing_feature_columns = set(feature_names).intersection(schema.keys())
-
-    if len(existing_feature_columns) > 0:
-        df = df.with_columns(features=get_feature_selector(existing_feature_columns))
-
-    if "temp_ranks" in schema.keys():
-        df = df.with_columns(ranks=get_ranks(df).to_series())
+    if "feature_info" in df.columns:
+        df = df.with_columns(
+            features=df["feature_info"]
+            .list.eval(pl.element().struct.field("name"))
+            .cast(pl.List(pl.Categorical)),
+            tags=df["feature_info"]
+            .list.eval(
+                pl.when(pl.element().struct.field("category") != "Genre").then(
+                    pl.element().struct.field("name")
+                )
+            )
+            .list.drop_nulls(),
+        )
+        df = df.with_columns(clustering_ranks=get_clustering_ranks(df).to_series())
 
     return df
 
@@ -51,10 +56,6 @@ def run_mappers(original, mapping, schema):
         )
         .collect()
     )
-
-
-def get_feature_selector(columns):
-    return pl.concat_list(columns).cast(pl.List(pl.Categorical))
 
 
 # UnionFind is used instead of Polars joins for connected components because
@@ -118,12 +119,21 @@ TAG_WEIGHTS = {
 }
 
 
-def get_ranks(df):
-    # Process tags with category-based weights
+def get_clustering_ranks(df):
+    """Build weighted feature vector for clustering from feature_info."""
+    exploded = (
+        df.select("id", "feature_info")
+        .explode("feature_info")
+        .filter(pl.col("feature_info").is_not_null())
+        .unnest("feature_info")
+    )
+
+    is_genre = pl.col("category") == "Genre"
+    result = df.select("id")
+
+    # Tags: weight by category
     tag_ranks = (
-        df.select("id", pl.col("temp_ranks"))
-        .explode("temp_ranks")
-        .unnest("temp_ranks")
+        exploded.filter(~is_genre)
         .with_columns(
             weighted_rank=pl.col("rank")
             * pl.col("category")
@@ -137,27 +147,23 @@ def get_ranks(df):
         )
         .pivot(index="id", values="weighted_rank", on="name", aggregate_function="first")
     )
+    result = result.join(tag_ranks, on="id", how="left")
 
-    # Genre weight scaled by inverse frequency — rare genres in the user's watchlist
-    # get higher weight than ubiquitous ones like Action
-    genre_counts = df.select("genres").explode("genres").group_by("genres").len()
+    # Genres: weight by inverse document frequency (IDF needs at least one genre)
+    genre_data = exploded.filter(is_genre)
+    if len(genre_data) > 0:
+        genre_counts = genre_data.group_by("name").len()
+        idf_raw = (pl.lit(len(df)) / pl.col("len")).log()
+        max_idf = pl.max_horizontal(idf_raw.max(), pl.lit(1.0))
 
-    max_idf = math.log(len(df) / genre_counts["len"].min()) or 1.0
-    genre_idf = genre_counts.with_columns(
-        idf_weight=((pl.lit(len(df)) / pl.col("len")).log() / max_idf * GENRE_MAX_WEIGHT).cast(
-            pl.UInt8
+        genre_idf = genre_counts.with_columns(
+            idf_weight=(idf_raw / max_idf * GENRE_MAX_WEIGHT).cast(pl.UInt8)
         )
-    )
+        genre_ranks = (
+            genre_data.select("id", "name")
+            .join(genre_idf, on="name")
+            .pivot(index="id", values="idf_weight", on="name", aggregate_function="first")
+        )
+        result = result.join(genre_ranks, on="id", how="left")
 
-    genre_ranks = (
-        df.select("id", pl.col("genres"))
-        .explode("genres")
-        .join(genre_idf, on="genres")
-        .pivot(index="id", values="idf_weight", on="genres", aggregate_function="first")
-    )
-
-    return (
-        tag_ranks.join(genre_ranks, on="id", how="left")
-        .fill_null(0)
-        .select(pl.struct(pl.exclude("id")))
-    )
+    return result.fill_null(0).select(pl.struct(pl.exclude("id")))

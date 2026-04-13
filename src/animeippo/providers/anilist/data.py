@@ -452,3 +452,14 @@ ALL_GENRES = {
 }
 
 ALL_FEATURES = set(ALL_GENRES.keys()).union(ALL_TAGS.keys())
+
+GENRE_FEATURE_STRUCTS = {
+    name: {
+        "name": name,
+        "rank": 100,
+        "category": "Genre",
+        "mood": info.get("mood"),
+        "intensity": info.get("intensity"),
+    }
+    for name, info in ALL_GENRES.items()
+}

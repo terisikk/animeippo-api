@@ -309,15 +309,6 @@ async def test_not_found_status_raises_client_error():
         await connection.request_single(session, "", {})
 
 
-def test_features_can_be_fetched():
-    provider = anilist.AniListProvider()
-
-    features = provider.get_feature_fields()
-
-    assert len(features) > 0
-    assert "genres" in features
-
-
 @pytest.mark.asyncio
 async def test_anilist_returns_None_with_empty_parameters():
     provider = anilist.AniListProvider()

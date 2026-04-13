@@ -4,8 +4,6 @@ from animeippo.providers.anilist import data as anilist_data
 from animeippo.providers.anilist.provider import formatter
 from tests import test_data
 
-FEATURE_FIELDS = ["genres", "tags"]
-
 
 def test_dataframe_can_be_constructed_from_ani():
     animelist = {
@@ -14,7 +12,7 @@ def test_dataframe_can_be_constructed_from_ani():
 
     tag_lookup = anilist_data.ALL_TAGS
 
-    data = formatter.transform_watchlist_data(animelist, FEATURE_FIELDS, tag_lookup)
+    data = formatter.transform_watchlist_data(animelist, tag_lookup)
 
     assert type(data) is pl.DataFrame
     assert "Dr. STRONK: OLD WORLD" in data["title"].to_list()
@@ -28,7 +26,7 @@ def test_franchise_column_is_built_from_relations():
 
     tag_lookup = anilist_data.ALL_TAGS
 
-    data = formatter.transform_watchlist_data(animelist, FEATURE_FIELDS, tag_lookup)
+    data = formatter.transform_watchlist_data(animelist, tag_lookup)
 
     assert "franchise" in data.columns
     # Both entries are related (SEQUEL/PREQUEL), so both should have the same franchise

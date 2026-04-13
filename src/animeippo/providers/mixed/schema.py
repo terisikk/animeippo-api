@@ -2,6 +2,7 @@ import polars as pl
 
 from animeippo.providers.columns import (
     Columns,
+    FeatureInfo,
     Format,
     MediaSource,
     MediaStatus,
@@ -27,7 +28,6 @@ MIXED_ANI_MANGA_SCHEMA = {
     Columns.ID_MAL: pl.UInt32,
     Columns.TITLE: pl.Utf8,
     Columns.GENRES: pl.List(pl.Utf8),
-    Columns.TAGS: pl.List(pl.Utf8),
     Columns.MEAN_SCORE: pl.Float32,
 }
 
@@ -37,23 +37,12 @@ MIXED_ANI_WATCHLIST_SCHEMA = {
     Columns.TITLE: pl.Utf8,
     Columns.FORMAT: Format,
     Columns.GENRES: pl.List(pl.Utf8),
-    Columns.TAGS: pl.List(pl.Utf8),
     Columns.COVER_IMAGE: pl.Utf8,
     Columns.MEAN_SCORE: pl.Float32,
     Columns.DURATION: pl.UInt32,
     Columns.EPISODES: pl.UInt16,
     Columns.SOURCE: MediaSource,
-    Columns.TEMP_RANKS: pl.List(
-        pl.Struct(
-            {
-                "name": pl.Utf8,
-                "rank": pl.UInt8,
-                "category": pl.Utf8,
-                "mood": pl.Utf8,
-                "intensity": pl.Utf8,
-            }
-        )
-    ),
+    Columns.FEATURE_INFO: FeatureInfo,
     Columns.STUDIOS: pl.List(pl.Utf8),
     Columns.SEASON_YEAR: pl.UInt16,
     Columns.SEASON: Season,
@@ -70,7 +59,6 @@ MIXED_ANI_SEASONAL_SCHEMA = {
     Columns.FORMAT: Format,
     Columns.STATUS: MediaStatus,
     Columns.GENRES: pl.List(pl.Utf8),
-    Columns.TAGS: pl.List(pl.Utf8),
     Columns.COVER_IMAGE: pl.Utf8,
     Columns.MEAN_SCORE: pl.Float32,
     Columns.POPULARITY: pl.UInt32,
@@ -79,17 +67,7 @@ MIXED_ANI_SEASONAL_SCHEMA = {
     Columns.SOURCE: MediaSource,
     Columns.CONTINUATION_TO: pl.List(pl.UInt32),
     Columns.ADAPTATION_OF: pl.List(pl.UInt32),
-    Columns.TEMP_RANKS: pl.List(
-        pl.Struct(
-            {
-                "name": pl.Utf8,
-                "rank": pl.UInt8,
-                "category": pl.Utf8,
-                "mood": pl.Utf8,
-                "intensity": pl.Utf8,
-            }
-        )
-    ),
+    Columns.FEATURE_INFO: FeatureInfo,
     Columns.STUDIOS: pl.List(pl.Utf8),
     Columns.SEASON_YEAR: pl.UInt16,
     Columns.SEASON: Season,

@@ -1,6 +1,6 @@
 from enum import StrEnum
 
-from polars import Enum
+import polars as pl
 
 
 class Columns(StrEnum):
@@ -21,8 +21,8 @@ class Columns(StrEnum):
     SOURCE = "source"
     CONTINUATION_TO = "continuation_to"
     ADAPTATION_OF = "adaptation_of"
-    RANKS = "ranks"
-    TEMP_RANKS = "temp_ranks"
+    CLUSTERING_RANKS = "clustering_ranks"
+    FEATURE_INFO = "feature_info"
     STUDIOS = "studios"
     USER_COMPLETE_DATE = "user_complete_date"
     SEASON_YEAR = "season_year"
@@ -35,10 +35,22 @@ class Columns(StrEnum):
     DIRECTOR = "directors"
 
 
-Season = Enum(["WINTER", "SPRING", "SUMMER", "FALL"])
-UserStatus = Enum(["CURRENT", "REPEATING", "COMPLETED", "DROPPED", "PAUSED", "PLANNING"])
-MediaStatus = Enum(["FINISHED", "RELEASING", "NOT_YET_RELEASED", "CANCELLED", "HIATUS"])
-MediaSource = Enum(
+FeatureInfo = pl.List(
+    pl.Struct(
+        {
+            "name": pl.Utf8,
+            "rank": pl.UInt8,
+            "category": pl.Utf8,
+            "mood": pl.Utf8,
+            "intensity": pl.Utf8,
+        }
+    )
+)
+
+Season = pl.Enum(["WINTER", "SPRING", "SUMMER", "FALL"])
+UserStatus = pl.Enum(["CURRENT", "REPEATING", "COMPLETED", "DROPPED", "PAUSED", "PLANNING"])
+MediaStatus = pl.Enum(["FINISHED", "RELEASING", "NOT_YET_RELEASED", "CANCELLED", "HIATUS"])
+MediaSource = pl.Enum(
     [
         "ORIGINAL",
         "MANGA",
@@ -57,7 +69,7 @@ MediaSource = Enum(
         "PICTURE_BOOK",
     ]
 )
-Format = Enum(
+Format = pl.Enum(
     [
         "TV",
         "TV_SHORT",

@@ -15,9 +15,5 @@ class AbstractAnimeProvider(abc.ABC):
         pass
 
     @abc.abstractmethod
-    def get_feature_fields(self):
-        pass
-
-    @abc.abstractmethod
     def get_related_anime(self, related_id):
         pass

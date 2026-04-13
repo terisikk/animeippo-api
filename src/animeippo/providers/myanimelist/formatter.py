@@ -15,12 +15,10 @@ from animeippo.providers.myanimelist.schema import (
 from .. import util
 
 
-def transform_watchlist_data(data, feature_names):
+def transform_watchlist_data(data):
     original = pl.from_pandas(fast_json_normalize(data["data"]))
 
-    return util.transform_to_animeippo_format(
-        original, feature_names, MAL_WATCHLIST_SCHEMA, MAL_MAPPING
-    )
+    return util.transform_to_animeippo_format(original, MAL_WATCHLIST_SCHEMA, MAL_MAPPING)
 
 
 def split_id_name_field(field):

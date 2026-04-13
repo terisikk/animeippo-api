@@ -152,7 +152,7 @@ def test_seasonal_recommendations_added_to_clusters():
                     "title": ["Seasonal 1", "Seasonal 2", "Unmatchable"],
                     "genres": [["Action", "Fantasy"], ["Drama"], []],
                     "features": [["Action", "Fantasy", "Shounen"], ["Drama"], []],
-                    "ranks": [
+                    "clustering_ranks": [
                         {"Action": 75, "Fantasy": 75, "Shounen": 90},
                         {"Drama": 75},
                         {},
@@ -222,7 +222,7 @@ def test_seasonal_recommendations_without_continuation_column():
                     "title": ["Seasonal 1"],
                     "genres": [["Action"]],
                     "features": [["Action", "Shounen"]],
-                    "ranks": [{"Action": 75, "Shounen": 90}],
+                    "clustering_ranks": [{"Action": 75, "Shounen": 90}],
                 }
             )
 

@@ -35,6 +35,10 @@ profile:
 pydeps:
 	uv run pydeps --only animeippo --cluster --max-bacon 3 animeippo
 
+.PHONY: clear-cache
+clear-cache:
+	uv run animeippo-clear-cache
+
 .PHONY: serve
 serve:
 	uv run uvicorn app:app --host 0.0.0.0 --port 5000 --reload

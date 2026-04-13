@@ -34,11 +34,11 @@ class WeightedCategoricalEncoder:
     from 0 to 1 of how much each category for all possible categories applies to a
     dataframe row."""
 
-    def fit(self, classes, class_field="features", weight_field="ranks"):
+    def fit(self, classes, class_field="features", weight_field="clustering_ranks"):
         self.class_field = class_field
         self.weight_field = weight_field
         self.classes = sorted(classes)
         self.dtype = pl.Struct(dict.fromkeys(self.classes, pl.UInt8))
 
     def encode(self, dataframe):
-        return dataframe.select(pl.col("ranks").cast(self.dtype)).to_series()
+        return dataframe.select(pl.col("clustering_ranks").cast(self.dtype)).to_series()

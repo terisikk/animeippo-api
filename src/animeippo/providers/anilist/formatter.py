@@ -2,6 +2,7 @@ import polars as pl
 from fast_json_normalize import fast_json_normalize
 
 from animeippo.providers import util
+from animeippo.providers.anilist.data import GENRE_FEATURE_STRUCTS
 from animeippo.providers.anilist.schema import (
     ANI_MANGA_SCHEMA,
     ANI_SEASONAL_SCHEMA,
@@ -19,6 +20,7 @@ from animeippo.providers.mappers import (
 
 def get_anilist_mapping(tag_lookup):
     """Get ANILIST_MAPPING with tag enrichment based on tag_lookup."""
+
     tag_lookup_df = pl.DataFrame(
         [
             {
@@ -32,87 +34,83 @@ def get_anilist_mapping(tag_lookup):
         ]
     )
 
-    def enrich_tags_for_names(df):
-        """Enrich tags and extract names for the tags column"""
-        return (
+    def enrich_features(df):
+        """Build feature_info: tags enriched with metadata + genres as structs."""
+        tag_info = (
             df.select([pl.col("id").alias("anime_id"), "tags"])
             .explode("tags")
             .unnest("tags")
             .join(tag_lookup_df, left_on="id", right_on="tag_id", how="left")
-            .select("anime_id", pl.col("tag_name").alias("name"))
-            .group_by("anime_id", maintain_order=True)
-            .agg(pl.col("name").drop_nulls())
-            .select("name")
-            .to_series()
-        )
-
-    def enrich_tags_for_ranks(df):
-        """Enrich tags with name, rank, and category for the temp_ranks column"""
-        enriched = (
-            df.select([pl.col("id").alias("anime_id"), "tags"])
-            .explode("tags")
-            .unnest("tags")
-            .join(tag_lookup_df, left_on="id", right_on="tag_id", how="left")
+            .filter(pl.col("tag_name").is_not_null())
             .select(
                 "anime_id",
                 pl.col("tag_name").alias("name"),
-                "rank",
+                pl.col("rank").cast(pl.UInt8),
                 pl.col("tag_category").alias("category"),
                 pl.col("tag_mood").alias("mood"),
                 pl.col("tag_intensity").alias("intensity"),
             )
         )
 
-        # Drop unrecognized tags before building structs
-        return (
-            enriched.filter(pl.col("name").is_not_null())
+        genre_info = (
+            df.select(pl.col("id").alias("anime_id"), "genres")
+            .explode("genres")
+            .filter(pl.col("genres").is_not_null())
+            .with_columns(info=pl.col("genres").replace_strict(GENRE_FEATURE_STRUCTS, default=None))
+            .filter(pl.col("info").is_not_null())
+            .unnest("info")
+            .with_columns(pl.col("rank").cast(pl.UInt8))
+            .select("anime_id", "name", "rank", "category", "mood", "intensity")
+        )
+
+        combined = (
+            pl.concat([tag_info, genre_info])
             .group_by("anime_id", maintain_order=True)
-            .agg(pl.struct(["name", "rank", "category", "mood", "intensity"]).alias("temp_ranks"))
-            .join(
-                df.select(pl.col("id").alias("anime_id")),
-                on="anime_id",
-                how="right",
-            )
-            .with_columns(pl.col("temp_ranks").fill_null([]))
-            .select("temp_ranks")
+            .agg(pl.struct(["name", "rank", "category", "mood", "intensity"]).alias("feature_info"))
+        )
+
+        return (
+            df.select(pl.col("id").alias("anime_id"))
+            .join(combined, on="anime_id", how="left")
+            .with_columns(pl.col("feature_info").fill_null([]))
+            .select("feature_info")
             .to_series()
         )
 
-    ANILIST_MAPPING[Columns.TAGS] = QueryMapper(enrich_tags_for_names)
-    ANILIST_MAPPING[Columns.TEMP_RANKS] = QueryMapper(enrich_tags_for_ranks)
+    ANILIST_MAPPING[Columns.FEATURE_INFO] = QueryMapper(enrich_features)
 
     return ANILIST_MAPPING
 
 
-def transform_seasonal_data(data, feature_names, tag_lookup):
+def transform_seasonal_data(data, tag_lookup):
     # Believe me, with polars 1.39 this is way faster than
     # original = pl.json_normalize(data["data"]["media"])
     original = pl.from_pandas(fast_json_normalize(data["data"]["media"]))
 
     return util.transform_to_animeippo_format(
-        original, feature_names, ANI_SEASONAL_SCHEMA, get_anilist_mapping(tag_lookup)
+        original, ANI_SEASONAL_SCHEMA, get_anilist_mapping(tag_lookup)
     )
 
 
-def transform_watchlist_data(data, feature_names, tag_lookup):
+def transform_watchlist_data(data, tag_lookup):
     original = fast_json_normalize(data["data"])
     original.columns = [x.removeprefix("media.") for x in original.columns]
 
     original = pl.from_pandas(original)
 
     return util.transform_to_animeippo_format(
-        original, feature_names, ANI_WATCHLIST_SCHEMA, get_anilist_mapping(tag_lookup)
+        original, ANI_WATCHLIST_SCHEMA, get_anilist_mapping(tag_lookup)
     )
 
 
-def transform_user_manga_list_data(data, feature_names, tag_lookup):
+def transform_user_manga_list_data(data, tag_lookup):
     original = fast_json_normalize(data["data"])
     original.columns = [x.removeprefix("media.") for x in original.columns]
 
     original = pl.from_pandas(original)
 
     return util.transform_to_animeippo_format(
-        original, feature_names, ANI_MANGA_SCHEMA, get_anilist_mapping(tag_lookup)
+        original, ANI_MANGA_SCHEMA, get_anilist_mapping(tag_lookup)
     )
 
 
@@ -258,11 +256,6 @@ ANILIST_MAPPING = {
                                     .otherwise(None)
                                 ),
     Columns.SOURCE:             DefaultMapper("source"),
-    Columns.TAGS:               SelectorMapper(
-                                    pl.col("tags").list.eval(
-                                        pl.element().struct.field("id")
-                                    )
-                                ),
     Columns.CONTINUATION_TO:    QueryMapper(get_continuation),
     Columns.ADAPTATION_OF:      QueryMapper(get_adaptation),
     Columns.STUDIOS:            SelectorMapper(get_studios()),

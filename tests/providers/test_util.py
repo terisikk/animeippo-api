@@ -8,14 +8,6 @@ class StubMapper:
         return pl.Series([f"{original} ran"])
 
 
-def test_get_features():
-    original = pl.DataFrame({"features1": ["1", "2", "3"], "features2": ["test", "test", "test"]})
-
-    features = original.select(util.get_feature_selector(["features1", "features2"]))
-
-    assert features[0].item().to_list() == ["1", "test"]
-
-
 def test_mapping_skips_keys_not_in_dataframe():
     mapping = {"test1": StubMapper(), "test3": StubMapper()}
 
@@ -80,14 +72,54 @@ def test_build_franchise_ids_external_relations_dont_form_franchise():
     assert len(result[1]) == 0
 
 
+def test_clustering_ranks_with_only_genres():
+    df = pl.DataFrame(
+        {
+            "id": [1],
+            "feature_info": [
+                [
+                    {
+                        "name": "Action",
+                        "rank": 100,
+                        "category": "Genre",
+                        "mood": "hype",
+                        "intensity": None,
+                    }
+                ]
+            ],
+        }
+    )
+    result = util.get_clustering_ranks(df)
+    assert len(result) == 1
+
+
+def test_clustering_ranks_with_only_tags():
+    df = pl.DataFrame(
+        {
+            "id": [1],
+            "feature_info": [
+                [
+                    {
+                        "name": "Gore",
+                        "rank": 85,
+                        "category": "Theme-Other",
+                        "mood": "dark",
+                        "intensity": "heavy",
+                    }
+                ]
+            ],
+        }
+    )
+    result = util.get_clustering_ranks(df)
+    assert len(result) == 1
+
+
 def test_transformation_does_not_fail_with_empty_data():
-    data = util.transform_to_animeippo_format(pl.DataFrame(), ["genres", "tags"], [], {})
+    data = util.transform_to_animeippo_format(pl.DataFrame(), [], {})
 
     assert type(data) is pl.DataFrame
     assert len(data) == 0
 
-    data = util.transform_to_animeippo_format(
-        pl.DataFrame({"data": {"test": "test"}}), ["genres", "tags"], {}, {}
-    )
+    data = util.transform_to_animeippo_format(pl.DataFrame({"data": {"test": "test"}}), {}, {})
     assert type(data) is pl.DataFrame
     assert len(data) == 0

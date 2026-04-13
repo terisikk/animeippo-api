@@ -32,7 +32,7 @@ class MixedProvider(abstract_provider.AbstractAnimeProvider):
         parameters = {"nsfw": "true", "fields": ",".join(fields), "limit": "1000"}
 
         mal_list = await self.mal_connection.request_anime_list(mal_query, parameters)
-        mal_df = formatter.transform_mal_watchlist_data(mal_list, [])
+        mal_df = formatter.transform_mal_watchlist_data(mal_list)
 
         ani_query = """
         query ($idMal_in: [Int], $page: Int) {
@@ -66,7 +66,7 @@ class MixedProvider(abstract_provider.AbstractAnimeProvider):
 
         ani_list = await self.request_anilist_batched(ani_query, mal_df["id"].to_list())
 
-        return formatter.transform_ani_watchlist_data(ani_list, self.get_feature_fields(), mal_df)
+        return formatter.transform_ani_watchlist_data(ani_list, mal_df)
 
     @animecache.cached_dataframe(ttl=timedelta(days=1))
     async def get_seasonal_anime_list(self, year, season):
@@ -149,7 +149,7 @@ class MixedProvider(abstract_provider.AbstractAnimeProvider):
 
         anime_list = await self.ani_provider.connection.request_paginated(query, variables)
 
-        return formatter.transform_ani_seasonal_data(anime_list, self.get_feature_fields())
+        return formatter.transform_ani_seasonal_data(anime_list)
 
     @animecache.cached_dataframe(ttl=timedelta(days=1))
     async def get_user_manga_list(self, user_id):
@@ -190,7 +190,7 @@ class MixedProvider(abstract_provider.AbstractAnimeProvider):
 
         ani_list = await self.request_anilist_batched(ani_query, mal_df["id"].to_list())
 
-        return formatter.transform_ani_manga_data(ani_list, self.get_feature_fields(), mal_df)
+        return formatter.transform_ani_manga_data(ani_list, mal_df)
 
     async def request_anilist_batched(self, query, mal_ids):
         """Batch AniList requests to avoid query size limits.
@@ -210,9 +210,6 @@ class MixedProvider(abstract_provider.AbstractAnimeProvider):
                 all_media.extend(result.get("data", {}).get("Page", {}).get("media", []))
 
         return {"data": {"media": all_media}}
-
-    def get_feature_fields(self):
-        return self.ani_provider.get_feature_fields()
 
     def get_nsfw_tags(self):
         return self.ani_provider.get_nsfw_tags()
