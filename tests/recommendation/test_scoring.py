@@ -488,6 +488,10 @@ def test_direct_similarity_scorer():
             "title": ["Bleach", "Fate/Zero"],
             "score": [10, 9],
             "user_status": ["COMPLETED", "COMPLETED"],
+            "encoded": [
+                {"Action": 1, "Adventure": 1, "Fantasy": 0, "Romance": 0, "Comedy": 0},
+                {"Action": 1, "Adventure": 0, "Fantasy": 1, "Romance": 0, "Comedy": 0},
+            ],
         },
     )
     target_df = pl.DataFrame(
@@ -495,6 +499,10 @@ def test_direct_similarity_scorer():
             "id": [3, 4],
             "features": [["Fantasy", "Romance", "Comedy"], ["Action", "Adventure"]],
             "title": ["Kaguya", "Naruto"],
+            "encoded": [
+                {"Action": 0, "Adventure": 0, "Fantasy": 1, "Romance": 1, "Comedy": 1},
+                {"Action": 1, "Adventure": 1, "Fantasy": 0, "Romance": 0, "Comedy": 0},
+            ],
         },
     )
 

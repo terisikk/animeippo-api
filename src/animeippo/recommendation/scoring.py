@@ -1,6 +1,7 @@
 import abc
 from typing import ClassVar, NamedTuple
 
+import numpy as np
 import polars as pl
 
 from animeippo.analysis import statistics
@@ -12,7 +13,7 @@ class ScorerResult(NamedTuple):
 
 
 class AbstractScorer(abc.ABC):
-    MIN_FEATURE_THRESHOLD = 4
+    CONFIDENCE_K = 8
 
     def __init__(self, weight=1.0):
         self.weight = weight
@@ -22,10 +23,9 @@ class AbstractScorer(abc.ABC):
         pass
 
     def feature_confidence(self, dataframe):
-        """Confidence based on feature richness of candidates."""
-        return (dataframe["features"].list.len().fill_null(0) / self.MIN_FEATURE_THRESHOLD).clip(
-            upper_bound=1.0
-        )
+        """Confidence based on feature richness — smooth asymptotic curve."""
+        n = dataframe["features"].list.len().fill_null(0).cast(pl.Float64)
+        return n / (n + self.CONFIDENCE_K)
 
     @property
     @abc.abstractmethod
@@ -287,6 +287,7 @@ class DirectSimilarityScorer(AbstractScorer):
     DECAY_WEIGHTS: ClassVar[list[float]] = [1.0, 0.6, 0.36, 0.22, 0.13]
     DROP_PENALTY = 0.5
     MIN_SIMILARITY_THRESHOLD = 0.3
+    SHRINKAGE_K = 8
 
     def score(self, data):
         compare_df = data.watchlist
@@ -304,28 +305,67 @@ class DirectSimilarityScorer(AbstractScorer):
         return ScorerResult(statistics.rank_series(score), confidence)
 
     def build_match_table(self, data, compare_df, user_mean):
-        """Melt similarity matrix to long format with rating modifiers."""
+        """Melt similarity matrix to long format with Bayesian shrinkage and rating modifiers."""
         sim_matrix = data.get_similarity_matrix(filtered=True)
         candidate_cols = [c for c in sim_matrix.columns if c != "id"]
 
-        return (
-            sim_matrix.unpivot(
+        prior = (
+            sim_matrix.select(candidate_cols)
+            .unpivot()
+            .filter(pl.col("value").is_not_nan() & pl.col("value").is_not_null())
+            .select("value")
+            .mean()
+            .item()
+        ) or 0.0
+
+        shared_matrix = self.compute_shared_features(data, compare_df, candidate_cols)
+
+        long = sim_matrix.unpivot(
+            index="id",
+            on=candidate_cols,
+            variable_name="candidate_id",
+            value_name="raw_similarity",
+        ).join(
+            shared_matrix.unpivot(
                 index="id",
                 on=candidate_cols,
                 variable_name="candidate_id",
-                value_name="similarity",
+                value_name="shared",
+            ),
+            on=["id", "candidate_id"],
+        )
+
+        k = self.SHRINKAGE_K
+        return (
+            long.with_columns(
+                raw_similarity=pl.col("raw_similarity").fill_nan(None),
+            )
+            .with_columns(
+                similarity=(pl.col("shared") * pl.col("raw_similarity").fill_null(0.0) + k * prior)
+                / (pl.col("shared") + k),
             )
             .join(compare_df.select("id", "score", "user_status"), on="id", how="left")
             .with_columns(
-                similarity=pl.col("similarity").fill_nan(None),
                 rating_mod=pl.when(pl.col("user_status").is_in(["DROPPED", "PAUSED"]))
                 .then(-self.DROP_PENALTY)
                 .otherwise(statistics.bounded_rating_modifier(pl.col("score"), user_mean)),
             )
             .with_columns(
-                match_score=pl.col("similarity").fill_null(0.0) * pl.col("rating_mod"),
+                match_score=pl.col("similarity") * pl.col("rating_mod"),
             )
         )
+
+    def compute_shared_features(self, data, compare_df, candidate_cols):
+        """Compute shared feature count matrix from encoded binary vectors."""
+        wl_encoded = compare_df["encoded"].struct.unnest().fill_null(0).to_numpy()
+        s_encoded = data.seasonal["encoded"].struct.unnest().fill_null(0).to_numpy()
+
+        wl_binary = (wl_encoded > 0).astype(np.float32)
+        s_binary = (s_encoded > 0).astype(np.float32)
+
+        shared = wl_binary @ s_binary.T
+
+        return pl.DataFrame(shared, schema=candidate_cols).with_columns(id=compare_df["id"])
 
     def rank_and_weight_matches(self, long):
         """Rank matches per candidate and apply geometric decay weights via join."""
