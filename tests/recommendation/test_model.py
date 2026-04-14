@@ -136,3 +136,13 @@ def test_cluster_names_and_rankings_are_cached():
     rankings1 = dset.get_cluster_rankings()
     rankings2 = dset.get_cluster_rankings()
     assert rankings1 is rankings2
+
+
+def test_similarity_matrix_cache_returns_same_object():
+    dset = model.RecommendationModel(None, None)
+    dset.seasonal = pl.DataFrame({"id": [10, 11]})
+    dset.similarity_matrix = pl.DataFrame({"id": [1, 2], "10": [0.5, 0.3], "11": [0.2, 0.8]})
+
+    first = dset.get_similarity_matrix(filtered=False)
+    second = dset.get_similarity_matrix(filtered=False)
+    assert first is second

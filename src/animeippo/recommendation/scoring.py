@@ -24,7 +24,7 @@ class AbstractScorer(abc.ABC):
 
     def feature_confidence(self, dataframe):
         """Confidence based on feature richness — smooth asymptotic curve."""
-        n = dataframe["features"].list.len().fill_null(0).cast(pl.Float64)
+        n = dataframe["features"].list.len().fill_null(0)
         return n / (n + self.CONFIDENCE_K)
 
     @property
@@ -204,8 +204,6 @@ class ClusterSimilarityScorer(AbstractScorer):
         compare_df = data.watchlist
         sim_matrix = data.get_similarity_matrix(filtered=True)
 
-        candidate_cols = [c for c in sim_matrix.columns if c != "id"]
-
         # Per-cluster mean similarity to each candidate, with bounded rating modifier
         cluster_sims = (
             sim_matrix.with_columns(pl.exclude("id").fill_nan(0.0))
@@ -215,7 +213,7 @@ class ClusterSimilarityScorer(AbstractScorer):
                 pl.exclude("cluster", "id", "score").mean(),
                 rating=statistics.bounded_rating_modifier(pl.col("score").mean()),
             )
-            .with_columns(*((pl.col(col) * pl.col("rating")).alias(col) for col in candidate_cols))
+            .with_columns(pl.exclude("cluster") * pl.col("rating"))
             .drop("rating")
         )
 
@@ -227,7 +225,7 @@ class ClusterSimilarityScorer(AbstractScorer):
                 cluster_only[col].sort(descending=True).head(self.TOP_N).to_list(),
                 self.DECAY_WEIGHTS,
             )
-            for col in candidate_cols
+            for col in cluster_only.columns
         ]
 
         score_series = pl.Series(scores)
@@ -292,116 +290,64 @@ class DirectSimilarityScorer(AbstractScorer):
     def score(self, data):
         compare_df = data.watchlist
         user_mean = statistics.mean_score_default(compare_df, 5.0)
+        sim_matrix = data.get_similarity_matrix(filtered=True)
 
-        long = self.build_match_table(data, compare_df, user_mean)
-        ranked = self.rank_and_weight_matches(long)
-        result = self.aggregate_scores(ranked, data)
+        # Single join to align watchlist data to sim_matrix row order
+        aligned = sim_matrix.select("id").join(
+            compare_df.select("id", "encoded", "score", "user_status"), on="id"
+        )
 
-        score = result["score"].clip(lower_bound=0.0)
+        shrunk = self.shrink_similarities(sim_matrix, aligned, data.seasonal)
+        rating_mods = self.compute_rating_modifiers(aligned, user_mean)
 
-        match_conf = (result["best_sim"] / self.MIN_SIMILARITY_THRESHOLD).clip(upper_bound=1.0)
+        scores, best_sims = self.top_k_aggregate(shrunk, rating_mods)
+
+        score = pl.Series(np.clip(scores, 0, None))
+        match_conf = (pl.Series(best_sims) / self.MIN_SIMILARITY_THRESHOLD).clip(upper_bound=1.0)
         confidence = self.feature_confidence(data.seasonal) * match_conf
 
         return ScorerResult(statistics.rank_series(score), confidence)
 
-    def build_match_table(self, data, compare_df, user_mean):
-        """Melt similarity matrix to long format with Bayesian shrinkage and rating modifiers."""
-        sim_matrix = data.get_similarity_matrix(filtered=True)
-        candidate_cols = [c for c in sim_matrix.columns if c != "id"]
+    def shrink_similarities(self, sim_matrix, aligned_wl, seasonal):
+        """Apply Bayesian shrinkage using shared feature counts."""
+        raw = sim_matrix.select(pl.exclude("id")).to_numpy()
 
-        prior = (
-            sim_matrix.select(candidate_cols)
-            .unpivot()
-            .filter(pl.col("value").is_not_nan() & pl.col("value").is_not_null())
-            .select("value")
-            .mean()
-            .item()
-        ) or 0.0
+        enc1 = aligned_wl["encoded"].struct.unnest().to_numpy()
+        enc2 = seasonal["encoded"].struct.unnest().to_numpy()
+        shared = (enc1 > 0).astype(np.float32) @ (enc2 > 0).astype(np.float32).T
 
-        shared_matrix = self.compute_shared_features(data, compare_df, candidate_cols)
-
-        long = sim_matrix.unpivot(
-            index="id",
-            on=candidate_cols,
-            variable_name="candidate_id",
-            value_name="raw_similarity",
-        ).join(
-            shared_matrix.unpivot(
-                index="id",
-                on=candidate_cols,
-                variable_name="candidate_id",
-                value_name="shared",
-            ),
-            on=["id", "candidate_id"],
-        )
+        valid = raw[~np.isnan(raw)]
+        prior = float(np.mean(valid)) if len(valid) > 0 else 0.0
 
         k = self.SHRINKAGE_K
-        return (
-            long.with_columns(
-                raw_similarity=pl.col("raw_similarity").fill_nan(None),
-            )
-            .with_columns(
-                similarity=(pl.col("shared") * pl.col("raw_similarity").fill_null(0.0) + k * prior)
-                / (pl.col("shared") + k),
-            )
-            .join(compare_df.select("id", "score", "user_status"), on="id", how="left")
-            .with_columns(
-                rating_mod=pl.when(pl.col("user_status").is_in(["DROPPED", "PAUSED"]))
-                .then(-self.DROP_PENALTY)
-                .otherwise(statistics.bounded_rating_modifier(pl.col("score"), user_mean)),
-            )
-            .with_columns(
-                match_score=pl.col("similarity") * pl.col("rating_mod"),
-            )
-        )
+        raw_clean = np.nan_to_num(raw, nan=0.0)
+        return (shared * raw_clean + k * prior) / (shared + k)
 
-    def compute_shared_features(self, data, compare_df, candidate_cols):
-        """Compute shared feature count matrix from encoded binary vectors."""
-        wl_encoded = compare_df["encoded"].struct.unnest().fill_null(0).to_numpy()
-        s_encoded = data.seasonal["encoded"].struct.unnest().fill_null(0).to_numpy()
+    def compute_rating_modifiers(self, aligned_wl, user_mean):
+        """Build per-watchlist-item rating modifiers from pre-aligned data."""
+        score_vals = aligned_wl["score"].fill_null(user_mean).to_numpy() / 10.0
+        is_negative = np.isin(aligned_wl["user_status"].to_numpy(), ["DROPPED", "PAUSED"])
 
-        wl_binary = (wl_encoded > 0).astype(np.float32)
-        s_binary = (s_encoded > 0).astype(np.float32)
+        mods = 0.5 + 0.5 * score_vals
+        mods[is_negative] = -self.DROP_PENALTY
+        return mods
 
-        shared = wl_binary @ s_binary.T
+    def top_k_aggregate(self, shrunk, rating_mods):
+        """Select top-K matches per candidate and aggregate with decay weights."""
+        match_scores = shrunk * rating_mods[:, np.newaxis]
+        k = min(self.TOP_K, shrunk.shape[0])
+        weights = np.array(self.DECAY_WEIGHTS[:k], dtype=np.float64)
 
-        return pl.DataFrame(shared, schema=candidate_cols).with_columns(id=compare_df["id"])
+        sorted_idx = np.argsort(-shrunk, axis=0)[:k, :]
+        cols = np.arange(shrunk.shape[1])[np.newaxis, :]
 
-    def rank_and_weight_matches(self, long):
-        """Rank matches per candidate and apply geometric decay weights via join."""
-        weights_df = pl.DataFrame(
-            {
-                "rank": list(range(1, self.TOP_K + 1)),
-                "weight": self.DECAY_WEIGHTS[: self.TOP_K],
-            }
-        ).cast({"rank": pl.UInt32})
+        top_match = match_scores[sorted_idx, cols]
+        top_sim = shrunk[sorted_idx, cols]
 
-        return (
-            long.with_columns(
-                rank=pl.col("similarity")
-                .rank(method="ordinal", descending=True)
-                .over("candidate_id")
-                .cast(pl.UInt32)
-            )
-            .filter(pl.col("rank") <= self.TOP_K)
-            .join(weights_df, on="rank", how="left")
-        )
+        scores = np.sum(top_match * weights[:, np.newaxis], axis=0) / np.sum(weights)
+        best_sims = top_sim[0, :]
 
-    def aggregate_scores(self, ranked, data):
-        """Aggregate weighted match scores per candidate, preserving original order."""
-        sim_matrix = data.get_similarity_matrix(filtered=True)
-        candidate_cols = [c for c in sim_matrix.columns if c != "id"]
-
-        scores_df = ranked.group_by("candidate_id", maintain_order=True).agg(
-            score=(pl.col("match_score") * pl.col("weight")).sum() / pl.col("weight").sum(),
-            best_sim=pl.col("similarity").max(),
-        )
-
-        order = pl.DataFrame({"candidate_id": candidate_cols})
-        return order.join(scores_df, on="candidate_id", how="left").with_columns(
-            pl.col("score").fill_null(0.0),
-            pl.col("best_sim").fill_null(0.0),
-        )
+        return scores, best_sims
 
 
 class PopularityScorer(AbstractScorer):
