@@ -43,6 +43,7 @@ class AniListProvider(abstract_provider.AbstractAnimeProvider):
                             id
                             idMal
                             title { romaji }
+                            status
                             format
                             genres
                             tags {

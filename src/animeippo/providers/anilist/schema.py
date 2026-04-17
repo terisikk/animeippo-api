@@ -15,6 +15,7 @@ ANI_WATCHLIST_SCHEMA = {
     Columns.ID_MAL: pl.UInt32,
     Columns.TITLE: pl.Utf8,
     Columns.FORMAT: Format,
+    Columns.STATUS: MediaStatus,
     Columns.GENRES: pl.List(pl.Utf8),
     Columns.COVER_IMAGE: pl.Utf8,
     Columns.SCORE: pl.UInt16,

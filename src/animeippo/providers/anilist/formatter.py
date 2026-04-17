@@ -94,6 +94,11 @@ def transform_seasonal_data(data, tag_lookup):
 
 def transform_watchlist_data(data, tag_lookup):
     original = fast_json_normalize(data["data"])
+    # Rename entry-level "status" before stripping "media." prefix to avoid
+    # collision with media.status (airing status like RELEASING/FINISHED).
+    original.columns = [
+        "userStatus" if x == "status" else x for x in original.columns
+    ]
     original.columns = [x.removeprefix("media.") for x in original.columns]
 
     original = pl.from_pandas(original)
@@ -248,7 +253,7 @@ ANILIST_MAPPING = {
     Columns.EPISODES:           DefaultMapper("episodes"),
     Columns.SEASON_YEAR:        DefaultMapper("seasonYear"),
     Columns.SEASON:             DefaultMapper("season"),
-    Columns.USER_STATUS:        DefaultMapper("status"),
+    Columns.USER_STATUS:        DefaultMapper("userStatus"),
     Columns.STATUS:             DefaultMapper("status"),
     Columns.SCORE:              SelectorMapper(
                                     pl.when(pl.col("score") > 0)
