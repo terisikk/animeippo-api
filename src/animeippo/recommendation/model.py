@@ -52,7 +52,7 @@ class RecommendationModel:
     def filter_continuation(self):
         if self.seasonal is not None and self.watchlist is not None:
             previously_watched = self.watchlist.filter(
-                pl.col("user_status").is_in(["COMPLETED", "CURRENT", "PAUSED"])
+                pl.col("user_status").is_in(["COMPLETED", "CURRENT", "PAUSED", "PLANNING", "REPEATING"])
             )["id"].to_list()
 
             self.seasonal = filter_continuation(self.seasonal, previously_watched)
