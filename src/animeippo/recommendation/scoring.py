@@ -412,7 +412,13 @@ class ContinuationScorer(AbstractScorer):
                 predecessor_rating=pl.col("score").fill_null(user_mean).cast(pl.Float64) / 10.0,
                 completion_weight=pl.col("user_status")
                 .replace_strict(
-                    {"COMPLETED": 1.0, "CURRENT": 0.7, "PAUSED": 0.3, "DROPPED": 0.1},
+                    {
+                        "COMPLETED": 1.0,
+                        "CURRENT": 0.7,
+                        "PLANNING": 0.5,
+                        "PAUSED": 0.3,
+                        "DROPPED": 0.1,
+                    },
                     default=0.0,
                 )
                 .cast(pl.Float64),
