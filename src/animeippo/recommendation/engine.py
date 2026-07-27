@@ -51,94 +51,61 @@ class AnimeRecommendationEngine:
         return recommendations.sort("discovery_score", descending=True)
 
     def score_anime(self, dataset):
-        scoring_target_df = dataset.seasonal
-        n = len(scoring_target_df)
-
         if not self.discovery_scorers:
             raise RuntimeError("No scorers added for engine. Please add at least one.")
 
-        # Run discovery scorers and collect results
-        discovery_results = {}
-        for scorer in self.discovery_scorers:
-            discovery_results[scorer.name] = (
-                self.run_scorer(scorer, dataset, n),
-                scorer.weight,
-            )
-
-        # Run engagement scorers separately
-        engagement_results = {}
-        for scorer in self.engagement_scorers:
-            engagement_results[scorer.name] = self.run_scorer(scorer, dataset, n)
+        scoring_target_df = dataset.seasonal
+        n = len(scoring_target_df)
+        discovery_results = self.calculate_scores(dataset, n, self.discovery_scorers)
+        engagement_results = self.calculate_scores(dataset, n, self.engagement_scorers)
 
         # Store confidence-adjusted scores so categories sorting by individual
         # scorers respect data quality (e.g. unknown studio = low confidence = low score)
         scoring_target_df = scoring_target_df.with_columns(
-            **{
-                name: result.score * result.confidence
-                for name, (result, _) in discovery_results.items()
-            },
-            **{
-                name: result.score * result.confidence
-                for name, result in engagement_results.items()
-            },
-        )
-
-        # Confidence-weighted blending for discovery score
-        effective_weight_cols = []
-        weighted_score_cols = []
-        conf_cols = {}
-
-        for name, (result, base_weight) in discovery_results.items():
-            ew = (result.confidence * base_weight).alias(f"_ew_{name}")
-            effective_weight_cols.append(ew)
-            weighted_score_cols.append(
-                (result.score * result.confidence * base_weight).alias(f"_ws_{name}")
-            )
-            conf_cols[f"{name}_conf"] = result.confidence
-
-        ew_names = [f"_ew_{name}" for name in discovery_results]
-        ws_names = [f"_ws_{name}" for name in discovery_results]
-
-        scoring_target_df = scoring_target_df.with_columns(
-            *effective_weight_cols,
-            *weighted_score_cols,
-            **conf_cols,
-        )
-
-        total_weight = pl.sum_horizontal(*ew_names)
-        total_base_weight = sum(w for _, w in discovery_results.values())
-
-        overall_confidence = (
-            pl.sum_horizontal(
-                *(pl.col(f"{name}_conf") * w for name, (_, w) in discovery_results.items())
-            )
-            / total_base_weight
-        )
-
-        # Fallback uses uniform weights when all confidences are zero
-        raw_discovery = (
-            pl.when(total_weight > 0)
-            .then(pl.sum_horizontal(*ws_names) / total_weight)
-            .otherwise(0.0)
+            **{result.name: result.score * result.confidence for result in discovery_results},
+            **{result.name: result.score * result.confidence for result in engagement_results},
         )
 
         scoring_target_df = scoring_target_df.with_columns(
-            discovery_score=raw_discovery,
-            overall_confidence=overall_confidence,
+            discovery_score=self.calculate_discovery_score(discovery_results),
         )
 
         # Add engagement columns
-        for name, result in engagement_results.items():
+        for result in engagement_results:
             scoring_target_df = scoring_target_df.with_columns(
-                **{f"{name}_confidence": result.confidence}
+                **{f"{result.name}_confidence": result.confidence}
             )
 
-        # Clean up temporary columns
-        scoring_target_df = scoring_target_df.drop(
-            [c for c in scoring_target_df.columns if c.startswith("_ew_") or c.startswith("_ws_")]
+        return scoring_target_df
+
+    def calculate_discovery_score(self, discovery_results):
+        # Confidence-weighted blending for discovery score
+        # ew = conf * base_weight
+        # ws = conf * base_weight * score
+        # tw = sum(ew) = sum(conf * base_weight)
+        # ds = sum(ws) / tw = sum(ws) / sum(ew)
+        #    = sum(conf * base_weight * score) / sum(conf * base_weight)
+
+        effective_weights = []
+        weighted_scores = []
+
+        for result in discovery_results:
+            ew = result.confidence * result.weight
+            effective_weights.append(ew)
+            weighted_scores.append(result.score * ew)
+
+        total_effective_weight = pl.sum_horizontal(effective_weights)
+        total_weighted_score = pl.sum_horizontal(weighted_scores)
+
+        # Fallback uses uniform weights when all confidences are zero
+        return (
+            pl.when(total_effective_weight > 0)
+            .then(total_weighted_score / total_effective_weight)
+            .otherwise(0.0)
         )
 
-        return scoring_target_df
+    def calculate_scores(self, dataset, n, scorers):
+        return [self.run_scorer(scorer, dataset, n) for scorer in scorers]
 
     def run_scorer(self, scorer, dataset, n=0):
         try:
@@ -146,8 +113,10 @@ class AnimeRecommendationEngine:
         except Exception:
             logger.exception("scorer_error", scorer=scorer.name)
             return ScorerResult(
+                name=scorer.name,
                 score=pl.Series([0.0] * n),
                 confidence=pl.Series([0.0] * n),
+                weight=scorer.weight,
             )
 
     def categorize_anime(self, data):

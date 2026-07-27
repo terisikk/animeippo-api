@@ -9,7 +9,6 @@ WEAK_FORMATS = ["TV_SHORT", "SPECIAL", "MUSIC", "ONE_SHOT"]
 MIN_EPISODE_DURATION = 10
 
 CONTINUATION_THRESHOLD = 0.7
-WEAK_INTERLEAVE_INTERVAL = 5
 
 
 def substantial_format_filter():
@@ -38,83 +37,56 @@ class AbstractCategory(abc.ABC):
         return df["id"][0:top_n].to_list()
 
 
-def compose_two_pool_lane(
+def merge_continuation_and_disovery(
     df,
     continuation_threshold=0.7,
-    weak_interleave_interval=5,
     max_total=30,
     group_by=None,
 ):
     """Compose a lane by merging continuation and discovery pools.
 
-    Strong continuations pin to the top of each group. Weak continuations
-    interleave into the discovery list at regular intervals.
+    Strong continuations pin to the top of each group.
 
     When group_by is set, composition is applied per group (e.g. per season),
     preserving group order.
     """
     if group_by is not None:
-        groups = df.select(group_by).unique(maintain_order=True).rows()
+        sub_dfs = df.partition_by(group_by, maintain_order=True, as_dict=False)
         result = []
-        for group_vals in groups:
-            group_filter = pl.lit(True)
-            for col, val in zip(group_by, group_vals, strict=True):
-                group_filter = group_filter & (pl.col(col) == val)
-            group_df = df.filter(group_filter)
-            result.extend(
-                compose_single_pool(group_df, continuation_threshold, weak_interleave_interval)
-            )
-        if max_total is not None:
-            result = result[:max_total]
-        return result
 
-    result = compose_single_pool(df, continuation_threshold, weak_interleave_interval)
-    if max_total is not None:
-        result = result[:max_total]
-    return result
+        for sub_df in sub_dfs:
+            group_ids = interleave_continuations(sub_df, continuation_threshold)
+            result.extend(group_ids)
+
+            if max_total is not None and len(result) >= max_total:
+                result = result[:max_total]
+
+        return result[:max_total] if max_total is not None else result
+
+    # Flat feed, no grouping
+    result = interleave_continuations(df, continuation_threshold)
+
+    return result[:max_total] if max_total is not None else result
 
 
-def compose_single_pool(df, continuation_threshold, weak_interleave_interval):
-    """Compose a single pool: pin strong continuations, interleave weak ones."""
+def interleave_continuations(df, continuation_threshold):
+    """Compose a single pool: pin strong continuations"""
     cont_col = scoring.ContinuationScorer.name
     conf_col = f"{cont_col}_confidence"
 
-    has_continuation = (pl.col(cont_col) > 0) & pl.col(conf_col).is_not_null()
+    net_intent = pl.col(cont_col) * pl.col(conf_col)
 
-    strong = (
-        df.filter(has_continuation & (pl.col(conf_col) >= continuation_threshold))
-        .sort(cont_col, descending=True)["id"]
-        .to_list()
+    is_strong_continuation = pl.col(conf_col).is_not_null() & (net_intent >= continuation_threshold)
+
+    # 1. Strong positive continuations pinned upfront (sorted by net intent)
+    strong_ids = df.filter(is_strong_continuation).sort(net_intent, descending=True)["id"].to_list()
+
+    # 2. All remaining items sorted by discovery score
+    discovery_ids = (
+        df.filter(~is_strong_continuation).sort("discovery_score", descending=True)["id"].to_list()
     )
 
-    weak = (
-        df.filter(has_continuation & (pl.col(conf_col) < continuation_threshold))
-        .sort(cont_col, descending=True)["id"]
-        .to_list()
-    )
-
-    excluded = strong + weak
-    discoveries = df.filter(~pl.col("id").is_in(excluded))["id"].to_list()
-
-    result = list(strong)
-
-    interleave_idx = 0
-    discovery_idx = 0
-    slot = 1
-
-    while discovery_idx < len(discoveries) or interleave_idx < len(weak):
-        if interleave_idx < len(weak) and slot % weak_interleave_interval == 0:
-            result.append(weak[interleave_idx])
-            interleave_idx += 1
-        elif discovery_idx < len(discoveries):
-            result.append(discoveries[discovery_idx])
-            discovery_idx += 1
-        else:
-            result.append(weak[interleave_idx])
-            interleave_idx += 1
-        slot += 1
-
-    return result
+    return strong_ids + discovery_ids
 
 
 class MostPopularCategory(AbstractCategory):
@@ -132,9 +104,13 @@ class ContinueWatchingCategory(AbstractCategory):
 
     def categorize(self, dataset):
         mask = (
-            (pl.col(scoring.ContinuationScorer.name) > 0)
-            & (pl.col("user_status").ne_missing("COMPLETED"))
-        ) | (pl.col("user_status") == "PAUSED")
+            (
+                (pl.col(scoring.ContinuationScorer.name) > 0)
+                & (pl.col("user_status").ne_missing("COMPLETED"))
+            )
+            | (pl.col("user_status") == "PAUSED")
+            | (pl.col("user_status") == "CURRENT")
+        )
 
         sorting = {
             "by": pl.col("discovery_score")
@@ -373,10 +349,9 @@ class TopUpcomingCategory(AbstractCategory):
         return mask, sorting
 
     def get_items(self, df, top_n):
-        return compose_two_pool_lane(
+        return merge_continuation_and_disovery(
             df,
             continuation_threshold=CONTINUATION_THRESHOLD,
-            weak_interleave_interval=WEAK_INTERLEAVE_INTERVAL,
             max_total=top_n,
             group_by=["season_year", "season"],
         )
@@ -446,10 +421,9 @@ class SimulcastsCategory(AbstractCategory):
         return mask, sorting
 
     def get_items(self, df, top_n):
-        return compose_two_pool_lane(
+        return merge_continuation_and_disovery(
             df,
             continuation_threshold=CONTINUATION_THRESHOLD,
-            weak_interleave_interval=WEAK_INTERLEAVE_INTERVAL,
             max_total=top_n,
         )
 

@@ -83,6 +83,37 @@ async def test_all_yearly_season_can_be_fetched_when_season_is_none(mocker):
 
 
 @pytest.mark.asyncio
+async def test_anime_with_no_season_info_is_included(mocker):
+    provider = anilist.AniListProvider()
+
+    year = "2023"
+    season = None
+
+    anime_with_no_season = {
+        "id": 145140,
+        "title": {"romaji": "Saga of Tonya the Benevolent"},
+        "season": None,
+        "seasonYear": 2023,
+        "relations": {"edges": []},
+        "genres": ["Action", "Fantasy"],
+        "tags": [{"id": 56, "rank": 85}],
+        "coverImage": {"medium": "https://localhost/test.png"},
+        "popularity": 131620,
+        "directors": ["Mago Senkai"],
+    }
+
+    data = test_data.ANI_SEASONAL_LIST
+    data["data"]["Page"]["media"].append(anime_with_no_season)
+
+    response = ResponseStub(data)
+    mocker.patch("aiohttp.ClientSession.post", return_value=response)
+
+    animelist = await provider.get_seasonal_anime_list(year, season)
+
+    assert "Saga of Tonya the Benevolent" in animelist["title"]
+
+
+@pytest.mark.asyncio
 async def test_ani_user_manga_list_can_be_fetched(mocker):
     provider = anilist.AniListProvider()
 

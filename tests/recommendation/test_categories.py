@@ -928,7 +928,7 @@ def test_compose_two_pool_lane_pins_strong_continuations():
         }
     )
 
-    result = categories.compose_two_pool_lane(df, continuation_threshold=0.7, max_total=5)
+    result = categories.merge_continuation_and_disovery(df, continuation_threshold=0.7, max_total=5)
 
     # Strong continuation pinned first
     assert result[0] == 1
@@ -947,8 +947,8 @@ def test_compose_two_pool_lane_interleaves_weak_continuations():
         }
     )
 
-    result = categories.compose_two_pool_lane(
-        df, continuation_threshold=0.7, weak_interleave_interval=5, max_total=11
+    result = categories.merge_continuation_and_disovery(
+        df, continuation_threshold=0.7, max_total=11
     )
 
     # Weak continuation (id=1) interleaved, not pinned at top
@@ -966,7 +966,7 @@ def test_compose_two_pool_lane_no_max_total():
         }
     )
 
-    result = categories.compose_two_pool_lane(df, max_total=None)
+    result = categories.merge_continuation_and_disovery(df, max_total=None)
     assert len(result) == 3
 
 
@@ -980,7 +980,7 @@ def test_compose_two_pool_lane_respects_max_total():
         }
     )
 
-    result = categories.compose_two_pool_lane(df, max_total=10)
+    result = categories.merge_continuation_and_disovery(df, max_total=10)
     assert len(result) == 10
 
 
@@ -995,7 +995,7 @@ def test_compose_two_pool_lane_with_group_by():
         }
     )
 
-    result = categories.compose_two_pool_lane(df, group_by=["group"], max_total=None)
+    result = categories.merge_continuation_and_disovery(df, group_by=["group"], max_total=None)
 
     # Group A comes first, continuation (id=1) pinned
     assert result[0] == 1
@@ -1005,11 +1005,13 @@ def test_compose_two_pool_lane_with_group_by():
 
     # Also test with multiple group columns
     df2 = df.with_columns(subgroup=pl.Series(["X", "X", "Y", "Y"]))
-    result2 = categories.compose_two_pool_lane(df2, group_by=["group", "subgroup"], max_total=None)
+    result2 = categories.merge_continuation_and_disovery(
+        df2, group_by=["group", "subgroup"], max_total=None
+    )
     assert len(result2) == 4
 
     # Test max_total with groups
-    result3 = categories.compose_two_pool_lane(df, group_by=["group"], max_total=2)
+    result3 = categories.merge_continuation_and_disovery(df, group_by=["group"], max_total=2)
     assert len(result3) == 2
 
 

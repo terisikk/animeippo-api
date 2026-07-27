@@ -8,8 +8,10 @@ from animeippo.analysis import statistics
 
 
 class ScorerResult(NamedTuple):
+    name: str
     score: pl.Series
     confidence: pl.Series
+    weight: float
 
 
 class AbstractScorer(abc.ABC):
@@ -90,7 +92,12 @@ class FeatureCorrelationScorer(AbstractScorer):
             scoring_target_df, compare_df, positive_weights, negative_weights
         )
 
-        return ScorerResult(statistics.rank_series(clamped_score), confidence)
+        return ScorerResult(
+            self.name,
+            statistics.rank_series(clamped_score),
+            confidence,
+            self.weight,
+        )
 
     def get_positive_weights(self, compare_df):
         return statistics.weight_encoded_categoricals_correlation(
@@ -191,7 +198,12 @@ class StudioCorrelationScorer(AbstractScorer):
         )
         confidence = (studio_match_count / self.MIN_STUDIO_HISTORY).clip(upper_bound=1.0)
 
-        return ScorerResult(statistics.rank_series(scores), confidence)
+        return ScorerResult(
+            self.name,
+            statistics.rank_series(scores),
+            confidence,
+            self.weight,
+        )
 
 
 class ClusterSimilarityScorer(AbstractScorer):
@@ -234,7 +246,12 @@ class ClusterSimilarityScorer(AbstractScorer):
         cohesion = self.compute_cluster_cohesion(data)
         confidence = self.feature_confidence(data.seasonal) * cohesion
 
-        return ScorerResult(statistics.rank_series(score_series), confidence)
+        return ScorerResult(
+            self.name,
+            statistics.rank_series(score_series),
+            confidence,
+            self.weight,
+        )
 
     def compute_cluster_cohesion(self, data):
         """Mean intra-cluster similarity as confidence signal."""
@@ -306,7 +323,12 @@ class DirectSimilarityScorer(AbstractScorer):
         match_conf = (pl.Series(best_sims) / self.MIN_SIMILARITY_THRESHOLD).clip(upper_bound=1.0)
         confidence = self.feature_confidence(data.seasonal) * match_conf
 
-        return ScorerResult(statistics.rank_series(score), confidence)
+        return ScorerResult(
+            self.name,
+            statistics.rank_series(score),
+            confidence,
+            self.weight,
+        )
 
     def shrink_similarities(self, sim_matrix, aligned_wl, seasonal):
         """Apply Bayesian shrinkage using shared feature counts."""
@@ -384,7 +406,12 @@ class PopularityScorer(AbstractScorer):
             .otherwise(pl.lit(self.HYPE_CONFIDENCE)),
         )
 
-        return ScorerResult(result["score"], result["confidence"])
+        return ScorerResult(
+            self.name,
+            result["score"],
+            result["confidence"],
+            self.weight,
+        )
 
 
 class ContinuationScorer(AbstractScorer):
@@ -399,59 +426,75 @@ class ContinuationScorer(AbstractScorer):
 
         user_mean = statistics.mean_score_default(compare_df, 5.0)
 
-        joined = (
+        # Calculate predecessor metrics
+        predecessors = (
             scoring_target_df.explode("continuation_to")
             .select(["id", "continuation_to"])
+            .filter(pl.col("continuation_to").is_not_null())
             .join(
                 compare_df.select(["id", "score", "user_status"]),
                 left_on="continuation_to",
                 right_on="id",
-                how="left",
+                how="inner",  # ONLY match shows in the user's watchlist!
             )
             .with_columns(
-                predecessor_rating=pl.col("score").fill_null(user_mean).cast(pl.Float64) / 10.0,
-                completion_weight=pl.col("user_status")
+                # If they added it to watchlist but left score unrated, fall back to user_mean
+                raw_score=pl.col("score").fill_null(user_mean).cast(pl.Float64) / 10.0,
+                confidence=pl.col("user_status")
                 .replace_strict(
                     {
                         "COMPLETED": 1.0,
-                        "CURRENT": 0.7,
-                        "PLANNING": 0.5,
-                        "PAUSED": 0.3,
-                        "DROPPED": 0.1,
+                        "DROPPED": 1.0,
+                        "CURRENT": 0.8,
+                        "PAUSED": 0.5,
+                        "PLANNING": 0.3,
                     },
                     default=0.0,
                 )
                 .cast(pl.Float64),
                 was_dropped=pl.col("user_status") == "DROPPED",
             )
-            .with_columns(
-                strength=pl.col("predecessor_rating") * pl.col("completion_weight"),
-            )
-            .group_by("id", maintain_order=True)
+            .group_by("id")
             .agg(
-                pl.col("strength").max(),
-                # A dropped sequel overrides earlier positive signal
-                any_dropped=pl.col("was_dropped").any(),
+                pl.col("raw_score").max().alias("score"),
+                pl.col("confidence").max().alias("confidence"),
+                pl.col("was_dropped").any().alias("any_dropped"),
             )
             .with_columns(
-                strength=pl.when(pl.col("any_dropped"))
-                .then(pl.col("strength").clip(upper_bound=self.DROP_CAP))
-                .otherwise(pl.col("strength"))
+                score=pl.when(pl.col("any_dropped"))
+                .then(pl.col("score").clip(upper_bound=self.DROP_CAP))
+                .otherwise(pl.col("score"))
             )
-            .drop("any_dropped")
         )
 
-        score = joined["strength"].fill_null(0.0)
-
+        select_cols = ["id"]
         if "is_summary" in scoring_target_df.columns:
-            summary_mask = scoring_target_df["is_summary"]
-            score = pl.select(
-                pl.when(summary_mask).then(score * self.SUMMARY_FACTOR).otherwise(score)
-            ).to_series()
+            select_cols.append("is_summary")
 
-        confidence = score
+        # Join back to target_df to preserve exact row count & order
+        scored_df = (
+            scoring_target_df.select(select_cols)
+            .join(predecessors, on="id", how="left")
+            .with_columns(
+                score=pl.col("score").fill_null(0.0),
+                confidence=pl.col("confidence").fill_null(0.0),
+            )
+        )
 
-        return ScorerResult(score, confidence)
+        # Apply summary penalty if applicable
+        if "is_summary" in scored_df.columns:
+            scored_df = scored_df.with_columns(
+                score=pl.when(pl.col("is_summary"))
+                .then(pl.col("score") * self.SUMMARY_FACTOR)
+                .otherwise(pl.col("score"))
+            )
+
+        return ScorerResult(
+            self.name,
+            scored_df["score"],
+            scored_df["confidence"],
+            self.weight,
+        )
 
 
 class AdaptationScorer(AbstractScorer):
@@ -467,8 +510,10 @@ class AdaptationScorer(AbstractScorer):
 
         if compare_df is None:
             return ScorerResult(
+                self.name,
                 pl.Series([0.0] * n),
                 pl.Series([0.0] * n),
+                self.weight,
             )
 
         mean_score = statistics.mean_score_default(compare_df, self.DEFAULT_MEAN_SCORE)
@@ -503,7 +548,12 @@ class AdaptationScorer(AbstractScorer):
         score = grouped["adaptationscore"] / 10
         confidence = grouped["rating_confidence"]
 
-        return ScorerResult(score, confidence)
+        return ScorerResult(
+            self.name,
+            score,
+            confidence,
+            self.weight,
+        )
 
 
 class CollaborativeRecommendationScorer(AbstractScorer):
@@ -532,18 +582,33 @@ class CollaborativeRecommendationScorer(AbstractScorer):
         n = len(seasonal)
 
         if watchlist is None or "recommendations" not in watchlist.columns:
-            return ScorerResult(pl.Series([0.0] * n), pl.Series([0.0] * n))
+            return ScorerResult(
+                self.name,
+                pl.Series([0.0] * n),
+                pl.Series([0.0] * n),
+                self.weight,
+            )
 
         user_mean = statistics.mean_score_default(watchlist, 5.0)
         links = self._build_link_table(watchlist, seasonal, user_mean)
 
         if len(links) == 0:
-            return ScorerResult(pl.Series([0.0] * n), pl.Series([0.0] * n))
+            return ScorerResult(
+                self.name,
+                pl.Series([0.0] * n),
+                pl.Series([0.0] * n),
+                self.weight,
+            )
 
         aggregated = self._aggregate_signals(links)
         result = self._join_to_seasonal(aggregated, seasonal)
 
-        return ScorerResult(statistics.rank_series(result["signal"]), result["confidence"])
+        return ScorerResult(
+            self.name,
+            statistics.rank_series(result["signal"]),
+            result["confidence"],
+            self.weight,
+        )
 
     def _build_link_table(self, watchlist, seasonal, user_mean):
         """Explode recommendations, filter to seasonal candidates, compute per-link signal."""

@@ -37,7 +37,6 @@ def recommendations_web_view(dataframe, categories=None, tags_and_genres=None, d
     # In debug mode, include all scorer columns
     if debug:
         scorer_fields = [
-            "overall_confidence",
             "directscore",
             "featurecorrelationscore",
             "clusterscore",
