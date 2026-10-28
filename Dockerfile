@@ -1,6 +1,6 @@
 # This is a production Dockerfile for hosting the application
 
-FROM python:3.12-slim-bullseye AS base
+FROM python:3.12-slim AS base
 
 WORKDIR /app
 
