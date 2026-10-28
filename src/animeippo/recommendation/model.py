@@ -1,7 +1,7 @@
 import polars as pl
 
 from ..analysis import similarity
-from ..providers.util import filter_continuation
+from ..providers.util import filter_irrelevant_continuation
 from ..recommendation import cluster_naming
 
 
@@ -57,7 +57,7 @@ class RecommendationModel:
                 )
             )["id"].to_list()
 
-            self.seasonal = filter_continuation(self.seasonal, previously_watched)
+            self.seasonal = filter_irrelevant_continuation(self.seasonal, previously_watched)
 
     def build_relation_context(self):
         """Tag seasonal items that are summaries/compilations of watched anime.

@@ -185,9 +185,8 @@ def test_seasonal_recommendations_added_to_clusters():
     categories = profiler.get_cluster_categories(dset)
 
     seasonal = asyncio.run(ProviderStub().get_seasonal_anime_list("2026", None))
-    result_seasonal = profiler.add_seasonal_recommendations(
-        profile, categories, seasonal, profiler.clusterer
-    )
+    result_seasonal = profiler.add_seasonal_recommendations(profile, seasonal, profiler.clusterer)
+    profiler.populate_category_recommendations(result_seasonal, categories)
 
     has_recs = any("recommendations" in cat for cat in categories)
     assert has_recs
@@ -242,12 +241,8 @@ def test_seasonal_recommendations_without_continuation_column():
     data = data.with_columns(cluster=profiler.clusterer.cluster_by_features(data))
     profile.watchlist = data
 
-    categories = profiler.get_cluster_categories(RecommendationModel(profile, None))
-
     seasonal = asyncio.run(ProviderStub().get_seasonal_anime_list("2026", None))
-    result_seasonal = profiler.add_seasonal_recommendations(
-        profile, categories, seasonal, profiler.clusterer
-    )
+    result_seasonal = profiler.add_seasonal_recommendations(profile, seasonal, profiler.clusterer)
 
     assert result_seasonal is not None
 

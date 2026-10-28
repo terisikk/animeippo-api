@@ -1,7 +1,7 @@
 import polars as pl
 
 
-def filter_continuation(seasonal, watchlist_ids):
+def filter_irrelevant_continuation(seasonal, watchlist_ids):
     """Filter sequels — only keep items that are continuations of watched anime,
     standalone titles, or titles already on the user's list."""
     if "continuation_to" not in seasonal.columns:

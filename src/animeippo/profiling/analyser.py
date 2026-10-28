@@ -5,7 +5,7 @@ import polars as pl
 from animeippo.analysis import encoding, statistics
 from animeippo.clustering import model
 from animeippo.profiling.model import UserProfile
-from animeippo.providers.util import filter_continuation
+from animeippo.providers.util import filter_irrelevant_continuation
 from animeippo.recommendation.cluster_naming import get_cluster_stats, name_all_clusters
 
 CLUSTERING_DEFAULTS = {
@@ -55,59 +55,72 @@ class ProfileAnalyser:
 
         categories = self.get_cluster_categories(profile)
 
-        result_seasonal = None
         if seasonal is not None:
-            result_seasonal = self.add_seasonal_recommendations(
-                profile, categories, seasonal, clusterer
-            )
+            seasonal = self.add_seasonal_recommendations(profile, seasonal, clusterer)
+            self.populate_category_recommendations(seasonal, categories)
 
-        return profile, categories, result_seasonal
+        return profile, categories, seasonal
 
-    def add_seasonal_recommendations(self, profile, categories, seasonal, clusterer):
+    def add_seasonal_recommendations(self, profile, seasonal, clusterer):
         seasonal = self.filter_seasonal(profile, seasonal)
+        seasonal = self.assign_clustering(profile, seasonal, clusterer)
 
-        watchlist_ids = profile.watchlist["id"].to_list()
-        seasonal = seasonal.filter(~pl.col("id").is_in(watchlist_ids))
+        return seasonal
 
-        encoder = copy.copy(self.encoder)
-        encoder.fit(profile.watchlist.explode("features")["features"].unique().drop_nulls())
+    def populate_category_recommendations(self, seasonal, categories):
+        # FIXME: This is still quite side-effecty§
+
+        cluster_map = {cat["cluster"]: cat for cat in categories}
+
+        for cluster_id, group in seasonal.sort("cluster_similarity", descending=True).group_by(
+            "cluster"
+        ):
+            # FIXME: What, why [0]
+            cluster_map[cluster_id[0]]["recommendations"] = group["id"].to_list()
+
+    def filter_seasonal(self, profile, seasonal):
+        """Filter seasonal list the same way as recommendations."""
+        watchlist = profile.watchlist
+
+        previously_watched = watchlist.filter(
+            pl.col("user_status").is_in(["COMPLETED", "CURRENT", "PAUSED"])
+        )["id"].to_list()
+
+        seasonal = self.enrich_seasonal_with_user_status(seasonal, watchlist)
+        seasonal = filter_irrelevant_continuation(seasonal, previously_watched)
+        seasonal = self.filter_items_on_watchlist(watchlist, seasonal)
+
+        return seasonal
+
+    def assign_clustering(self, profile, seasonal, clusterer):
+        encoder = self.create_encoder(profile)
         seasonal = seasonal.with_columns(encoded=encoder.encode(seasonal))
+
         predictions = clusterer.predict(seasonal["encoded"])
         seasonal = seasonal.with_columns(
             cluster=predictions["cluster"],
             cluster_similarity=predictions["similarity"],
         )
 
-        if "continuation_to" in seasonal.columns:
-            seasonal = self.assign_continuations_to_prequel_cluster(profile, seasonal)
-
-        # FIXME: These for loops look innocent but they mutate categories!!! Refactor!!
-        cluster_map = {}
-        for cat in categories:
-            for item_id in (
-                profile.watchlist.filter(pl.col("id").is_in(cat["items"]))["cluster"]
-                .unique()
-                .to_list()
-            ):
-                cluster_map[item_id] = cat
-
-        for cluster_id, group in seasonal.sort("cluster_similarity", descending=True).group_by(
-            "cluster"
-        ):
-            cluster_map[cluster_id[0]]["recommendations"] = group["id"].to_list()
-
+        seasonal = self.assign_continuations_to_prequel_cluster(profile, seasonal)
         return seasonal
+
+    def create_encoder(self, profile):
+        encoder = copy.copy(self.encoder)
+        encoder.fit(profile.watchlist.explode("features")["features"].unique().drop_nulls())
+        return encoder
 
     def assign_continuations_to_prequel_cluster(self, profile, seasonal):
         """If a seasonal item is a sequel to a watchlist item, use the prequel's cluster."""
+        if "continuation_to" not in seasonal.columns:
+            return seasonal
+
         if seasonal["continuation_to"].dtype == pl.List(pl.Null):
             return seasonal
 
         wl_clusters = profile.watchlist.select("id", "cluster")
 
         return (
-            # FIXME: !! empty as null behavior has changed !! need to check all explodes!!
-            # This for example needs it True
             seasonal.explode("continuation_to", empty_as_null=True)
             .join(
                 wl_clusters.rename({"id": "continuation_to", "cluster": "prequel_cluster"}),
@@ -127,17 +140,13 @@ class ProfileAnalyser:
             .drop("prequel_cluster")
         )
 
-    def filter_seasonal(self, profile, seasonal):
-        """Filter seasonal list the same way as recommendations."""
-        watchlist = profile.watchlist
+    def enrich_seasonal_with_user_status(self, seasonal, watchlist):
+        return seasonal.join(watchlist.select(["id", "user_status"]), on="id", how="left")
 
-        previously_watched = watchlist.filter(
-            pl.col("user_status").is_in(["COMPLETED", "CURRENT", "PAUSED"])
-        )["id"].to_list()
-
-        seasonal = seasonal.join(watchlist.select(["id", "user_status"]), on="id", how="left")
-
-        return filter_continuation(seasonal, previously_watched)
+    def filter_items_on_watchlist(self, watchlist, seasonal):
+        watchlist_ids = watchlist["id"].to_list()
+        seasonal = seasonal.filter(~pl.col("id").is_in(watchlist_ids))
+        return seasonal
 
     def get_categories(self, profile):
         """Get top genre and tag highlights for the profile page."""
@@ -196,6 +205,7 @@ class ProfileAnalyser:
 
         return [
             {
+                "cluster": key[0],
                 "name": cluster_names.get(str(key[0]), ""),
                 "items": value["id"].to_list(),
                 "stats": cluster_stats.filter(pl.col("cluster") == key[0])
