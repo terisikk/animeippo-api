@@ -13,7 +13,7 @@ def name_all_clusters(watchlist, tag_lookup, genres, nsfw_tags=None):
     if "cluster" not in watchlist.columns or "features" not in watchlist.columns:
         return {}
 
-    gdf = watchlist.explode("features")
+    gdf = watchlist.explode("features", empty_as_null=True)
 
     if nsfw_tags:
         gdf = gdf.filter(~pl.col("features").is_in(nsfw_tags))

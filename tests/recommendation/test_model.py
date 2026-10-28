@@ -12,7 +12,7 @@ def test_recommendations_can_be_cached_to_lru_cache():
 
     actual = dset.recommendations_explode_cached("genres").item(0, "genres")
 
-    assert actual == recommendations.explode("genres").item(0, "genres")
+    assert actual == recommendations.explode("genres", empty_as_null=True).item(0, "genres")
     assert isinstance(actual, str)
 
 

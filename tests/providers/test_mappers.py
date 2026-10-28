@@ -18,7 +18,7 @@ def test_default_mapper_default_works():
     original = pl.DataFrame({"wrong": [1, 2, 3]})
 
     mapper = animeippo.providers.mappers.DefaultMapper("test", 123)
-    actual = pl.DataFrame().with_columns(test=mapper.map(original))
+    actual = pl.select(test=mapper.map(original))
 
     assert actual["test"].to_list() == [123]
 
@@ -36,7 +36,7 @@ def test_single_mapper_default_works():
     mapper = animeippo.providers.mappers.SingleMapper("test", str.lower)
 
     original = pl.DataFrame({"test": pl.Series(["TEST1", None, None])})
-    actual = pl.DataFrame().with_columns(test=mapper.map(original))
+    actual = pl.select(test=mapper.map(original))
 
     assert actual["test"].to_list() == ["test1", None, None]
 
@@ -52,7 +52,7 @@ def test_single_mapper_default_works():
     mapper = animeippo.providers.mappers.SingleMapper("test", math.pow, 5, pl.Int64)
 
     original = pl.DataFrame({"test": [1, 2, 3]})
-    actual = pl.DataFrame().with_columns(test=mapper.map(original))
+    actual = pl.select(test=mapper.map(original))
 
     assert actual["test"].to_list() == [5, 5, 5]
 
@@ -70,13 +70,13 @@ def test_multi_mapper_default_works():
     mapper = animeippo.providers.mappers.MultiMapper(["1", "2"], lambda x, y: x + y)
 
     original = pl.DataFrame({"2": [2, 2, 2], "3": [2, 3, 4]})
-    actual = pl.DataFrame().with_columns(test=mapper.map(original))
+    actual = pl.select(test=mapper.map(original))
 
     assert actual["test"].to_list() == [None]
 
     mapper = animeippo.providers.mappers.MultiMapper(["1", "2"], lambda x, y: x + y, 0)
 
     original = pl.DataFrame({"1": [None, 2, 3], "2": [2, 2, 2]})
-    actual = pl.DataFrame().with_columns(test=mapper.map(original))
+    actual = pl.select(test=mapper.map(original))
 
     assert actual["test"].to_list() == [0, 4, 5]

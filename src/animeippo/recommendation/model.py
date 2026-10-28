@@ -75,7 +75,7 @@ class RecommendationModel:
             return
 
         summary_ids = (
-            self.watchlist.explode("franchise_relations")
+            self.watchlist.explode("franchise_relations", empty_as_null=True)
             .unnest("franchise_relations")
             .filter(pl.col("relation_type").is_in(["SUMMARY", "COMPILATION"]))
             .select("related_id")
@@ -113,26 +113,26 @@ class RecommendationModel:
         self.watchlist = self.watchlist.rechunk()
 
     def extract_features(self):
-        seasonal_cats = set(self.seasonal["features"].explode().cat.get_categories().to_list())
-        watchlist_cats = set(self.watchlist["features"].explode().cat.get_categories().to_list())
+        seasonal_cats = set(self.seasonal["features"].explode().unique().to_list())
+        watchlist_cats = set(self.watchlist["features"].explode().unique().to_list())
         return seasonal_cats | watchlist_cats
 
     def watchlist_explode_cached(self, column):
         key = ("watchlist", column)
         if key not in self._explode_cache:
-            self._explode_cache[key] = self.watchlist.explode(column)
+            self._explode_cache[key] = self.watchlist.explode(column, empty_as_null=True)
         return self._explode_cache[key]
 
     def recommendations_explode_cached(self, column):
         key = ("recommendations", column)
         if key not in self._explode_cache:
-            self._explode_cache[key] = self.recommendations.explode(column)
+            self._explode_cache[key] = self.recommendations.explode(column, empty_as_null=True)
         return self._explode_cache[key]
 
     def seasonal_explode_cached(self, column):
         key = ("seasonal", column)
         if key not in self._explode_cache:
-            self._explode_cache[key] = self.seasonal.explode(column)
+            self._explode_cache[key] = self.seasonal.explode(column, empty_as_null=True)
         return self._explode_cache[key]
 
     def get_similarity_matrix(self, filtered=False, transposed=False):

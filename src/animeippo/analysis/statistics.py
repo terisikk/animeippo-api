@@ -110,7 +110,7 @@ def calculate_residuals(contingency_table, expected):
     )
 
 
-def get_descriptive_features(  # noqa: PLR0913
+def get_descriptive_features(  # noqa: PLR0913, PLR0917
     dataframe,
     feature_column,
     cluster_column,
@@ -204,7 +204,7 @@ def catalogue_frequency(df: pl.DataFrame, list_col: str, value_col: str = "value
     total = df.height
     return (
         df.select(list_col)
-        .explode(list_col)
+        .explode(list_col, empty_as_null=True)
         .group_by(list_col)
         .len()
         .rename({list_col: value_col, "len": "cnt"})

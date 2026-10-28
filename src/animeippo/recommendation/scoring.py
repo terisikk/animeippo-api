@@ -518,7 +518,7 @@ class AdaptationScorer(AbstractScorer):
 
         mean_score = statistics.mean_score_default(compare_df, self.DEFAULT_MEAN_SCORE)
 
-        rdf = scoring_target_df.explode("adaptation_of")
+        rdf = scoring_target_df.explode("adaptation_of", empty_as_null=True)
 
         rdf = (
             rdf.select(["id", "adaptation_of"])

@@ -81,6 +81,7 @@ class ProfileAnalyser:
         if "continuation_to" in seasonal.columns:
             seasonal = self.assign_continuations_to_prequel_cluster(profile, seasonal)
 
+        # FIXME: These for loops look innocent but they mutate categories!!! Refactor!!
         cluster_map = {}
         for cat in categories:
             for item_id in (
@@ -105,7 +106,9 @@ class ProfileAnalyser:
         wl_clusters = profile.watchlist.select("id", "cluster")
 
         return (
-            seasonal.explode("continuation_to")
+            # FIXME: !! empty as null behavior has changed !! need to check all explodes!!
+            # This for example needs it True
+            seasonal.explode("continuation_to", empty_as_null=True)
             .join(
                 wl_clusters.rename({"id": "continuation_to", "cluster": "prequel_cluster"}),
                 on="continuation_to",
@@ -160,7 +163,7 @@ class ProfileAnalyser:
         if "tags" in profile.watchlist.columns:
             tag_correlations = statistics.weight_categoricals_correlation(
                 profile.watchlist.explode("tags"), "tags"
-            ).sort("weight", descending=True)
+            ).sort(["weight", "name"], descending=True)
 
             top_5_tags = tag_correlations[0:5]["name"].to_list()
 

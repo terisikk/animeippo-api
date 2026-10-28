@@ -83,8 +83,9 @@ def get_anilist_mapping(tag_lookup):
 
 
 def transform_seasonal_data(data, tag_lookup):
-    # Believe me, with polars 1.39 this is way faster than
+    # Believe me, with polars 2 this is way faster than
     # original = pl.json_normalize(data["data"]["media"])
+    # on large datasets
     original = pl.from_pandas(fast_json_normalize(data["data"]["media"]))
 
     return util.transform_to_animeippo_format(

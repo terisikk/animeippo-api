@@ -495,7 +495,7 @@ def test_genre_category():
 
     recommendations = pl.DataFrame(
         {
-            "genres": [["Action", "Fantasy"], ["Drama"], ["Action"]],
+            "genres": [["Sports", "Fantasy"], ["Drama"], ["Sports"]],
             "discourage_score": [1, 1, 1],
             "discovery_score": [1, 1, 1],
             "title": ["Test 1", "Test 2", "Test 3"],
@@ -511,7 +511,7 @@ def test_genre_category():
 
     result = recommendations.filter(mask).sort(**sorting_info)
     assert result["title"].to_list() == ["Test 1", "Test 3"]
-    assert cat.description == "Action"
+    assert cat.description == "Sports"
 
 
 def test_genre_category_returns_none_for_too_big_genre_number():

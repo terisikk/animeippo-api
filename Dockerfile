@@ -9,7 +9,7 @@ FROM base AS builder
 ENV PIP_DEFAULT_TIMEOUT=100 \
     PIP_DISABLE_PIP_VERSION_CHECK=1 \
     PIP_NO_CACHE_DIR=1 \
-    UV_VERSION=0.6.7
+    UV_VERSION=0.13.6
 
 RUN apt update && \
     apt install -y --no-install-recommends \

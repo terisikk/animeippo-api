@@ -47,7 +47,7 @@ class AnimeClustering:
         "ALTERNATIVE",
     }
 
-    def __init__(  # noqa: PLR0913
+    def __init__(  # noqa: PLR0913, PLR0917
         self,
         distance_metric="cosine",
         distance_threshold=0.85,

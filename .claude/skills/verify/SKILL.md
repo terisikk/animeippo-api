@@ -17,6 +17,7 @@ dotenv.load_dotenv("conf/prod.env")
 
 from animeippo.recommendation import recommender_builder
 
+
 async def main():
     async with recommender_builder.build_recommender("anilist") as recommender:
         dataset = await recommender.databuilder("2025", None, "Janiskeisari")
@@ -30,6 +31,7 @@ async def main():
 
         return dataset
 
+
 dataset = asyncio.run(main())
 ```
 
@@ -40,6 +42,7 @@ dataset = asyncio.run(main())
 - To inspect a category:
   ```python
   from animeippo.recommendation import categories as cats
+
   mask, sorting = cats.YourTopPicksCategory().categorize(dataset)
   recs.filter(mask).sort(**sorting).select("title", "discovery_score").head(10)
   ```

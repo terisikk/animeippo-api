@@ -41,4 +41,6 @@ class WeightedCategoricalEncoder:
         self.dtype = pl.Struct(dict.fromkeys(self.classes, pl.UInt8))
 
     def encode(self, dataframe):
-        return dataframe.select(pl.col("clustering_ranks").cast(self.dtype)).to_series()
+        return dataframe.select(
+            pl.col("clustering_ranks").cast(self.dtype, strict=False)
+        ).to_series()

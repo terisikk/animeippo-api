@@ -43,18 +43,13 @@ def transform_to_animeippo_format(original, schema, mapping):
     return df
 
 
-# This here forgets the original schema and dtypes, so optimize this
 def run_mappers(original, mapping, schema):
-    return (
-        pl.LazyFrame()
-        .with_columns(
-            **{
-                key: (mapper.map(original).cast(schema.get(key)))
-                for key, mapper in mapping.items()
-                if key in schema
-            }
-        )
-        .collect()
+    return pl.select(
+        **{
+            key: (mapper.map(original).cast(schema.get(key)))
+            for key, mapper in mapping.items()
+            if key in schema
+        }
     )
 
 
