@@ -78,10 +78,10 @@ def interleave_continuations(df, continuation_threshold):
 
     is_strong_continuation = pl.col(conf_col).is_not_null() & (net_intent >= continuation_threshold)
 
-    # 1. Strong positive continuations pinned upfront (sorted by net intent)
+    # 1. Strong positive continuations pinned upfront, sorted by net intent.
     strong_ids = df.filter(is_strong_continuation).sort(net_intent, descending=True)["id"].to_list()
 
-    # 2. All remaining items sorted by discovery score
+    # 2. All remaining items sorted by discovery score.
     discovery_ids = (
         df.filter(~is_strong_continuation).sort("discovery_score", descending=True)["id"].to_list()
     )

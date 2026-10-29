@@ -182,7 +182,7 @@ async def analyze_profile(
     return Response(
         content=views.profile_cluster_web_view(
             profile.watchlist.sort("title"),
-            sorted(categories, key=lambda item: len(item["items"]), reverse=True),
+            categories,
             seasonal=seasonal,
         ),
         media_type="application/json",

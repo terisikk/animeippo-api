@@ -1,7 +1,7 @@
 import polars as pl
 
 
-def filter_irrelevant_continuation(seasonal, watchlist_ids):
+def filter_irrelevant_continuation(seasonal, watchlist):
     """Filter sequels — only keep items that are continuations of watched anime,
     standalone titles, or titles already on the user's list."""
     if "continuation_to" not in seasonal.columns:
@@ -10,8 +10,13 @@ def filter_irrelevant_continuation(seasonal, watchlist_ids):
     if seasonal["continuation_to"].dtype == pl.List(pl.Null):
         return seasonal
 
+    # Keep sequels etc. for these
+    previously_watched = watchlist.filter(
+        pl.col("user_status").is_in(["COMPLETED", "CURRENT", "PAUSED", "PLANNING", "REPEATING"])
+    )["id"].to_list()
+
     mask = (
-        (pl.col("continuation_to").list.set_intersection(watchlist_ids) != [])
+        (pl.col("continuation_to").list.set_intersection(previously_watched) != [])
         | (pl.col("continuation_to") == [])
         | (pl.col("user_status").is_not_null())
     )
@@ -126,39 +131,42 @@ def get_clustering_ranks(df):
     is_genre = pl.col("category") == "Genre"
     result = df.select("id")
 
-    # Tags: weight by category
-    tag_ranks = (
-        exploded.filter(~is_genre)
-        .with_columns(
-            weighted_rank=pl.col("rank")
-            * pl.col("category")
-            .replace_strict(TAG_WEIGHTS, default=None)
-            .fill_null(
-                pl.col("category")
-                .str.split("-")
-                .list.first()
-                .replace_strict(TAG_WEIGHTS, default=1.0)
-            )
-        )
-        .pivot(index="id", values="weighted_rank", on="name", aggregate_function="first")
-    )
-    result = result.join(tag_ranks, on="id", how="left")
+    tag_data = exploded.filter(~is_genre)
+    if len(tag_data) > 0:
+        weighted_tags = weight_tags_by_category(tag_data)
+        result = result.join(weighted_tags, on="id", how="left")
 
-    # Genres: weight by inverse document frequency (IDF needs at least one genre)
     genre_data = exploded.filter(is_genre)
     if len(genre_data) > 0:
-        genre_counts = genre_data.group_by("name").len()
-        idf_raw = (pl.lit(len(df)) / pl.col("len")).log()
-        max_idf = pl.max_horizontal(idf_raw.max(), pl.lit(1.0))
-
-        genre_idf = genre_counts.with_columns(
-            idf_weight=(idf_raw / max_idf * GENRE_MAX_WEIGHT).cast(pl.UInt8)
-        )
-        genre_ranks = (
-            genre_data.select("id", "name")
-            .join(genre_idf, on="name")
-            .pivot(index="id", values="idf_weight", on="name", aggregate_function="first")
-        )
-        result = result.join(genre_ranks, on="id", how="left")
+        weighted_genres = weight_genres_by_idf(df, genre_data)
+        result = result.join(weighted_genres, on="id", how="left")
 
     return result.fill_null(0).select(pl.struct(pl.exclude("id")))
+
+
+def weight_tags_by_category(tag_data):
+    return tag_data.with_columns(
+        weighted_rank=pl.col("rank")
+        * pl.col("category")
+        .replace_strict(TAG_WEIGHTS, default=None)
+        .fill_null(
+            pl.col("category").str.split("-").list.first().replace_strict(TAG_WEIGHTS, default=1.0)
+        )
+    ).pivot(index="id", values="weighted_rank", on="name", aggregate_function="first")
+
+
+def weight_genres_by_idf(df, genre_data):
+    """Weight by inverse document frequency (IDF needs at least one genre)"""
+
+    genre_counts = genre_data.group_by("name").len()
+    idf_raw = (pl.lit(len(df)) / pl.col("len")).log()
+    max_idf = pl.max_horizontal(idf_raw.max(), pl.lit(1.0))
+
+    genre_idf = genre_counts.with_columns(
+        idf_weight=(idf_raw / max_idf * GENRE_MAX_WEIGHT).cast(pl.UInt8)
+    )
+    return (
+        genre_data.select("id", "name")
+        .join(genre_idf, on="name")
+        .pivot(index="id", values="idf_weight", on="name", aggregate_function="first")
+    )

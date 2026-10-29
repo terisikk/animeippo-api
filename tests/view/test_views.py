@@ -22,9 +22,9 @@ def test_web_view_can_render_profile_data():
     uprofile = model.UserProfile("Janiskeisari", df)
 
     assert (
-        json.loads(views.profile_cluster_web_view(uprofile.watchlist, []))["data"]["shows"][0][
-            "title"
-        ]
+        json.loads(views.profile_cluster_web_view(uprofile.watchlist, pl.DataFrame()))["data"][
+            "shows"
+        ][0]["title"]
         == df[0]["title"].item()
     )
 
@@ -33,7 +33,7 @@ def test_web_view_can_render_profile_data_with_seasonal():
     df = pl.DataFrame(test_data.FORMATTED_MAL_USER_LIST)
     seasonal = pl.DataFrame(test_data.FORMATTED_MAL_SEASONAL_LIST)
 
-    result = json.loads(views.profile_cluster_web_view(df, [], seasonal=seasonal))
+    result = json.loads(views.profile_cluster_web_view(df, pl.DataFrame(), seasonal=seasonal))
 
     assert "seasonal" in result["data"]
     assert len(result["data"]["seasonal"]) > 0

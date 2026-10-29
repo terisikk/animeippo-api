@@ -53,11 +53,11 @@ class ProfileAnalyser:
     async def analyse(self, user, year=None, season=None):
         profile, seasonal, clusterer = await self.databuilder(user, year, season)
 
-        categories = self.get_cluster_categories(profile)
+        categories = self.get_cluster_categories(profile.watchlist)
 
         if seasonal is not None:
             seasonal = self.add_seasonal_recommendations(profile, seasonal, clusterer)
-            self.populate_category_recommendations(seasonal, categories)
+            categories = self.populate_category_recommendations(seasonal, categories)
 
         return profile, categories, seasonal
 
@@ -68,27 +68,21 @@ class ProfileAnalyser:
         return seasonal
 
     def populate_category_recommendations(self, seasonal, categories):
-        # FIXME: This is still quite side-effecty§
-
-        cluster_map = {cat["cluster"]: cat for cat in categories}
-
-        for cluster_id, group in seasonal.sort("cluster_similarity", descending=True).group_by(
-            "cluster"
-        ):
-            # FIXME: What, why [0]
-            cluster_map[cluster_id[0]]["recommendations"] = group["id"].to_list()
+        return categories.join(
+            seasonal.sort("cluster_similarity", descending=True)
+            .group_by("cluster")
+            .agg(pl.col("id").alias("recommendations")),
+            on="cluster",
+            how="left",
+        )
 
     def filter_seasonal(self, profile, seasonal):
         """Filter seasonal list the same way as recommendations."""
         watchlist = profile.watchlist
 
-        previously_watched = watchlist.filter(
-            pl.col("user_status").is_in(["COMPLETED", "CURRENT", "PAUSED"])
-        )["id"].to_list()
-
         seasonal = self.enrich_seasonal_with_user_status(seasonal, watchlist)
-        seasonal = filter_irrelevant_continuation(seasonal, previously_watched)
-        seasonal = self.filter_items_on_watchlist(watchlist, seasonal)
+        seasonal = filter_irrelevant_continuation(seasonal, watchlist)
+        seasonal = self.filter_items_on_watchlist(seasonal, watchlist)
 
         return seasonal
 
@@ -143,12 +137,10 @@ class ProfileAnalyser:
     def enrich_seasonal_with_user_status(self, seasonal, watchlist):
         return seasonal.join(watchlist.select(["id", "user_status"]), on="id", how="left")
 
-    def filter_items_on_watchlist(self, watchlist, seasonal):
-        watchlist_ids = watchlist["id"].to_list()
-        seasonal = seasonal.filter(~pl.col("id").is_in(watchlist_ids))
-        return seasonal
+    def filter_items_on_watchlist(self, seasonal, watchlist):
+        return seasonal.join(watchlist.select("id"), on="id", how="anti")
 
-    def get_categories(self, profile):
+    def get_profile_top_genre_and_tag_categories(self, profile):
         """Get top genre and tag highlights for the profile page."""
         categories = []
         top_genre_items = []
@@ -189,28 +181,48 @@ class ProfileAnalyser:
 
         return categories
 
-    def get_cluster_categories(self, profile):
-        target = profile.watchlist
-
+    def get_cluster_categories(self, watchlist):
         cluster_names = name_all_clusters(
-            target,
+            watchlist,
             tag_lookup=self.provider.get_tag_lookup(),
             genres=self.provider.get_genres(),
             nsfw_tags=self.provider.get_nsfw_tags(),
         )
 
-        cluster_stats = get_cluster_stats(target)
+        # TODO: Kinda stupid to convert back to dataframe here but
+        # it's a temporary measure until we change cluster namer to
+        # work on dataframes too, which it probably should
+        cluster_names_df = pl.DataFrame(
+            {"cluster": cluster_names.keys(), "name": cluster_names.values()}
+        )
 
-        clustergroups = target.sort("user_status", "title").group_by(["cluster"])
+        cluster_stats = get_cluster_stats(watchlist)
 
-        return [
-            {
-                "cluster": key[0],
-                "name": cluster_names.get(str(key[0]), ""),
-                "items": value["id"].to_list(),
-                "stats": cluster_stats.filter(pl.col("cluster") == key[0])
-                .select(["count", "mean_score", "completion_rate"])
-                .to_dicts()[0],
-            }
-            for key, value in clustergroups
-        ]
+        return (
+            (
+                watchlist.sort("user_status", "title")
+                .group_by("cluster")
+                .agg("id")
+                .join(
+                    cluster_names_df.select(pl.col("cluster").cast(pl.Int64), "name"),
+                    on="cluster",
+                    how="left",
+                )
+                .join(
+                    # TODO: Why completed_count is calculated but not used?
+                    cluster_stats.select("cluster", "count", "mean_score", "completion_rate"),
+                    on="cluster",
+                    how="left",
+                )
+            )
+            .select(
+                pl.col("cluster"),
+                pl.col("name"),
+                pl.col("id").alias("items"),
+                # TODO: Could just send these as plain but front requires a nested dict
+                pl.struct(pl.col("count"), pl.col("mean_score"), pl.col("completion_rate")).alias(
+                    "stats"
+                ),
+            )
+            .sort(pl.col("items").list.len(), descending=True)
+        )

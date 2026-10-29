@@ -35,7 +35,7 @@ def client(monkeypatch):
     mock_recommender.get_categories.return_value = []
 
     mock_profiler = MagicMock()
-    mock_profiler.analyse = AsyncMock(return_value=(MockProfile(), [], None))
+    mock_profiler.analyse = AsyncMock(return_value=(MockProfile(), pl.DataFrame(), None))
     mock_profiler.provider.get_genres.return_value = set()
 
     # Characteristics is computed in /profile route — mock it to avoid needing full data

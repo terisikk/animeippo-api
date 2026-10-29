@@ -590,7 +590,7 @@ class CollaborativeRecommendationScorer(AbstractScorer):
             )
 
         user_mean = statistics.mean_score_default(watchlist, 5.0)
-        links = self._build_link_table(watchlist, seasonal, user_mean)
+        links = self.build_link_table(watchlist, seasonal, user_mean)
 
         if len(links) == 0:
             return ScorerResult(
@@ -600,8 +600,8 @@ class CollaborativeRecommendationScorer(AbstractScorer):
                 self.weight,
             )
 
-        aggregated = self._aggregate_signals(links)
-        result = self._join_to_seasonal(aggregated, seasonal)
+        aggregated = self.aggregate_signals(links)
+        result = self.join_to_seasonal(aggregated, seasonal)
 
         return ScorerResult(
             self.name,
@@ -610,10 +610,8 @@ class CollaborativeRecommendationScorer(AbstractScorer):
             self.weight,
         )
 
-    def _build_link_table(self, watchlist, seasonal, user_mean):
+    def build_link_table(self, watchlist, seasonal, user_mean):
         """Explode recommendations, filter to seasonal candidates, compute per-link signal."""
-        seasonal_ids = seasonal["id"].to_list()
-
         # Sum of absolute ratings per watchlist item for normalization
         wl = watchlist.with_columns(
             total_thumbs=pl.col("recommendations")
@@ -622,18 +620,12 @@ class CollaborativeRecommendationScorer(AbstractScorer):
             .cast(pl.Float64)
         )
 
-        exploded = (
-            wl.select("id", "score", "user_status", "total_thumbs", "recommendations")
-            .explode("recommendations")
-            .filter(pl.col("recommendations").is_not_null())
-            .unnest("recommendations")
-            .filter(pl.col("recommended_id").is_in(seasonal_ids))
-        )
+        seasonal_recommendations = self.select_seasonal_items_from_recommendations(seasonal, wl)
 
-        if len(exploded) == 0:
-            return exploded
+        if len(seasonal_recommendations) == 0:
+            return seasonal_recommendations
 
-        return exploded.with_columns(
+        return seasonal_recommendations.with_columns(
             normalized_thumbs=pl.when(pl.col("total_thumbs") > 0)
             .then(pl.col("rating").cast(pl.Float64) / pl.col("total_thumbs"))
             .otherwise(0.0),
@@ -649,7 +641,16 @@ class CollaborativeRecommendationScorer(AbstractScorer):
             ),
         )
 
-    def _aggregate_signals(self, links):
+    def select_seasonal_items_from_recommendations(self, seasonal, watchlist):
+        return (
+            watchlist.select("id", "score", "user_status", "total_thumbs", "recommendations")
+            .explode("recommendations")
+            .filter(pl.col("recommendations").is_not_null())
+            .unnest("recommendations")
+            .join(seasonal.select("id"), left_on="recommended_id", right_on="id", how="semi")
+        )
+
+    def aggregate_signals(self, links):
         """Group by candidate, sum signals, compute confidence.
 
         Confidence is purely link-count based — thumb strength already
@@ -668,7 +669,7 @@ class CollaborativeRecommendationScorer(AbstractScorer):
             )
         )
 
-    def _join_to_seasonal(self, aggregated, seasonal):
+    def join_to_seasonal(self, aggregated, seasonal):
         """Join aggregated scores back to seasonal ordering."""
         return (
             seasonal.select("id")

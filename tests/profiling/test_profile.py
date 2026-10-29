@@ -59,7 +59,7 @@ def test_user_top_genres_and_tags_can_be_categorized(mocker):
 
     profiler = analyser.ProfileAnalyser(None)
 
-    categories = profiler.get_categories(dset)
+    categories = profiler.get_profile_top_genre_and_tag_categories(dset)
 
     assert len(categories) > 0
 
@@ -74,7 +74,7 @@ def test_user_top_genres_and_tags_can_be_categorized(mocker):
         return_value=pl.DataFrame({"weight": [1, 1], "name": ["Absurd", "Nonexisting"]}),
     )
 
-    categories = profiler.get_categories(dset)
+    categories = profiler.get_profile_top_genre_and_tag_categories(dset)
     assert len(categories) > 0
 
     data = data.drop("genres")
@@ -82,7 +82,7 @@ def test_user_top_genres_and_tags_can_be_categorized(mocker):
 
     dset = RecommendationModel(uprofile, None)
 
-    categories = profiler.get_categories(dset)
+    categories = profiler.get_profile_top_genre_and_tag_categories(dset)
     assert len(categories) > 0
 
     data = data.drop("tags")
@@ -90,7 +90,7 @@ def test_user_top_genres_and_tags_can_be_categorized(mocker):
 
     dset = RecommendationModel(uprofile, None)
 
-    categories = profiler.get_categories(dset)
+    categories = profiler.get_profile_top_genre_and_tag_categories(dset)
     assert len(categories) == 0
 
 
@@ -122,7 +122,11 @@ def test_clusters_can_be_categorized():
 
     profiler = analyser.ProfileAnalyser(ProviderStub())
 
-    categories = profiler.get_cluster_categories(dset)
+    categories = profiler.get_cluster_categories(dset.watchlist)
+
+    # Could test the dataframe directly but also nice to test dict conversion
+    # here since it's not currently tested elsewhere
+    categories = categories.to_dicts()
 
     assert len(categories) > 0
     assert "stats" in categories[0]
@@ -182,14 +186,13 @@ def test_seasonal_recommendations_added_to_clusters():
     data = data.with_columns(cluster=profiler.clusterer.cluster_by_features(data))
     profile.watchlist = data
 
-    categories = profiler.get_cluster_categories(dset)
+    categories = profiler.get_cluster_categories(dset.watchlist)
 
     seasonal = asyncio.run(ProviderStub().get_seasonal_anime_list("2026", None))
     result_seasonal = profiler.add_seasonal_recommendations(profile, seasonal, profiler.clusterer)
-    profiler.populate_category_recommendations(result_seasonal, categories)
+    categories = profiler.populate_category_recommendations(result_seasonal, categories)
 
-    has_recs = any("recommendations" in cat for cat in categories)
-    assert has_recs
+    assert "recommendations" in categories.columns
     assert result_seasonal is not None
 
 
@@ -287,8 +290,6 @@ def test_clusters_can_be_categorized_with_nsfw_filtering():
     dset = RecommendationModel(uprofile, None)
 
     profiler = analyser.ProfileAnalyser(ProviderStub())
-
-    # This should not raise a type error about List(Int64) vs Categorical
-    categories = profiler.get_cluster_categories(dset)
+    categories = profiler.get_cluster_categories(dset.watchlist)
 
     assert len(categories) > 0

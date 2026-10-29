@@ -71,10 +71,11 @@ def profile_cluster_web_view(watchlist, categories, seasonal=None):
     filtered_fields = list(set(watchlist.columns).intersection(fields))
 
     df_json = watchlist.select(filtered_fields).to_dicts()
+    categories_json = categories.to_dicts()
 
     data = {
         "shows": df_json,
-        "categories": categories,
+        "categories": categories_json,
     }
 
     if seasonal is not None:
