@@ -2,8 +2,8 @@ import polars as pl
 
 from animeippo.providers.anilist.data import ALL_GENRES, ALL_TAGS, TAG_BY_NAME
 from animeippo.recommendation.funnel import (
-    bucket_intensity,
     add_funnel_metadata,
+    bucket_intensity,
 )
 
 

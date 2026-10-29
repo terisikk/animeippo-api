@@ -1,13 +1,10 @@
-import asyncio
-
 import polars as pl
 import pytest
 
-from animeippo.analysis import encoding
 from animeippo.profiling import analyser
 from animeippo.profiling.model import UserProfile
-from animeippo.recommendation.model import RecommendationModel
 from animeippo.recommendation import recommender_builder
+from animeippo.recommendation.model import RecommendationModel
 from tests import test_data, test_provider
 
 
