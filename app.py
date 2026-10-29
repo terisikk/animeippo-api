@@ -35,13 +35,7 @@ recommenders = {
     "mixed": recommender_builder.build_recommender("mixed"),
 }
 
-profilers = {
-    name: analyser.ProfileAnalyser(
-        rec.provider,
-        clustering_defaults=recommender_builder.CLUSTERING_DEFAULTS,
-    )
-    for name, rec in recommenders.items()
-}
+profilers = {name: analyser.ProfileAnalyser(rec) for name, rec in recommenders.items()}
 
 
 def get_provider_instances(provider):

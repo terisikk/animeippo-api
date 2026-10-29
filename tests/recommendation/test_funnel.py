@@ -2,7 +2,7 @@ import polars as pl
 
 from animeippo.providers.anilist.data import ALL_GENRES, ALL_TAGS, TAG_BY_NAME
 from animeippo.recommendation.funnel import (
-    _bucket_intensity,
+    bucket_intensity,
     add_funnel_metadata,
 )
 
@@ -139,7 +139,7 @@ def test_intensity_tag_without_intensity_ignored():
 def test_bucket_intensity_percentile_thirds():
     scores = [-3.0, -2.0, -1.0, 0.0, 1.0, 2.0, 3.0, 5.0, 8.0]
     df = pl.DataFrame({"intensity_score": scores})
-    labels = _bucket_intensity(df)["intensity"].to_list()
+    labels = bucket_intensity(df)["intensity"].to_list()
     assert "light" in labels
     assert "moderate" in labels
     assert "all_in" in labels

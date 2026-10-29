@@ -7,13 +7,19 @@ from animeippo.analysis import encoding
 from animeippo.profiling import analyser
 from animeippo.profiling.model import UserProfile
 from animeippo.recommendation.model import RecommendationModel
+from animeippo.recommendation import recommender_builder
 from tests import test_data, test_provider
 
 
 @pytest.mark.asyncio
 async def test_profile_analyser_can_run():
-    profiler = analyser.ProfileAnalyser(test_provider.AsyncProviderStub())
-    profiler.encoder = encoding.CategoricalEncoder()
+    recommender = recommender_builder.build_analysis_recommender("anilist")
+    recommender.provider = test_provider.AsyncProviderStub(
+        seasonal=test_data.FORMATTED_ANI_SEASONAL_LIST,
+        user=test_data.FORMATTED_ANI_USER_LIST,
+    )
+
+    profiler = analyser.ProfileAnalyser(recommender)
 
     _, categories, _ = await profiler.analyse("Janiskeisari")
 
@@ -22,8 +28,13 @@ async def test_profile_analyser_can_run():
 
 @pytest.mark.asyncio
 async def test_profile_analyser_can_run_with_seasonal():
-    profiler = analyser.ProfileAnalyser(test_provider.AsyncProviderStub())
-    profiler.encoder = encoding.CategoricalEncoder()
+    recommender = recommender_builder.build_analysis_recommender("anilist")
+    recommender.provider = test_provider.AsyncProviderStub(
+        seasonal=test_data.FORMATTED_ANI_SEASONAL_LIST,
+        user=test_data.FORMATTED_ANI_USER_LIST,
+    )
+
+    profiler = analyser.ProfileAnalyser(recommender)
 
     _, categories, _ = await profiler.analyse("Janiskeisari", year="2023", season="SPRING")
 
@@ -32,8 +43,13 @@ async def test_profile_analyser_can_run_with_seasonal():
 
 @pytest.mark.asyncio
 async def test_profile_analyser_seasonal_works_with_running_loop():
-    profiler = analyser.ProfileAnalyser(test_provider.AsyncProviderStub())
-    profiler.encoder = encoding.CategoricalEncoder()
+    recommender = recommender_builder.build_analysis_recommender("anilist")
+    recommender.provider = test_provider.AsyncProviderStub(
+        seasonal=test_data.FORMATTED_ANI_SEASONAL_LIST,
+        user=test_data.FORMATTED_ANI_USER_LIST,
+    )
+
+    profiler = analyser.ProfileAnalyser(recommender)
 
     _, categories, _ = await profiler.analyse("Janiskeisari", year="2023", season="SPRING")
 
@@ -42,8 +58,13 @@ async def test_profile_analyser_seasonal_works_with_running_loop():
 
 @pytest.mark.asyncio
 async def test_profile_analyser_can_run_when_async_loop_is_already_running():
-    profiler = analyser.ProfileAnalyser(test_provider.AsyncProviderStub())
-    profiler.encoder = encoding.CategoricalEncoder()
+    recommender = recommender_builder.build_analysis_recommender("anilist")
+    recommender.provider = test_provider.AsyncProviderStub(
+        seasonal=test_data.FORMATTED_ANI_SEASONAL_LIST,
+        user=test_data.FORMATTED_ANI_USER_LIST,
+    )
+
+    profiler = analyser.ProfileAnalyser(recommender)
 
     _, categories, _ = await profiler.analyse("Janiskeisari")
 
@@ -95,34 +116,22 @@ def test_user_top_genres_and_tags_can_be_categorized(mocker):
 
 
 def test_clusters_can_be_categorized():
-    class ProviderStub:
-        def get_nsfw_tags(self):
-            return []
-
-        def get_tag_lookup(self):
-            return {
-                1: {"name": "Shounen", "category": "Demographic", "isAdult": False},
-                2: {"name": "Super Power", "category": "Theme-Fantasy", "isAdult": False},
-                3: {"name": "Mythology", "category": "Theme-Fantasy", "isAdult": False},
-                4: {"name": "Gore", "category": "Theme-Other", "isAdult": False},
-            }
-
-        def get_genres(self):
-            return {"Action", "Adventure", "Drama", "Fantasy", "Supernatural", "Comedy", "Sci-Fi"}
-
-    data = pl.DataFrame(test_data.FORMATTED_ANI_SEASONAL_LIST)
-    data = data.with_columns(
+    user_list = pl.DataFrame(test_data.FORMATTED_ANI_USER_LIST)
+    user_list = user_list.with_columns(
         cluster=pl.Series([0, 1]),
-        score=pl.Series([8.0, 9.0]),
-        user_status=pl.Series(["COMPLETED", "CURRENT"]),
     )
 
-    uprofile = UserProfile("Test", data)
-    dset = RecommendationModel(uprofile, None)
+    provider = test_provider.AsyncProviderStub(
+        seasonal=test_data.FORMATTED_MAL_SEASONAL_LIST,
+        user=user_list,
+    )
 
-    profiler = analyser.ProfileAnalyser(ProviderStub())
+    recommender = recommender_builder.build_analysis_recommender("anilist")
+    recommender.provider = provider
 
-    categories = profiler.get_cluster_categories(dset.watchlist)
+    profiler = analyser.ProfileAnalyser(recommender)
+
+    categories = profiler.group_watchlist_by_cluster(user_list)
 
     # Could test the dataframe directly but also nice to test dict conversion
     # here since it's not currently tested elsewhere
@@ -136,160 +145,49 @@ def test_clusters_can_be_categorized():
 
 
 def test_seasonal_recommendations_added_to_clusters():
-    class ProviderStub:
-        def get_nsfw_tags(self):
-            return []
-
-        def get_tag_lookup(self):
-            return {
-                1: {"name": "Shounen", "category": "Demographic", "isAdult": False},
-                2: {"name": "Super Power", "category": "Theme-Fantasy", "isAdult": False},
-            }
-
-        def get_genres(self):
-            return {"Action", "Adventure", "Drama", "Fantasy"}
-
-        async def get_seasonal_anime_list(self, year, season):
-            return pl.DataFrame(
-                {
-                    "id": [100, 200, 300],
-                    "title": ["Seasonal 1", "Seasonal 2", "Unmatchable"],
-                    "genres": [["Action", "Fantasy"], ["Drama"], []],
-                    "features": [["Action", "Fantasy", "Shounen"], ["Drama"], []],
-                    "clustering_ranks": [
-                        {"Action": 75, "Fantasy": 75, "Shounen": 90},
-                        {"Drama": 75},
-                        {},
-                    ],
-                    "continuation_to": [[999], [], []],
-                }
-            )
-
-    data = pl.DataFrame(test_data.FORMATTED_ANI_SEASONAL_LIST)
-    data = data.with_columns(
+    watchlist = pl.DataFrame(test_data.FORMATTED_ANI_USER_LIST)
+    watchlist = watchlist.with_columns(
         cluster=pl.Series([0, 1]),
         score=pl.Series([8.0, 9.0]),
         user_status=pl.Series(["COMPLETED", "CURRENT"]),
     )
 
-    uprofile = UserProfile("Test", data)
-    dset = RecommendationModel(uprofile, None)
+    recommendations = pl.DataFrame(test_data.FORMATTED_ANI_SEASONAL_LIST)
+    recommendations = recommendations.with_columns(
+        continuation_to=pl.Series([[30], []]),
+        cluster=pl.Series([2, 3]),
+        cluster_similarity=pl.Series([0.5, 0.5]),
+    )
 
-    profiler = analyser.ProfileAnalyser(ProviderStub())
-    profile = uprofile
-    profile.watchlist = data
+    recommender = recommender_builder.build_analysis_recommender("anilist")
 
-    # Fit encoder and clusterer like databuilder would
-    all_features = data.explode("features")["features"].unique().drop_nulls()
-    profiler.encoder.fit(all_features)
-    data = data.with_columns(encoded=profiler.encoder.encode(data))
-    data = data.with_columns(cluster=profiler.clusterer.cluster_by_features(data))
-    profile.watchlist = data
+    profiler = analyser.ProfileAnalyser(recommender)
 
-    categories = profiler.get_cluster_categories(dset.watchlist)
-
-    seasonal = asyncio.run(ProviderStub().get_seasonal_anime_list("2026", None))
-    result_seasonal = profiler.add_seasonal_recommendations(profile, seasonal, profiler.clusterer)
-    categories = profiler.populate_category_recommendations(result_seasonal, categories)
+    categories = profiler.group_recommendations_by_cluster(recommendations, watchlist)
 
     assert "recommendations" in categories.columns
-    assert result_seasonal is not None
+    # Continuation should have a reassigned cluster
+    assert categories.filter(pl.col("cluster") == 0).height == 1
 
 
-def test_filter_seasonal_without_continuation_column():
-    profiler = analyser.ProfileAnalyser(None)
-    profile = UserProfile("Test", pl.DataFrame({"id": [1], "user_status": ["COMPLETED"]}))
-
-    seasonal = pl.DataFrame({"id": [100], "title": ["Test"]})
-    result = profiler.filter_seasonal(profile, seasonal)
-
-    assert len(result) == 1
-
-
-def test_seasonal_recommendations_without_continuation_column():
-    class ProviderStub:
-        def get_nsfw_tags(self):
-            return []
-
-        def get_tag_lookup(self):
-            return {1: {"name": "Shounen", "category": "Demographic", "isAdult": False}}
-
-        def get_genres(self):
-            return {"Action"}
-
-        async def get_seasonal_anime_list(self, year, season):
-            return pl.DataFrame(
-                {
-                    "id": [100],
-                    "title": ["Seasonal 1"],
-                    "genres": [["Action"]],
-                    "features": [["Action", "Shounen"]],
-                    "clustering_ranks": [{"Action": 75, "Shounen": 90}],
-                }
-            )
-
-    data = pl.DataFrame(test_data.FORMATTED_ANI_SEASONAL_LIST)
-    data = data.with_columns(
+def test_seasonal_recommendations_works_without_continuation_column():
+    watchlist = pl.DataFrame(test_data.FORMATTED_ANI_USER_LIST)
+    watchlist = watchlist.with_columns(
         cluster=pl.Series([0, 1]),
         score=pl.Series([8.0, 9.0]),
         user_status=pl.Series(["COMPLETED", "CURRENT"]),
     )
 
-    profiler = analyser.ProfileAnalyser(ProviderStub())
-    profile = UserProfile("Test", data)
+    recommendations = pl.DataFrame(test_data.FORMATTED_ANI_SEASONAL_LIST)
+    recommendations = recommendations.with_columns(
+        cluster=pl.Series([2, 3]),
+        cluster_similarity=pl.Series([0.5, 0.5]),
+    ).select(pl.exclude("continuation_to"))
 
-    all_features = data.explode("features")["features"].unique().drop_nulls()
-    profiler.encoder.fit(all_features)
-    data = data.with_columns(encoded=profiler.encoder.encode(data))
-    data = data.with_columns(cluster=profiler.clusterer.cluster_by_features(data))
-    profile.watchlist = data
+    recommender = recommender_builder.build_analysis_recommender("anilist")
 
-    seasonal = asyncio.run(ProviderStub().get_seasonal_anime_list("2026", None))
-    result_seasonal = profiler.add_seasonal_recommendations(profile, seasonal, profiler.clusterer)
+    profiler = analyser.ProfileAnalyser(recommender)
 
-    assert result_seasonal is not None
+    categories = profiler.group_recommendations_by_cluster(recommendations, watchlist)
 
-
-def test_clusters_can_be_categorized_with_nsfw_filtering():
-    """Test that NSFW tags are correctly filtered when categorizing clusters.
-
-    This test ensures that get_nsfw_tags() returns string tag names (not IDs)
-    that can be properly filtered from the features column.
-    """
-
-    class ProviderStub:
-        def get_nsfw_tags(self):
-            # Must return tag names (strings), not IDs (integers)
-            return {"Bondage", "Hentai", "Explicit Sex"}
-
-        def get_tag_lookup(self):
-            return {
-                1: {"name": "Action", "category": "Theme-Action", "isAdult": False},
-                2: {"name": "Bondage", "category": "Sexual Content", "isAdult": True},
-                3: {"name": "Fantasy", "category": "Theme-Fantasy", "isAdult": False},
-                4: {"name": "Comedy", "category": "Theme-Comedy", "isAdult": False},
-                5: {"name": "Romance", "category": "Theme-Romance", "isAdult": False},
-            }
-
-        def get_genres(self):
-            return {"Action", "Comedy", "Fantasy", "Romance"}
-
-    # Create data with features that include some NSFW tags
-    data = pl.DataFrame(
-        {
-            "id": [1, 2],
-            "title": ["Anime 1", "Anime 2"],
-            "features": [["Action", "Bondage", "Fantasy"], ["Comedy", "Romance"]],
-            "cluster": [0, 1],
-            "score": [8.0, 9.0],
-            "user_status": ["COMPLETED", "CURRENT"],
-        }
-    )
-
-    uprofile = UserProfile("Test", data)
-    dset = RecommendationModel(uprofile, None)
-
-    profiler = analyser.ProfileAnalyser(ProviderStub())
-    categories = profiler.get_cluster_categories(dset.watchlist)
-
-    assert len(categories) > 0
+    assert len(categories) == 2

@@ -1,7 +1,6 @@
 import polars as pl
 
 from ..analysis import similarity
-from ..providers.util import filter_irrelevant_continuation
 from ..recommendation import cluster_naming
 
 
@@ -49,14 +48,34 @@ class RecommendationModel:
             self.watchlist.select(["id", "user_status"]), on="id", how="left"
         )
 
-    def filter_continuation(self):
-        if self.seasonal is not None and self.watchlist is not None:
-            self.seasonal = filter_irrelevant_continuation(self.seasonal, self.watchlist)
+    def filter_irrelevant_continuation(self):
+        """Filter sequels. Only keep items that are continuations of watched anime,
+        standalone titles, or titles already on the user's list."""
+        if self.seasonal is None or self.watchlist is None:
+            return
+
+        if "continuation_to" not in self.seasonal.columns or self.seasonal[
+            "continuation_to"
+        ].dtype == pl.List(pl.Null):
+            return
+
+        # Keep sequels etc. for these
+        previously_watched = self.watchlist.filter(
+            pl.col("user_status").is_in(["COMPLETED", "CURRENT", "PAUSED", "PLANNING", "REPEATING"])
+        )["id"].to_list()
+
+        mask = (
+            (pl.col("continuation_to").list.set_intersection(previously_watched) != [])
+            | (pl.col("continuation_to") == [])
+            | (pl.col("user_status").is_not_null())
+        )
+
+        self.seasonal = self.seasonal.filter(mask)
 
     def build_relation_context(self):
         """Tag seasonal items that are summaries/compilations of watched anime.
 
-        Uses the reverse lookup: if a watchlist item lists a seasonal item
+        Uses a reverse lookup: if a watchlist item lists a seasonal item
         as SUMMARY/COMPILATION in its franchise_relations, that seasonal item
         is a recap rather than a real sequel.
         """
@@ -85,7 +104,7 @@ class RecommendationModel:
         self.validate()
 
         self.fill_user_status_data_from_watchlist()
-        self.filter_continuation()
+        self.filter_irrelevant_continuation()
         self.build_relation_context()
 
         self.encode(encoder)

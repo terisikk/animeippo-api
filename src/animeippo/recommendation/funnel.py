@@ -14,7 +14,7 @@ TIER_SIGNS = {"heavy": 1.0, "light": -1.0, "moderate": 0.5}
 MOOD_NAMES = ["chill", "hype", "emotional", "dark", "funny", "cerebral", "adventurous", "sporty"]
 
 
-def _explode_features(recommendations):
+def explode_features(recommendations):
     return (
         recommendations.select("id", "feature_info")
         .explode("feature_info")
@@ -23,7 +23,7 @@ def _explode_features(recommendations):
     )
 
 
-def _compute_moods(exploded, all_ids):
+def compute_moods(exploded, all_ids):
     """Compute moods list per show: group mood scores, threshold, collect into list."""
     mood_scores = (
         exploded.filter((pl.col("rank") >= MOOD_TAG_RANK_CUTOFF) & pl.col("mood").is_not_null())
@@ -41,7 +41,7 @@ def _compute_moods(exploded, all_ids):
     )
 
 
-def _compute_intensity(exploded, all_ids):
+def compute_intensity(exploded, all_ids):
     """Compute raw intensity score per show from tag/genre intensity tiers."""
     scores = (
         exploded.with_columns(
@@ -59,7 +59,7 @@ def _compute_intensity(exploded, all_ids):
     )
 
 
-def _bucket_intensity(df):
+def bucket_intensity(df):
     """Bucket intensity scores into thirds: light, moderate, all_in."""
     scores = df["intensity_score"].sort()
     n = len(scores)
@@ -78,11 +78,11 @@ def _bucket_intensity(df):
 def add_funnel_metadata(recommendations):
     """Add mood and intensity columns to recommendations DataFrame."""
     all_ids = recommendations.select("id")
-    exploded = _explode_features(recommendations)
+    exploded = explode_features(recommendations)
 
-    moods_df = _compute_moods(exploded, all_ids)
-    intensity_df = _compute_intensity(exploded, all_ids)
+    moods_df = compute_moods(exploded, all_ids)
+    intensity_df = compute_intensity(exploded, all_ids)
 
     result = recommendations.join(moods_df, on="id").join(intensity_df, on="id")
 
-    return _bucket_intensity(result)
+    return bucket_intensity(result)

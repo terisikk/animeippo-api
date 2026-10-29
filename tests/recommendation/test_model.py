@@ -18,7 +18,7 @@ def test_recommendations_can_be_cached_to_lru_cache():
 
 def test_continuation_filtering_skips_when_data_missing():
     dset = model.RecommendationModel(None, None)
-    dset.filter_continuation()
+    dset.filter_irrelevant_continuation()
     assert dset.seasonal is None
 
 
@@ -31,7 +31,7 @@ def test_continuation_filtering_works():
     dset = model.RecommendationModel(None, seasonal)
     dset.watchlist = watchlist
 
-    dset.filter_continuation()
+    dset.filter_irrelevant_continuation()
 
     assert dset.seasonal["continuation_to"].dtype == pl.List(pl.Int64)
     assert dset.seasonal["continuation_to"].to_list()[0] == [30]

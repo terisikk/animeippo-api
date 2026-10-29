@@ -121,31 +121,34 @@ def get_default_categorizers(distance_metric="cosine", tag_lookup=None, genres=N
     return {"minimal": minimal, "standard": standard, "full": full}
 
 
+def check_cache(cache):
+    if not cache.is_available():
+        logger.warning("redis_unavailable")
+
+
+def get_provider(providername, cache):
+    match providername:
+        case "anilist":
+            return providers.anilist.AniListProvider(cache)
+        case _:
+            return providers.mixed.MixedProvider(cache)
+
+
 def build_recommender(providername):
     """
-    Creates a recommender builder based on a third party data provider name.
+    Builds the main recommender based on a third party data provider name.
 
     Different providers require a slightly different
     configuration to work effectively.
 
     Current options are "anilist" or "myanimelist".
-
-    Final recommender is created when builder.build() is called.
     """
     rcache = cache.RedisCache()
+    check_cache(rcache)
 
-    if not rcache.is_available():
-        logger.warning("redis_unavailable")
-
-    match providername:
-        case "anilist":
-            provider = providers.anilist.AniListProvider(rcache)
-        case _:
-            provider = providers.mixed.MixedProvider(rcache)
+    provider = get_provider(providername, rcache)
 
     metric = CLUSTERING_DEFAULTS["distance_metric"]
-
-    tag_lookup = provider.get_tag_lookup()
 
     return AnimeRecommender(
         provider=provider,
@@ -157,10 +160,35 @@ def build_recommender(providername):
             ranking_orchestrator=RankingOrchestrator(
                 get_default_categorizers(
                     distance_metric=metric,
-                    tag_lookup=tag_lookup,
+                    tag_lookup=provider.get_tag_lookup(),
                     genres=provider.get_genres(),
                 )
             ),
+        ),
+        recommendation_model_cls=RecommendationModel,
+        profile_model_cls=UserProfile,
+        fetch_related_anime=False,
+    )
+
+
+def build_analysis_recommender(providername):
+    """
+    Builds a lightweight recommender suited for profile analysis.
+    """
+    rcache = cache.RedisCache()
+    check_cache(rcache)
+
+    provider = get_provider(providername, rcache)
+
+    return AnimeRecommender(
+        provider=provider,
+        engine=engine.AnimeRecommendationEngine(
+            model.AnimeClustering(**CLUSTERING_DEFAULTS),
+            encoding.WeightedCategoricalEncoder(),
+            discovery_scorers=[scoring.ClusterSimilarityScorer(weight=1)],
+            engagement_scorers=[],
+            # A differnt ranker?
+            ranking_orchestrator=None,
         ),
         recommendation_model_cls=RecommendationModel,
         profile_model_cls=UserProfile,

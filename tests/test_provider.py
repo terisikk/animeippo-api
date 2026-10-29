@@ -57,7 +57,12 @@ class AsyncProviderStub:
         ]
 
     def get_tag_lookup(self):
-        return {}
+        return {
+            1: {"name": "Shounen", "category": "Demographic", "isAdult": False},
+            2: {"name": "Super Power", "category": "Theme-Fantasy", "isAdult": False},
+            3: {"name": "Mythology", "category": "Theme-Fantasy", "isAdult": False},
+            4: {"name": "Gore", "category": "Theme-Other", "isAdult": False},
+        }
 
 
 class FaultyProviderStub:

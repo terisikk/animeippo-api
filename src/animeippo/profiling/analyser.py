@@ -1,11 +1,6 @@
-import copy
-
 import polars as pl
 
-from animeippo.analysis import encoding, statistics
-from animeippo.clustering import model
-from animeippo.profiling.model import UserProfile
-from animeippo.providers.util import filter_irrelevant_continuation
+from animeippo.analysis import statistics
 from animeippo.recommendation.cluster_naming import get_cluster_stats, name_all_clusters
 
 CLUSTERING_DEFAULTS = {
@@ -20,102 +15,52 @@ CLUSTERING_DEFAULTS = {
 class ProfileAnalyser:
     """Clusters a user watchlist titles to clusters of similar anime."""
 
-    def __init__(self, provider, clustering_defaults=None):
-        self.provider = provider
-        self.encoder = encoding.WeightedCategoricalEncoder()
-        self.clusterer = model.AnimeClustering(**(clustering_defaults or CLUSTERING_DEFAULTS))
+    def __init__(self, recommender):
+        self.recommender = recommender
 
-    async def databuilder(self, user, year=None, season=None):
-        # Fresh copies so concurrent requests don't share mutable fit state
-        encoder = copy.copy(self.encoder)
-        clusterer = copy.copy(self.clusterer)
-
-        user_watchlist = await self.provider.get_user_anime_list(user)
-        user_profile = UserProfile(user, user_watchlist)
-
-        seasonal = None
-        if year is not None:
-            seasonal = await self.provider.get_seasonal_anime_list(year, season)
-
-        all_features = user_profile.watchlist.explode("features")["features"].unique().drop_nulls()
-
-        encoder.fit(all_features)
-        user_profile.watchlist = user_profile.watchlist.with_columns(
-            encoded=encoder.encode(user_profile.watchlist)
-        )
-
-        user_profile.watchlist = user_profile.watchlist.with_columns(
-            cluster=clusterer.cluster_by_features(user_profile.watchlist)
-        )
-
-        return user_profile, seasonal, clusterer
+        if self.recommender:
+            self.provider = recommender.provider
 
     async def analyse(self, user, year=None, season=None):
-        profile, seasonal, clusterer = await self.databuilder(user, year, season)
+        # Todo, should maybe really allow year=None, season=None
+        dataset = await self.recommender.databuilder(year, season, user)
+        recommendations = self.recommender.engine.fit_predict(dataset)
 
-        categories = self.get_cluster_categories(profile.watchlist)
+        show_clusters = self.group_watchlist_by_cluster(dataset.watchlist)
 
-        if seasonal is not None:
-            seasonal = self.add_seasonal_recommendations(profile, seasonal, clusterer)
-            categories = self.populate_category_recommendations(seasonal, categories)
-
-        return profile, categories, seasonal
-
-    def add_seasonal_recommendations(self, profile, seasonal, clusterer):
-        seasonal = self.filter_seasonal(profile, seasonal)
-        seasonal = self.assign_clustering(profile, seasonal, clusterer)
-
-        return seasonal
-
-    def populate_category_recommendations(self, seasonal, categories):
-        return categories.join(
-            seasonal.sort("cluster_similarity", descending=True)
-            .group_by("cluster")
-            .agg(pl.col("id").alias("recommendations")),
+        recommendations = self.filter_items_on_watchlist(recommendations, dataset.watchlist)
+        show_clusters = show_clusters.join(
+            self.group_recommendations_by_cluster(recommendations, dataset.watchlist),
             on="cluster",
             how="left",
         )
 
-    def filter_seasonal(self, profile, seasonal):
-        """Filter seasonal list the same way as recommendations."""
-        watchlist = profile.watchlist
+        return dataset.user_profile, show_clusters, recommendations
 
-        seasonal = self.enrich_seasonal_with_user_status(seasonal, watchlist)
-        seasonal = filter_irrelevant_continuation(seasonal, watchlist)
-        seasonal = self.filter_items_on_watchlist(seasonal, watchlist)
-
-        return seasonal
-
-    def assign_clustering(self, profile, seasonal, clusterer):
-        encoder = self.create_encoder(profile)
-        seasonal = seasonal.with_columns(encoded=encoder.encode(seasonal))
-
-        predictions = clusterer.predict(seasonal["encoded"])
-        seasonal = seasonal.with_columns(
-            cluster=predictions["cluster"],
-            cluster_similarity=predictions["similarity"],
-        )
-
-        seasonal = self.assign_continuations_to_prequel_cluster(profile, seasonal)
-        return seasonal
-
-    def create_encoder(self, profile):
-        encoder = copy.copy(self.encoder)
-        encoder.fit(profile.watchlist.explode("features")["features"].unique().drop_nulls())
-        return encoder
-
-    def assign_continuations_to_prequel_cluster(self, profile, seasonal):
-        """If a seasonal item is a sequel to a watchlist item, use the prequel's cluster."""
-        if "continuation_to" not in seasonal.columns:
-            return seasonal
-
-        if seasonal["continuation_to"].dtype == pl.List(pl.Null):
-            return seasonal
-
-        wl_clusters = profile.watchlist.select("id", "cluster")
+    def group_recommendations_by_cluster(self, recommendations, watchlist):
+        recommendations = self.assign_continuations_to_prequel_cluster(recommendations, watchlist)
 
         return (
-            seasonal.explode("continuation_to", empty_as_null=True)
+            recommendations.sort("cluster_similarity", descending=True)
+            .group_by("cluster")
+            .agg(pl.col("id").alias("recommendations"))
+        )
+
+    def assign_continuations_to_prequel_cluster(self, recommendations, watchlist):
+        """
+        If a seasonal item is a sequel to a watchlist item, use the prequel's cluster.
+        We probably could and should use franchise info here, since it exists partially,
+        but it's such a slop mess right now that it needs refactoring to be useful here.
+        """
+        if "continuation_to" not in recommendations.columns or recommendations[
+            "continuation_to"
+        ].dtype == pl.List(pl.Null):
+            return recommendations
+
+        wl_clusters = watchlist.select("id", "cluster")
+
+        return (
+            recommendations.explode("continuation_to", empty_as_null=True)
             .join(
                 wl_clusters.rename({"id": "continuation_to", "cluster": "prequel_cluster"}),
                 on="continuation_to",
@@ -134,14 +79,14 @@ class ProfileAnalyser:
             .drop("prequel_cluster")
         )
 
-    def enrich_seasonal_with_user_status(self, seasonal, watchlist):
-        return seasonal.join(watchlist.select(["id", "user_status"]), on="id", how="left")
-
     def filter_items_on_watchlist(self, seasonal, watchlist):
         return seasonal.join(watchlist.select("id"), on="id", how="anti")
 
     def get_profile_top_genre_and_tag_categories(self, profile):
-        """Get top genre and tag highlights for the profile page."""
+        """
+        Get top genre and tag highlights for the profile page.
+        Not in use right now, consider removing.
+        """
         categories = []
         top_genre_items = []
         top_tag_items = []
@@ -181,7 +126,7 @@ class ProfileAnalyser:
 
         return categories
 
-    def get_cluster_categories(self, watchlist):
+    def group_watchlist_by_cluster(self, watchlist):
         cluster_names = name_all_clusters(
             watchlist,
             tag_lookup=self.provider.get_tag_lookup(),
