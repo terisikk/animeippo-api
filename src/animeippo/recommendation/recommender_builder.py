@@ -7,7 +7,7 @@ from animeippo.recommendation.model import RecommendationModel
 
 from .. import cache, providers
 from ..analysis import encoding
-from ..clustering import model
+from ..clustering import model, namer
 from . import categories, engine, scoring
 from .ranking import RankingOrchestrator
 from .recommender import AnimeRecommender
@@ -50,7 +50,7 @@ def get_engagement_scorers():
     ]
 
 
-def get_default_categorizers(distance_metric="cosine", tag_lookup=None, genres=None):
+def get_default_categorizers(distance_metric="cosine"):
     """Get categorizer layouts for different data volumes.
 
     Returns dict of layouts. The orchestrator selects at render time based
@@ -87,7 +87,7 @@ def get_default_categorizers(distance_metric="cosine", tag_lookup=None, genres=N
         (categories.AdaptationCategory(), None),
     ]
 
-    cluster_kwargs = {"tag_lookup": tag_lookup or {}, "genres": genres or set(), "min_items": 3}
+    cluster_kwargs = {"min_items": 3}
 
     full = [
         *debug,
@@ -150,6 +150,9 @@ def build_recommender(providername):
 
     metric = CLUSTERING_DEFAULTS["distance_metric"]
 
+    tag_lookup = provider.get_tag_lookup()
+    genres = provider.get_genres()
+
     return AnimeRecommender(
         provider=provider,
         engine=engine.AnimeRecommendationEngine(
@@ -160,10 +163,9 @@ def build_recommender(providername):
             ranking_orchestrator=RankingOrchestrator(
                 get_default_categorizers(
                     distance_metric=metric,
-                    tag_lookup=provider.get_tag_lookup(),
-                    genres=provider.get_genres(),
                 )
             ),
+            cluster_namer=namer.ClusterNamer(tag_lookup, genres),
         ),
         recommendation_model_cls=RecommendationModel,
         profile_model_cls=UserProfile,
@@ -180,6 +182,9 @@ def build_analysis_recommender(providername):
 
     provider = get_provider(providername, rcache)
 
+    tag_lookup = provider.get_tag_lookup()
+    genres = provider.get_genres()
+
     return AnimeRecommender(
         provider=provider,
         engine=engine.AnimeRecommendationEngine(
@@ -187,8 +192,9 @@ def build_analysis_recommender(providername):
             encoding.WeightedCategoricalEncoder(),
             discovery_scorers=[scoring.ClusterSimilarityScorer(weight=1)],
             engagement_scorers=[],
-            # A differnt ranker?
+            # A different ranker?
             ranking_orchestrator=None,
+            cluster_namer=namer.ClusterNamer(tag_lookup, genres),
         ),
         recommendation_model_cls=RecommendationModel,
         profile_model_cls=UserProfile,

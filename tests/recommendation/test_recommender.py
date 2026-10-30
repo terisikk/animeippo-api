@@ -15,6 +15,9 @@ class EngineStub:
     def categorize_anime(self, dataset):
         return [[1, 2, 3]]
 
+    def get_clusters(self, dataset):
+        return [[1, 2, 3]]
+
 
 class SimpleProviderStub:
     """Provider stub without async context manager methods."""

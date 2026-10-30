@@ -11,19 +11,19 @@ from ..analysis import similarity
 class AnimeClustering:
     """Agglomerative clustering for anime feature vectors.
 
-    Uses cosine distance with average linkage. Cosine is the right metric because
+    Uses cosine distance with average linkage. Cosine is a good metric because
     feature vectors are sparse and high-dimensional (~370 dims) with weighted tag
-    ranks — cosine measures similarity by angle, ignoring magnitude differences
-    between anime with many vs few tags. Euclidean would penalize magnitude;
+    ranks. Cosine measures similarity by angle, ignoring magnitude differences
+    between anime with many vs few tags. Euclidean would penalize magnitude,
     Jaccard would discard the tag rank weights.
 
     Average linkage is used over complete linkage because complete linkage requires
-    ALL pairwise distances within a cluster to be below threshold — one outlier pair
+    ALL pairwise distances within a cluster to be below threshold. One outlier pair
     (e.g. a franchise sequel with slightly different tags) blocks the entire merge.
     Average linkage uses mean pairwise distance, tolerating individual outliers.
-    Single linkage was too aggressive (chaining effect merging dissimilar anime).
+    Single linkage was too aggressive, chaining effect merging dissimilar anime.
 
-    HDBSCAN was evaluated but doesn't suit this data — the cosine distance
+    HDBSCAN was evaluated but doesn't suit this data. The cosine distance
     distribution is very flat (median ~0.86, range 0.77-0.93) with no clear
     density structure. HDBSCAN classifies 30-50% of items as noise regardless
     of parameter tuning.

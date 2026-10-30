@@ -1,4 +1,4 @@
-from animeippo.profiling.cluster_namer import ClusterNamer
+from animeippo.clustering.namer import ClusterNamer
 from animeippo.providers.anilist.data import ALL_GENRES, ALL_TAGS
 
 

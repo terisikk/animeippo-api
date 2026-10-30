@@ -1,7 +1,6 @@
 import polars as pl
 
 from animeippo.analysis import statistics
-from animeippo.recommendation.cluster_naming import get_cluster_stats, name_all_clusters
 
 CLUSTERING_DEFAULTS = {
     "distance_metric": "cosine",
@@ -22,20 +21,22 @@ class ProfileAnalyser:
             self.provider = recommender.provider
 
     async def analyse(self, user, year=None, season=None):
-        # Todo, should maybe really allow year=None, season=None
-        dataset = await self.recommender.databuilder(year, season, user)
-        recommendations = self.recommender.engine.fit_predict(dataset)
+        # TODO: Should maybe really allow year=None, season=None
+        # TODO: This function naming does not really now match the context
+        dataset = await self.recommender.recommend_seasonal_anime(year, season, user)
 
-        show_clusters = self.group_watchlist_by_cluster(dataset.watchlist)
+        show_clusters = self.group_watchlist_by_cluster(dataset)
 
-        recommendations = self.filter_items_on_watchlist(recommendations, dataset.watchlist)
+        dataset.recommendations = self.filter_items_on_watchlist(
+            dataset.recommendations, dataset.watchlist
+        )
         show_clusters = show_clusters.join(
-            self.group_recommendations_by_cluster(recommendations, dataset.watchlist),
+            self.group_recommendations_by_cluster(dataset.recommendations, dataset.watchlist),
             on="cluster",
             how="left",
         )
 
-        return dataset.user_profile, show_clusters, recommendations
+        return dataset.user_profile, show_clusters, dataset.recommendations
 
     def group_recommendations_by_cluster(self, recommendations, watchlist):
         recommendations = self.assign_continuations_to_prequel_cluster(recommendations, watchlist)
@@ -126,22 +127,9 @@ class ProfileAnalyser:
 
         return categories
 
-    def group_watchlist_by_cluster(self, watchlist):
-        cluster_names = name_all_clusters(
-            watchlist,
-            tag_lookup=self.provider.get_tag_lookup(),
-            genres=self.provider.get_genres(),
-            nsfw_tags=self.provider.get_nsfw_tags(),
-        )
-
-        # TODO: Kinda stupid to convert back to dataframe here but
-        # it's a temporary measure until we change cluster namer to
-        # work on dataframes too, which it probably should
-        cluster_names_df = pl.DataFrame(
-            {"cluster": cluster_names.keys(), "name": cluster_names.values()}
-        )
-
-        cluster_stats = get_cluster_stats(watchlist)
+    def group_watchlist_by_cluster(self, dataset):
+        clusters = dataset.clusters
+        watchlist = dataset.watchlist
 
         return (
             (
@@ -149,13 +137,13 @@ class ProfileAnalyser:
                 .group_by("cluster")
                 .agg("id")
                 .join(
-                    cluster_names_df.select(pl.col("cluster").cast(pl.Int64), "name"),
+                    clusters.select("cluster", "name"),
                     on="cluster",
                     how="left",
                 )
                 .join(
                     # TODO: Why completed_count is calculated but not used?
-                    cluster_stats.select("cluster", "count", "mean_score", "completion_rate"),
+                    clusters.select("cluster", "count", "mean_score", "completion_rate"),
                     on="cluster",
                     how="left",
                 )

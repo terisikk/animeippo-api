@@ -113,31 +113,6 @@ def test_build_relation_context_handles_missing_column():
     assert dset.seasonal["is_summary"].to_list() == [False]
 
 
-def test_cluster_names_and_rankings_are_cached():
-    watchlist = pl.DataFrame(
-        {
-            "id": [1, 2, 3],
-            "cluster": [0, 0, 1],
-            "features": [["Action"], ["Action"], ["Drama"]],
-            "score": [8, 9, 7],
-            "user_status": ["COMPLETED", "COMPLETED", "CURRENT"],
-        }
-    )
-    recs = pl.DataFrame({"id": [10, 11], "cluster": [0, 1], "cluster_similarity": [0.8, 0.5]})
-
-    dset = model.RecommendationModel(None, None)
-    dset.watchlist = watchlist
-    dset.recommendations = recs
-
-    names1 = dset.get_cluster_names({}, set())
-    names2 = dset.get_cluster_names({}, set())
-    assert names1 is names2
-
-    rankings1 = dset.get_cluster_rankings()
-    rankings2 = dset.get_cluster_rankings()
-    assert rankings1 is rankings2
-
-
 def test_similarity_matrix_cache_returns_same_object():
     dset = model.RecommendationModel(None, None)
     dset.seasonal = pl.DataFrame({"id": [10, 11]})

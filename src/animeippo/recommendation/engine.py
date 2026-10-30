@@ -15,19 +15,23 @@ class AnimeRecommendationEngine:
     Optionally accepts a custom clustering model and feature encoder.
     """
 
-    def __init__(
+    def __init__(  # noqa: PLR0913, PLR0917
         self,
         clustering_model,
         encoder,
         discovery_scorers=None,
         engagement_scorers=None,
         ranking_orchestrator=None,
+        cluster_namer=None,
     ):
         self.clustering_model = clustering_model
         self.encoder = encoder
         self.discovery_scorers = discovery_scorers or []
         self.engagement_scorers = engagement_scorers or []
         self.ranking_orchestrator = ranking_orchestrator
+        self.cluster_namer = cluster_namer
+
+        self._cluster_names = None
 
     def fit_predict(self, dataset):
         # Fresh copies so concurrent requests don't share mutable fit state
@@ -126,3 +130,71 @@ class AnimeRecommendationEngine:
 
     def add_scorer(self, scorer):
         self.discovery_scorers.append(scorer)
+
+    def get_clusters(self, dataset):
+        # TODO: We might need to calculate these even if either is missing
+        if (
+            "cluster" not in dataset.watchlist.columns
+            or "cluster" not in dataset.recommendations.columns
+        ):
+            return pl.DataFrame()
+
+        names = self.get_cluster_names(dataset)
+        stats = self.get_cluster_stats(dataset)
+
+        return names.join(stats, on="cluster", how="left")
+
+    def get_cluster_names(self, dataset):
+        feature_df = dataset.watchlist.explode("features", empty_as_null=True)
+        feature_df = feature_df.filter(~pl.col("features").is_in(dataset.nsfw_tags))
+
+        cluster_names = self.cluster_namer.name_clusters_from_data(
+            feature_df, "features", "cluster"
+        )
+
+        # TODO: Kinda stupid to convert back to dataframe here but
+        # it's a temporary measure until we change cluster namer to
+        # work on dataframes too, which it probably should
+        return pl.DataFrame(
+            {
+                "cluster": [int(cluster) for cluster in cluster_names.keys()],
+                "name": cluster_names.values(),
+            }
+        )
+
+    def get_cluster_stats(self, dataset):
+        """
+        Calculcate statistics for clusters.
+        Rank clusters by user enjoyment * content volume * match quality.
+        """
+        watchlist = dataset.watchlist
+        recommendations = dataset.recommendations
+
+        user_scores = (
+            watchlist.filter(pl.col("cluster") >= 0)
+            .group_by("cluster")
+            .agg(
+                mean_score=pl.col("score").mean(),
+                count=pl.col("id").len(),
+                completed_count=(pl.col("user_status") == "COMPLETED").sum(),
+            )
+            .with_columns(
+                completion_rate=(pl.col("completed_count") / pl.col("count") * 100).round(1),
+                mean_score=pl.col("mean_score").round(1),
+            )
+        )
+
+        rec_stats = (
+            recommendations.filter(pl.col("cluster").is_not_null())
+            .group_by("cluster")
+            .agg(
+                rec_count=pl.col("id").len(),
+                mean_similarity=pl.col("cluster_similarity").mean(),
+            )
+        )
+
+        return user_scores.join(rec_stats, on="cluster", how="left").with_columns(
+            rank_score=pl.col("mean_score")
+            * pl.col("rec_count").log1p()
+            * pl.col("mean_similarity")
+        )

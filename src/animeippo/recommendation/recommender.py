@@ -60,11 +60,13 @@ class AnimeRecommender:
 
         return data
 
+    # TODO: This function naming does not really now match the context
     async def recommend_seasonal_anime(self, year, season, user=None):
         dataset = await self.databuilder(year, season, user)
 
         if user:
             dataset.recommendations = self.engine.fit_predict(dataset)
+            dataset.clusters = self.engine.get_clusters(dataset)
         else:
             dataset.recommendations = dataset.seasonal.sort("popularity", descending=True)
 

@@ -1,7 +1,6 @@
 import polars as pl
 
 from ..analysis import similarity
-from ..recommendation import cluster_naming
 
 
 class RecommendationModel:
@@ -14,12 +13,11 @@ class RecommendationModel:
         self.seasonal = seasonal
         self.mangalist = user_profile.mangalist if user_profile is not None else None
         self.recommendations = None
+        self.clusters = None
 
         self.all_features = features
         self.nsfw_tags = []
         self.similarity_matrix = None
-        self._cluster_names = None
-        self._cluster_rankings = None
         self._explode_cache = {}
         self._sim_matrix_cache = {}
 
@@ -164,17 +162,3 @@ class RecommendationModel:
 
             self._sim_matrix_cache[key] = ret
         return self._sim_matrix_cache[key]
-
-    def get_cluster_names(self, tag_lookup, genres):
-        if self._cluster_names is None:
-            self._cluster_names = cluster_naming.name_all_clusters(
-                self.watchlist, tag_lookup, genres
-            )
-        return self._cluster_names
-
-    def get_cluster_rankings(self):
-        if self._cluster_rankings is None:
-            self._cluster_rankings = cluster_naming.rank_clusters(
-                self.watchlist, self.recommendations
-            )
-        return self._cluster_rankings

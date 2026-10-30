@@ -446,27 +446,23 @@ class ClusterCategory(AbstractCategory):
 
     description = "Cluster"
 
-    def __init__(self, nth_cluster=0, tag_lookup=None, genres=None, **kwargs):
+    def __init__(self, nth_cluster=0, **kwargs):
         super().__init__(**kwargs)
         self.nth_cluster = nth_cluster
-        self.tag_lookup = tag_lookup or {}
-        self.genres = genres or set()
 
     def categorize(self, dataset):
-        watchlist = dataset.watchlist
-        recommendations = dataset.recommendations
+        clusters = dataset.clusters
 
-        if "cluster" not in watchlist.columns or "cluster" not in recommendations.columns:
+        if clusters is None or self.nth_cluster >= len(clusters):
             return False, {}
 
-        ranked = dataset.get_cluster_rankings()
+        cluster = clusters.sort("rank_score", descending=True, nulls_last=True).row(
+            self.nth_cluster, named=True
+        )
+        cluster_id = cluster.get("cluster", 0)
+        cluster_name = cluster.get("name", "Unknown Cluster")
 
-        if self.nth_cluster >= len(ranked):
-            return False, {}
-
-        cluster_id = ranked[self.nth_cluster]["cluster"]
-        names = dataset.get_cluster_names(self.tag_lookup, self.genres)
-        self.description = names.get(str(cluster_id), f"Cluster {cluster_id}")
+        self.description = cluster_name
 
         mask = pl.col("cluster") == cluster_id
         sorting = {

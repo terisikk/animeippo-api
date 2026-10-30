@@ -210,3 +210,79 @@ def test_categorize_raises_error_without_ranking_orchestrator():
 
     with pytest.raises(RuntimeError, match="No ranking orchestrator configured"):
         recengine.categorize_anime(data)
+
+
+def test_get_cluster_stats():
+    recengine = engine.AnimeRecommendationEngine(
+        clustering.AnimeClustering(), encoding.CategoricalEncoder()
+    )
+
+    watchlist = pl.DataFrame(
+        {
+            "id": [1, 2, 3],
+            "cluster": [0, 0, 1],
+            "score": [8, 9, 7],
+            "user_status": ["COMPLETED", "COMPLETED", "CURRENT"],
+        }
+    )
+
+    recommendations = pl.DataFrame(
+        {
+            "id": [1, 2],
+            "cluster_similarity": [1, 2],
+            "cluster": [0, 1],
+        }
+    )
+
+    data = RecommendationModel(None, None, None)
+    data.watchlist = watchlist
+    data.recommendations = recommendations
+
+    stats = recengine.get_cluster_stats(data)
+    assert len(stats) == 2
+    assert "count" in stats.columns
+    assert "mean_score" in stats.columns
+
+
+def test_clusters_without_cluster_column():
+    recengine = engine.AnimeRecommendationEngine(
+        clustering.AnimeClustering(), encoding.CategoricalEncoder()
+    )
+
+    data = RecommendationModel(None, None, None)
+
+    data.watchlist = pl.DataFrame({"id": [1]})
+    data.recommendations = pl.DataFrame({"id": [10]})
+    assert len(recengine.get_clusters(data)) == 0
+
+
+def test_rank_clusters():
+    recengine = engine.AnimeRecommendationEngine(
+        clustering.AnimeClustering(), encoding.CategoricalEncoder()
+    )
+
+    watchlist = pl.DataFrame(
+        {
+            "id": [1, 2, 3],
+            "cluster": [0, 0, 1],
+            "score": [9, 8, 5],
+            "user_status": ["COMPLETED", "COMPLETED", "COMPLETED"],
+        }
+    )
+
+    recs = pl.DataFrame(
+        {"id": [10, 11, 12], "cluster": [0, 0, 1], "cluster_similarity": [0.8, 0.7, 0.3]}
+    )
+
+    data = RecommendationModel(None, None, None)
+    data.watchlist = watchlist
+    data.recommendations = recs
+
+    stats = recengine.get_cluster_stats(data)
+
+    assert len(stats) == 2
+    # Cluster 0 should rank higher (better scores, more recs, higher similarity)
+    assert (
+        stats.filter(pl.col("cluster") == 0).select("rank_score").item()
+        > stats.filter(pl.col("cluster") == 1).select("rank_score").item()
+    )

@@ -776,15 +776,6 @@ def test_ranking_orchestrator_render_skips_empty_categories():
 
 
 def test_cluster_category():
-    watchlist = pl.DataFrame(
-        {
-            "id": [1, 2, 3, 4],
-            "features": [["Action", "Fantasy"], ["Action", "Fantasy"], ["Drama"], ["Drama"]],
-            "cluster": [0, 0, 1, 1],
-            "score": [9, 8, 7, 6],
-        }
-    )
-
     recommendations = pl.DataFrame(
         {
             "id": [10, 11, 12, 13],
@@ -795,14 +786,15 @@ def test_cluster_category():
         }
     )
 
-    uprofile = UserProfile("Test", watchlist)
-    data = RecommendationModel(uprofile, None, None)
-    data.recommendations = recommendations
+    clusters = pl.DataFrame(
+        {"cluster": [0, 1], "name": ["Magical Sports", "Teen Cannibalism"], "rank_score": [10, 5]}
+    )
+
+    data = RecommendationModel(None, None, None)
+    data.clusters = clusters
 
     cat = categories.ClusterCategory(
         nth_cluster=0,
-        tag_lookup={},
-        genres={"Action", "Fantasy", "Drama"},
     )
 
     mask, sorting_info = cat.categorize(data)
@@ -810,68 +802,27 @@ def test_cluster_category():
 
     # Should show items from the top-ranked cluster
     assert len(result) > 0
-    assert cat.description != "Cluster"
+    assert cat.description != "Unknown Cluster"
 
 
 def test_cluster_category_returns_false_when_no_clusters():
-    watchlist = pl.DataFrame({"id": [1], "score": [8]})
-
-    uprofile = UserProfile("Test", watchlist)
-    data = RecommendationModel(uprofile, None, None)
-    data.recommendations = pl.DataFrame({"id": [10], "discovery_score": [0.9]})
+    data = RecommendationModel(None, None, None)
+    data.clusters = pl.DataFrame()
 
     cat = categories.ClusterCategory(nth_cluster=0)
     mask, _ = cat.categorize(data)
     assert mask is False
 
 
-def test_cluster_category_without_features():
-    watchlist = pl.DataFrame({"id": [1, 2, 3], "cluster": [0, 0, 0], "score": [8, 9, 7]})
-
-    recommendations = pl.DataFrame(
-        {
-            "id": [10, 11, 12],
-            "cluster": [0, 0, 0],
-            "cluster_similarity": [0.8, 0.7, 0.6],
-            "discovery_score": [0.9, 0.8, 0.7],
-        }
-    )
-
-    uprofile = UserProfile("Test", watchlist)
-    data = RecommendationModel(uprofile, None, None)
-    data.recommendations = recommendations
-
-    cat = categories.ClusterCategory(nth_cluster=0)
-    mask, _ = cat.categorize(data)
-
-    assert mask is not False
-    assert "Cluster" in cat.description
-
-
 def test_cluster_category_returns_false_for_nonexistent_nth():
-    watchlist = pl.DataFrame(
-        {
-            "id": [1, 2],
-            "features": [["Action"], ["Action"]],
-            "cluster": [0, 0],
-            "score": [9, 8],
-        }
+    clusters = pl.DataFrame(
+        {"cluster": [0, 1], "name": ["Magical Sports", "Teen Cannibalism"], "rank_score": [10, 5]}
     )
 
-    recommendations = pl.DataFrame(
-        {
-            "id": [10],
-            "cluster": [0],
-            "cluster_similarity": [0.8],
-            "discovery_score": [0.9],
-        }
-    )
+    data = RecommendationModel(None, None, None)
+    data.clusters = clusters
 
-    uprofile = UserProfile("Test", watchlist)
-    data = RecommendationModel(uprofile, None, None)
-    data.recommendations = recommendations
-
-    cat = categories.ClusterCategory(nth_cluster=5, tag_lookup={}, genres={"Action"})
+    cat = categories.ClusterCategory(nth_cluster=5)
     mask, _ = cat.categorize(data)
     assert mask is False
 

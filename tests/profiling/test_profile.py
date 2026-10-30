@@ -112,35 +112,6 @@ def test_user_top_genres_and_tags_can_be_categorized(mocker):
     assert len(categories) == 0
 
 
-def test_clusters_can_be_categorized():
-    user_list = pl.DataFrame(test_data.FORMATTED_ANI_USER_LIST)
-    user_list = user_list.with_columns(
-        cluster=pl.Series([0, 1]),
-    )
-
-    provider = test_provider.AsyncProviderStub(
-        seasonal=test_data.FORMATTED_MAL_SEASONAL_LIST,
-        user=user_list,
-    )
-
-    recommender = recommender_builder.build_analysis_recommender("anilist")
-    recommender.provider = provider
-
-    profiler = analyser.ProfileAnalyser(recommender)
-
-    categories = profiler.group_watchlist_by_cluster(user_list)
-
-    # Could test the dataframe directly but also nice to test dict conversion
-    # here since it's not currently tested elsewhere
-    categories = categories.to_dicts()
-
-    assert len(categories) > 0
-    assert "stats" in categories[0]
-    assert "count" in categories[0]["stats"]
-    assert "mean_score" in categories[0]["stats"]
-    assert "completion_rate" in categories[0]["stats"]
-
-
 def test_seasonal_recommendations_added_to_clusters():
     watchlist = pl.DataFrame(test_data.FORMATTED_ANI_USER_LIST)
     watchlist = watchlist.with_columns(
