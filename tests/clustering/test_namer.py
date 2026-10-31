@@ -1,5 +1,6 @@
+import polars as pl
+
 from animeippo.clustering.namer import ClusterNamer
-from animeippo.providers.anilist.data import ALL_GENRES, ALL_TAGS
 
 
 def test_cluster_name_generation_with_various_categories():
@@ -15,16 +16,6 @@ def test_cluster_name_generation_with_various_categories():
     - "Vampire Fantasy" (Cast + Genre)
     - "Isekai Cultivation" (Theme + Theme)
     """
-    tag_lookup = {
-        1: {"name": "Post-Apocalyptic", "category": "Setting-Universe", "isAdult": False},
-        2: {"name": "CGI", "category": "Technical", "isAdult": False},
-        3: {"name": "Vampire", "category": "Cast-Traits", "isAdult": False},
-        4: {"name": "Shounen", "category": "Demographic", "isAdult": False},
-        5: {"name": "School", "category": "Setting-Scene", "isAdult": False},
-        6: {"name": "Isekai", "category": "Theme-Fantasy", "isAdult": False},
-        7: {"name": "Cultivation", "category": "Theme-Fantasy", "isAdult": False},
-        8: {"name": "Historical", "category": "Setting-Time", "isAdult": False},
-    }
     genres = {
         "Action": {"mood": "hype"},
         "Comedy": {"mood": "funny", "intensity": "light"},
@@ -34,7 +25,7 @@ def test_cluster_name_generation_with_various_categories():
         "Romance": {"mood": "emotional"},
     }
 
-    namer = ClusterNamer(tag_lookup, genres)
+    namer = ClusterNamer(genres)
 
     # Genre + Setting: Setting as modifier
     assert namer.name_single_cluster(["Action", "Post-Apocalyptic"]) == "Post-Apocalyptic Action"
@@ -75,21 +66,13 @@ def test_cluster_name_generation_with_various_categories():
 
 def test_cluster_name_adjectival_transformations():
     """Test that plural forms and nouns get proper adjectival transformations."""
-    tag_lookup = {
-        1: {"name": "Dragons", "category": "Cast-Traits", "isAdult": False},
-        2: {"name": "Aliens", "category": "Cast-Traits", "isAdult": False},
-        3: {"name": "Pirates", "category": "Cast-Traits", "isAdult": False},
-        4: {"name": "Crime", "category": "Theme-Other", "isAdult": False},
-        5: {"name": "Mythology", "category": "Theme-Other", "isAdult": False},
-        6: {"name": "Politics", "category": "Theme-Other", "isAdult": False},
-    }
     genres = {
         "Action": {"mood": "hype"},
         "Drama": {"mood": "emotional", "intensity": "heavy"},
         "Fantasy": {"mood": "adventurous"},
     }
 
-    namer = ClusterNamer(tag_lookup, genres)
+    namer = ClusterNamer(genres)
 
     # Plural to singular: "Dragons" → "Dragon"
     assert namer.name_single_cluster(["Dragons", "Fantasy"]) == "Dragon Fantasy"
@@ -112,16 +95,6 @@ def test_cluster_name_adjectival_transformations():
 
 def test_cluster_name_edge_cases():
     """Test edge cases: substring overlap, adjective-only pairs, role swapping."""
-    tag_lookup = {
-        1: {"name": "Space", "category": "Setting-Universe", "isAdult": False},
-        2: {"name": "Space Opera", "category": "Theme-Sci-Fi", "isAdult": False},
-        3: {"name": "Rural", "category": "Setting-Scene", "isAdult": False},
-        4: {"name": "Environmental", "category": "Theme-Other", "isAdult": False},
-        5: {"name": "Historical", "category": "Setting-Time", "isAdult": False},
-        6: {"name": "Urban Fantasy", "category": "Setting-Universe", "isAdult": False},
-        7: {"name": "Urban", "category": "Setting-Scene", "isAdult": False},
-        8: {"name": "Dystopian", "category": "Setting-Time", "isAdult": False},
-    }
     genres = {
         "Action": {"mood": "hype"},
         "Comedy": {"mood": "funny", "intensity": "light"},
@@ -129,7 +102,7 @@ def test_cluster_name_edge_cases():
         "Fantasy": {"mood": "adventurous"},
     }
 
-    namer = ClusterNamer(tag_lookup, genres)
+    namer = ClusterNamer(genres)
 
     # Substring overlap: keep longer
     assert namer.name_single_cluster(["Space", "Space Opera"]) == "Space Opera"
@@ -151,10 +124,6 @@ def test_cluster_name_edge_cases():
 
     # Both adjective-only, core has no preferred noun but modifier does → swap roles
     namer_swap = ClusterNamer(
-        tag_lookup={
-            1: {"name": "Biographical", "category": "Theme-Other", "isAdult": False},
-            2: {"name": "Rural", "category": "Setting-Scene", "isAdult": False},
-        },
         genres={},
     )
     assert namer_swap.name_single_cluster(["Biographical", "Rural"]) == "Biographical Countryside"
@@ -166,31 +135,41 @@ def test_cluster_name_adjective_only_fallbacks():
 
     # Category noun fallback
     namer = ClusterNamer(
-        tag_lookup={
-            1: {"name": "FakeAdj1", "category": "Theme-Drama", "isAdult": False},
-            2: {"name": "FakeAdj2", "category": "Setting-Time", "isAdult": False},
-        },
         genres={},
     )
+
+    namer.tag_df = pl.DataFrame(
+        {
+            "name": ["FakeAdj1", "FakeAdj2"],
+            "category": ["Theme-Drama", "Setting-Time"],
+            "isAdult": [False, False],
+        }
+    )
+    namer.classified_features = namer.classify_features()
+
     assert namer.name_single_cluster(["FakeAdj1", "FakeAdj2"]) == "FakeAdj2 Drama"
 
     # Last resort: no preferred noun, no category noun → "Anime"
-    # FakeAdj1 is a genre (not in tag_lookup), so category string lookup returns ""
+    # FakeAdj1 is a genre, so category string lookup returns ""
     namer = ClusterNamer(
-        tag_lookup={1: {"name": "FakeAdj2", "category": "Cast-Traits", "isAdult": False}},
         genres={"FakeAdj1": {}},
     )
+
+    namer.tag_df = pl.DataFrame(
+        {
+            "name": ["FakeAdj2"],
+            "category": ["Cast-Traits"],
+            "isAdult": [False],
+        }
+    )
+    namer.classified_features = namer.classify_features()
+
     assert namer.name_single_cluster(["FakeAdj1", "FakeAdj2"]) == "FakeAdj2 FakeAdj1 Anime"
 
     ClusterNamer.ADJECTIVE_ONLY -= {"FakeAdj1", "FakeAdj2"}
 
     # Adjective-only pair from different categories with 3rd noun-capable candidate
     namer = ClusterNamer(
-        tag_lookup={
-            1: {"name": "Historical", "category": "Setting-Time", "isAdult": False},
-            2: {"name": "Environmental", "category": "Theme-Other", "isAdult": False},
-            3: {"name": "Vampire", "category": "Cast-Traits", "isAdult": False},
-        },
         genres={},
     )
     # Historical (Setting) + Environmental (Theme) are diverse but both adjective-only
@@ -205,14 +184,7 @@ def test_cast_composition_tags_become_short_modifiers():
     should be shortened and placed as modifiers.
     """
     namer = ClusterNamer(
-        tag_lookup={
-            1: {"name": "Primarily Male Cast", "category": "Cast-Main Cast", "isAdult": False},
-            2: {"name": "Primarily Adult Cast", "category": "Cast-Main Cast", "isAdult": False},
-            3: {"name": "Primarily Child Cast", "category": "Cast-Main Cast", "isAdult": False},
-            4: {"name": "Torture", "category": "Theme-Other", "isAdult": False},
-            5: {"name": "Work", "category": "Setting-Scene", "isAdult": False},
-        },
-        genres={"Horror": {}, "Yuri": {}},
+        genres={"Horror": {}},
     )
 
     assert namer.name_single_cluster(["Primarily Male Cast", "Horror"]) == "Male-Led Horror"
@@ -221,20 +193,9 @@ def test_cast_composition_tags_become_short_modifiers():
     assert namer.name_single_cluster(["Yuri", "Primarily Male Cast"]) == "Male-Led Yuri"
 
 
-def test_default_tag_lookup_uses_precomputed():
-    """When ALL_TAGS is passed, the pre-computed TAG_BY_NAME is used directly."""
-    namer = ClusterNamer(tag_lookup=ALL_TAGS, genres=ALL_GENRES)
-
-    assert namer.tag_by_name is not None
-    assert "Action" in namer.name_single_cluster(["Historical", "Action"])
-
-
 def test_adjective_only_core_swaps_with_noun_modifier():
     """When core is adjective-only but modifier is noun-capable, swap them."""
     namer = ClusterNamer(
-        tag_lookup={
-            1: {"name": "Historical", "category": "Setting-Time", "isAdult": False},
-        },
         genres={"Action": {}},
     )
 

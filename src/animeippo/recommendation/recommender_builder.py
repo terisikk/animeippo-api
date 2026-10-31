@@ -150,7 +150,6 @@ def build_recommender(providername):
 
     metric = CLUSTERING_DEFAULTS["distance_metric"]
 
-    tag_lookup = provider.get_tag_lookup()
     genres = provider.get_genres()
 
     return AnimeRecommender(
@@ -165,7 +164,7 @@ def build_recommender(providername):
                     distance_metric=metric,
                 )
             ),
-            cluster_namer=namer.ClusterNamer(tag_lookup, genres),
+            cluster_namer=namer.ClusterNamer(genres),
         ),
         recommendation_model_cls=RecommendationModel,
         profile_model_cls=UserProfile,
@@ -182,7 +181,6 @@ def build_analysis_recommender(providername):
 
     provider = get_provider(providername, rcache)
 
-    tag_lookup = provider.get_tag_lookup()
     genres = provider.get_genres()
 
     return AnimeRecommender(
@@ -194,7 +192,7 @@ def build_analysis_recommender(providername):
             engagement_scorers=[],
             # A different ranker?
             ranking_orchestrator=None,
-            cluster_namer=namer.ClusterNamer(tag_lookup, genres),
+            cluster_namer=namer.ClusterNamer(genres),
         ),
         recommendation_model_cls=RecommendationModel,
         profile_model_cls=UserProfile,

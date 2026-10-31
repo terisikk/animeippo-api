@@ -3,7 +3,7 @@ from typing import ClassVar
 import polars as pl
 
 from animeippo.analysis import statistics
-from animeippo.providers.anilist.data import ALL_TAGS, TAG_BY_NAME
+from animeippo.providers.anilist.data import TAG_BY_NAME
 
 
 class ClusterNamer:
@@ -72,14 +72,18 @@ class ClusterNamer:
 
     # Modifier priority: lower number = placed first (modifier position)
     # Higher number = core/noun position
-    MODIFIER_PRIORITY: ClassVar[dict[str, int]] = {
-        "Technical": 1,
-        "Setting": 2,
-        "Cast": 3,
-        "Theme": 4,
-        "Genre": 5,
-        "Demographic": 6,
-    }
+    MODIFIER_PRIORITY = pl.DataFrame(
+        [
+            ("Technical", 1),
+            ("Setting", 2),
+            ("Cast", 3),
+            ("Theme", 4),
+            ("Genre", 5),
+            ("Demographic", 6),
+        ],
+        schema=["category_short", "priority"],
+        orient="row",
+    )
 
     # Features that only work as adjectives and can't anchor a name as a noun
     ADJECTIVE_ONLY: ClassVar[set[str]] = {
@@ -132,21 +136,10 @@ class ClusterNamer:
         "Theme-Sci-Fi": "Sci-Fi",
     }
 
-    def __init__(self, tag_lookup, genres):
-        self.tag_lookup = tag_lookup
+    def __init__(self, genres):
         self.genres = genres
 
-        if tag_lookup is ALL_TAGS:
-            self.tag_by_name = TAG_BY_NAME
-        else:
-            self.tag_by_name = {tag_info["name"]: tag_info for tag_info in tag_lookup.values()}
-
-        if self.tag_by_name:
-            self.tag_df = pl.from_dicts(list(self.tag_by_name.values()))
-        else:
-            self.tag_df = pl.DataFrame(
-                schema={"name": pl.String, "category": pl.String, "isAdult": pl.Boolean}
-            )
+        self.tag_df = pl.from_dicts(list(TAG_BY_NAME.values()))
 
         self.genre_df = pl.DataFrame(
             [
@@ -157,20 +150,30 @@ class ClusterNamer:
             orient="row",
         )
 
-        self.classified_features = (
+        self.classified_features = self.classify_features()
+
+    def classify_features(self):
+        return (
             pl.concat(
                 [self.tag_df, self.genre_df.with_columns(category=pl.lit("Genre"))], how="diagonal"
             )
             .filter(pl.col("category").is_not_null())
             .with_columns(
-                pl.col("category").str.split("-").list.first(),
+                pl.col("category").str.split("-").list.first().alias("category_short"),
                 pl.col("isAdult").fill_null(False),
             )
+            .join(self.MODIFIER_PRIORITY, on="category_short", how="left")
+            .with_columns(pl.col("priority").fill_null(99))
         )
 
     def select_diverse_features(self, features):
         """Pick top 2 features from different categories, avoiding all-adjective pairs."""
-        categorized = self.categorize_features(features)
+        features = pl.DataFrame({"name": features})
+        categorized = (
+            features.join(self.classified_features, on="name", how="left")
+            .select(pl.col("priority").fill_null(99), "category_short", "name")
+            .rows()
+        )
 
         if len(categorized) <= 1:
             return categorized
@@ -198,24 +201,6 @@ class ClusterNamer:
 
         return pair
 
-    def categorize_features(self, features):
-        categorized = []
-        for feature in features:
-            category = None
-            name = None
-
-            try:
-                category, name = self.classified_features.select("category", "name").row(
-                    by_predicate=(pl.col("name") == feature)
-                )
-            except pl.exceptions.NoRowsReturnedError:
-                pass
-
-            if category:
-                priority = self.MODIFIER_PRIORITY.get(category, 99)
-                categorized.append((priority, category, name))
-        return categorized
-
     def assign_roles(self, categorized_features):
         """Assign modifier and core roles based on priority, swapping if core is adjective-only."""
         modifier_name = categorized_features[0][2]
@@ -234,9 +219,13 @@ class ClusterNamer:
 
     def get_tag_category_string(self, feature):
         """Get the raw category string for a tag (e.g. 'Setting-Scene', 'Theme-Other')."""
-        if feature in self.tag_by_name:
-            return self.tag_by_name[feature].get("category", "")
-        return ""
+        try:
+            return self.classified_features.row(
+                by_predicate=pl.col("name") == feature,
+                named=True,
+            ).get("category", "")
+        except pl.exceptions.NoRowsReturnedError:
+            return ""
 
     def name_clusters_from_data(self, dataframe, feature_column, cluster_column):
         """Extract descriptive features via TF-IDF and generate deduplicated cluster names."""
