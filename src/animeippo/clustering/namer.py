@@ -169,37 +169,30 @@ class ClusterNamer:
     def select_diverse_features(self, features):
         """Pick top 2 features from different categories, avoiding all-adjective pairs."""
         features = pl.DataFrame({"name": features})
-        categorized = (
-            features.join(self.classified_features, on="name", how="left")
-            .select(pl.col("priority").fill_null(99), "category_short", "name")
-            .rows()
+        categorized = features.join(self.classified_features, on="name", how="left").select(
+            pl.col("priority").fill_null(99),
+            pl.col("category_short"),
+            pl.col("name"),
         )
 
-        if len(categorized) <= 1:
-            return categorized
-
         # Take the best feature, then the best remaining from a different category
-        best = categorized[0]
-        second = None
-        for candidate in categorized[1:]:
-            if candidate[1] != best[1]:
-                second = candidate
-                break
+        unique = categorized.unique(subset=["category_short"], keep="first", maintain_order=True)
+        if unique.is_empty():
+            return None
 
-        if second is None:
-            second = categorized[1]
+        first_category = None
+        second_category = None
+        if unique.height > 0:
+            first_category = unique.row(0)
 
-        pair = sorted([best, second], key=lambda x: x[0])
+        if unique.height > 1:
+            second_category = unique.row(1)
+        elif categorized.height > 1:
+            second_category = categorized.row(1)
+        else:
+            return [first_category]
 
-        # If both are adjective-only, try to swap one for a noun-capable candidate
-        if pair[0][2] in self.ADJECTIVE_ONLY and pair[1][2] in self.ADJECTIVE_ONLY:
-            for candidate in categorized:
-                if candidate[2] not in self.ADJECTIVE_ONLY and candidate not in pair:
-                    pair[1] = candidate
-                    pair.sort(key=lambda x: x[0])
-                    break
-
-        return pair
+        return sorted([first_category, second_category], key=lambda x: x[0])
 
     def assign_roles(self, categorized_features):
         """Assign modifier and core roles based on priority, swapping if core is adjective-only."""

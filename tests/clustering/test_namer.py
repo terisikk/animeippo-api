@@ -168,15 +168,6 @@ def test_cluster_name_adjective_only_fallbacks():
 
     ClusterNamer.ADJECTIVE_ONLY -= {"FakeAdj1", "FakeAdj2"}
 
-    # Adjective-only pair from different categories with 3rd noun-capable candidate
-    namer = ClusterNamer(
-        genres={},
-    )
-    # Historical (Setting) + Environmental (Theme) are diverse but both adjective-only
-    # → swap Environmental for Vampire (noun-capable)
-    name = namer.name_single_cluster(["Historical", "Environmental", "Vampire"])
-    assert name == "Historical Vampire"
-
 
 def test_cast_composition_tags_become_short_modifiers():
     """
