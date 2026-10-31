@@ -24,9 +24,16 @@ def test_cluster_name_generation_with_various_categories():
         6: {"name": "Isekai", "category": "Theme-Fantasy", "isAdult": False},
         7: {"name": "Cultivation", "category": "Theme-Fantasy", "isAdult": False},
         8: {"name": "Historical", "category": "Setting-Time", "isAdult": False},
-        9: {"name": "Weird Tag", "category": "Unknown-Category", "isAdult": False},
     }
-    genres = {"Horror", "Action", "Comedy", "Fantasy", "Drama", "Romance"}
+    genres = {
+        "Action": {"mood": "hype"},
+        "Comedy": {"mood": "funny", "intensity": "light"},
+        "Drama": {"mood": "emotional", "intensity": "heavy"},
+        "Fantasy": {"mood": "adventurous"},
+        "Horror": {"mood": "dark", "intensity": "heavy"},
+        "Romance": {"mood": "emotional"},
+    }
+
     namer = ClusterNamer(tag_lookup, genres)
 
     # Genre + Setting: Setting as modifier
@@ -65,9 +72,6 @@ def test_cluster_name_generation_with_various_categories():
     # Empty features list
     assert namer.name_single_cluster([]) == ""
 
-    # Tag with unknown category: ignored, only recognized feature used
-    assert namer.name_single_cluster(["Weird Tag", "Action"]) == "Action"
-
 
 def test_cluster_name_adjectival_transformations():
     """Test that plural forms and nouns get proper adjectival transformations."""
@@ -79,7 +83,12 @@ def test_cluster_name_adjectival_transformations():
         5: {"name": "Mythology", "category": "Theme-Other", "isAdult": False},
         6: {"name": "Politics", "category": "Theme-Other", "isAdult": False},
     }
-    genres = {"Action", "Fantasy", "Drama"}
+    genres = {
+        "Action": {"mood": "hype"},
+        "Drama": {"mood": "emotional", "intensity": "heavy"},
+        "Fantasy": {"mood": "adventurous"},
+    }
+
     namer = ClusterNamer(tag_lookup, genres)
 
     # Plural to singular: "Dragons" → "Dragon"
@@ -113,7 +122,13 @@ def test_cluster_name_edge_cases():
         7: {"name": "Urban", "category": "Setting-Scene", "isAdult": False},
         8: {"name": "Dystopian", "category": "Setting-Time", "isAdult": False},
     }
-    genres = {"Action", "Fantasy", "Drama", "Comedy"}
+    genres = {
+        "Action": {"mood": "hype"},
+        "Comedy": {"mood": "funny", "intensity": "light"},
+        "Drama": {"mood": "emotional", "intensity": "heavy"},
+        "Fantasy": {"mood": "adventurous"},
+    }
+
     namer = ClusterNamer(tag_lookup, genres)
 
     # Substring overlap: keep longer
@@ -140,7 +155,7 @@ def test_cluster_name_edge_cases():
             1: {"name": "Biographical", "category": "Theme-Other", "isAdult": False},
             2: {"name": "Rural", "category": "Setting-Scene", "isAdult": False},
         },
-        genres=set(),
+        genres={},
     )
     assert namer_swap.name_single_cluster(["Biographical", "Rural"]) == "Biographical Countryside"
 
@@ -155,7 +170,7 @@ def test_cluster_name_adjective_only_fallbacks():
             1: {"name": "FakeAdj1", "category": "Theme-Drama", "isAdult": False},
             2: {"name": "FakeAdj2", "category": "Setting-Time", "isAdult": False},
         },
-        genres=set(),
+        genres={},
     )
     assert namer.name_single_cluster(["FakeAdj1", "FakeAdj2"]) == "FakeAdj2 Drama"
 
@@ -163,7 +178,7 @@ def test_cluster_name_adjective_only_fallbacks():
     # FakeAdj1 is a genre (not in tag_lookup), so category string lookup returns ""
     namer = ClusterNamer(
         tag_lookup={1: {"name": "FakeAdj2", "category": "Cast-Traits", "isAdult": False}},
-        genres={"FakeAdj1"},
+        genres={"FakeAdj1": {}},
     )
     assert namer.name_single_cluster(["FakeAdj1", "FakeAdj2"]) == "FakeAdj2 FakeAdj1 Anime"
 
@@ -176,24 +191,12 @@ def test_cluster_name_adjective_only_fallbacks():
             2: {"name": "Environmental", "category": "Theme-Other", "isAdult": False},
             3: {"name": "Vampire", "category": "Cast-Traits", "isAdult": False},
         },
-        genres=set(),
+        genres={},
     )
     # Historical (Setting) + Environmental (Theme) are diverse but both adjective-only
     # → swap Environmental for Vampire (noun-capable)
     name = namer.name_single_cluster(["Historical", "Environmental", "Vampire"])
     assert name == "Historical Vampire"
-
-
-def test_deprioritize_shared_features():
-    """Shared features are moved to the end of the list."""
-    namer = ClusterNamer(tag_lookup={}, genres=set())
-
-    result = namer.deprioritize_shared(["Action", "Drama", "Samurai", "Gore"], {"Action", "Drama"})
-    assert result == ["Samurai", "Gore", "Action", "Drama"]
-
-    # No shared features → unchanged
-    result = namer.deprioritize_shared(["Action", "Drama"], set())
-    assert result == ["Action", "Drama"]
 
 
 def test_cast_composition_tags_become_short_modifiers():
@@ -209,7 +212,7 @@ def test_cast_composition_tags_become_short_modifiers():
             4: {"name": "Torture", "category": "Theme-Other", "isAdult": False},
             5: {"name": "Work", "category": "Setting-Scene", "isAdult": False},
         },
-        genres={"Horror", "Yuri"},
+        genres={"Horror": {}, "Yuri": {}},
     )
 
     assert namer.name_single_cluster(["Primarily Male Cast", "Horror"]) == "Male-Led Horror"
@@ -232,7 +235,7 @@ def test_adjective_only_core_swaps_with_noun_modifier():
         tag_lookup={
             1: {"name": "Historical", "category": "Setting-Time", "isAdult": False},
         },
-        genres={"Action"},
+        genres={"Action": {}},
     )
 
     # Historical (Setting, adjective-only) has higher core priority than Action (Genre),

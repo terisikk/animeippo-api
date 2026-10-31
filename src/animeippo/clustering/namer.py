@@ -29,7 +29,6 @@ class ClusterNamer:
         "Demons": "Demon",
         "Dinosaurs": "Dinosaur",
         "Dragons": "Dragon",
-        "Drugs": "Drug",
         "Firefighters": "Firefighter",
         "Gangs": "Gang",
         "Gods": "God",
@@ -57,6 +56,8 @@ class ClusterNamer:
         "Philosophy": "Philosophical",
         "Politics": "Political",
         "Terrorism": "Terrorist",
+        "Drugs": "Drugged",
+        "Super Power": "Super Powered",
         # Long tag names shortened for readability
         "Cute Boys Doing Cute Things": "Cute Boys",
         "Cute Girls Doing Cute Things": "Cute Girls",
@@ -140,40 +141,36 @@ class ClusterNamer:
         else:
             self.tag_by_name = {tag_info["name"]: tag_info for tag_info in tag_lookup.values()}
 
-    def classify_feature(self, feature):
-        """Determine the category of a feature (Genre, Theme, Setting, Cast, etc.)."""
-        if feature in self.genres:
-            return "Genre", feature
+        if self.tag_by_name:
+            self.tag_df = pl.from_dicts(list(self.tag_by_name.values()))
+        else:
+            self.tag_df = pl.DataFrame(
+                schema={"name": pl.String, "category": pl.String, "isAdult": pl.Boolean}
+            )
 
-        if feature not in self.tag_by_name:
-            return None, feature
+        self.genre_df = pl.DataFrame(
+            [
+                (key, value.get("mood"), value.get("intensity"))
+                for key, value in self.genres.items()
+            ],
+            schema=["name", "mood", "intensity"],
+            orient="row",
+        )
 
-        tag_info = self.tag_by_name[feature]
-        category_str = tag_info.get("category", "")
-
-        category_map = {
-            "Theme-": "Theme",
-            "Setting-": "Setting",
-            "Cast-": "Cast",
-        }
-
-        for prefix, category_name in category_map.items():
-            if category_str.startswith(prefix):
-                return category_name, feature
-
-        if category_str in ("Technical", "Demographic"):
-            return category_str, feature
-
-        return None, feature
+        self.classified_features = (
+            pl.concat(
+                [self.tag_df, self.genre_df.with_columns(category=pl.lit("Genre"))], how="diagonal"
+            )
+            .filter(pl.col("category").is_not_null())
+            .with_columns(
+                pl.col("category").str.split("-").list.first(),
+                pl.col("isAdult").fill_null(False),
+            )
+        )
 
     def select_diverse_features(self, features):
         """Pick top 2 features from different categories, avoiding all-adjective pairs."""
-        categorized = []
-        for feature in features:
-            category, name = self.classify_feature(feature)
-            if category:
-                priority = self.MODIFIER_PRIORITY.get(category, 99)
-                categorized.append((priority, category, name))
+        categorized = self.categorize_features(features)
 
         if len(categorized) <= 1:
             return categorized
@@ -200,6 +197,24 @@ class ClusterNamer:
                     break
 
         return pair
+
+    def categorize_features(self, features):
+        categorized = []
+        for feature in features:
+            category = None
+            name = None
+
+            try:
+                category, name = self.classified_features.select("category", "name").row(
+                    by_predicate=(pl.col("name") == feature)
+                )
+            except pl.exceptions.NoRowsReturnedError:
+                pass
+
+            if category:
+                priority = self.MODIFIER_PRIORITY.get(category, 99)
+                categorized.append((priority, category, name))
+        return categorized
 
     def assign_roles(self, categorized_features):
         """Assign modifier and core roles based on priority, swapping if core is adjective-only."""
@@ -248,10 +263,6 @@ class ClusterNamer:
 
         return names.select(pl.col("cluster").cast(pl.Int64), pl.col("name"))
 
-    def deprioritize_shared(self, features, shared):
-        """Move shared features to the end so more distinctive ones get picked."""
-        return [f for f in features if f not in shared] + [f for f in features if f in shared]
-
     def name_single_cluster(self, features):
         """Generate a natural language name for a single cluster from its feature list."""
         if not features:
@@ -268,11 +279,7 @@ class ClusterNamer:
             modifier_name, core_name, core_cat = self.assign_roles(categorized_features)
             name = self.resolve_conflicts(modifier_name, core_name, core_cat)
 
-        return self.format_name(name)
-
-    def format_name(self, name):
-        """Capitalize first letter only, preserving rest (e.g., 'CGI' stays 'CGI')."""
-        return name[0].upper() + name[1:] if name else ""
+        return name
 
     def resolve_adjective_pair(self, modifier_name, core_name):
         """Resolve both-adjective-only pairs by finding a suitable noun."""

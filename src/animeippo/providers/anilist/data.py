@@ -436,7 +436,7 @@ ALL_GENRES = {
     "Drama": {"mood": "emotional", "intensity": "heavy"},
     "Ecchi": {},
     "Fantasy": {"mood": "adventurous"},
-    "Hentai": {},
+    "Hentai": {"isAdult": True},
     "Horror": {"mood": "dark", "intensity": "heavy"},
     "Mahou Shoujo": {},
     "Mecha": {"mood": "hype"},
