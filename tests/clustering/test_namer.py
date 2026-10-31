@@ -196,54 +196,6 @@ def test_deprioritize_shared_features():
     assert result == ["Action", "Drama"]
 
 
-def test_duplicate_cluster_names_are_resolved():
-    """When two clusters produce the same name, shared features are deprioritized."""
-    namer = ClusterNamer(
-        tag_lookup={
-            1: {"name": "Samurai", "category": "Theme-Action", "isAdult": False},
-            2: {"name": "Detective", "category": "Theme-Other", "isAdult": False},
-            3: {"name": "Swordplay", "category": "Theme-Action", "isAdult": False},
-        },
-        genres={"Action", "Drama", "Fantasy"},
-    )
-
-    # Clusters 0 and 1 share the same top-2 but differ in later features
-    # Both initially produce "Samurai Action", but after dedup they diverge
-    cluster_features = {
-        "0": ["Action", "Samurai", "Drama"],
-        "1": ["Action", "Samurai", "Detective"],
-        "2": ["Fantasy", "Swordplay"],
-    }
-
-    names = namer.name_clusters(cluster_features)
-
-    # Clusters 0 and 1 should no longer share a name
-    assert names["0"] != names["1"]
-    # Cluster 2 is unaffected
-    assert names["2"] == "Swordplay Fantasy"
-
-
-def test_deduplicate_no_duplicates_is_noop():
-    """When no names collide, all names are returned unchanged."""
-    namer = ClusterNamer(
-        tag_lookup={
-            1: {"name": "Samurai", "category": "Theme-Action", "isAdult": False},
-            2: {"name": "Detective", "category": "Theme-Other", "isAdult": False},
-        },
-        genres={"Action", "Fantasy"},
-    )
-
-    cluster_features = {
-        "0": ["Action", "Samurai"],
-        "1": ["Fantasy", "Detective"],
-    }
-
-    names = namer.name_clusters(cluster_features)
-
-    assert names["0"] == "Samurai Action"
-    assert names["1"] == "Detective Fantasy"
-
-
 def test_cast_composition_tags_become_short_modifiers():
     """
     Cast composition tags like 'Primarily Male Cast'

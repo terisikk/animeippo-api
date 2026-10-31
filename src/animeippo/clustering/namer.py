@@ -1,5 +1,7 @@
 from typing import ClassVar
 
+import polars as pl
+
 from animeippo.analysis import statistics
 from animeippo.providers.anilist.data import ALL_TAGS, TAG_BY_NAME
 
@@ -223,17 +225,13 @@ class ClusterNamer:
 
     def name_clusters_from_data(self, dataframe, feature_column, cluster_column):
         """Extract descriptive features via TF-IDF and generate deduplicated cluster names."""
-        descriptions = statistics.get_descriptive_features(
+        cluster_features = statistics.get_descriptive_features(
             dataframe,
             feature_column,
             cluster_column,
             n_features=5,
             boost_features=self.genres,
         )
-
-        cluster_features = {
-            row["cluster"]: row["description"] for row in descriptions.iter_rows(named=True)
-        }
 
         return self.name_clusters(cluster_features)
 
@@ -242,30 +240,13 @@ class ClusterNamer:
 
         Takes a dict of {cluster_id: [features]}, returns {cluster_id: name}.
         """
-        names = {cid: self.name_single_cluster(feats) for cid, feats in cluster_features.items()}
+        names = {
+            cid: self.name_single_cluster(feats) for cid, feats in cluster_features.iter_rows()
+        }
 
-        return self.resolve_duplicates(names, cluster_features)
+        names = pl.DataFrame({"cluster": names.keys(), "name": names.values()})
 
-    def resolve_duplicates(self, names, cluster_features):
-        """Re-generate colliding names with shared features deprioritized."""
-        name_to_clusters = {}
-        for cid, name in names.items():
-            name_to_clusters.setdefault(name, []).append(cid)
-
-        for _name, cluster_ids in name_to_clusters.items():
-            if len(cluster_ids) <= 1:
-                continue
-
-            for cid in cluster_ids:
-                features = cluster_features[cid]
-                sibling_features = {
-                    f for other in cluster_ids if other != cid for f in cluster_features[other]
-                }
-                shared = set(features) & sibling_features
-                reordered = self.deprioritize_shared(features, shared)
-                names[cid] = self.name_single_cluster(reordered)
-
-        return names
+        return names.select(pl.col("cluster").cast(pl.Int64), pl.col("name"))
 
     def deprioritize_shared(self, features, shared):
         """Move shared features to the end so more distinctive ones get picked."""

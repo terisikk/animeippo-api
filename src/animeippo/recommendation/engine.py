@@ -148,19 +148,7 @@ class AnimeRecommendationEngine:
         feature_df = dataset.watchlist.explode("features", empty_as_null=True)
         feature_df = feature_df.filter(~pl.col("features").is_in(dataset.nsfw_tags))
 
-        cluster_names = self.cluster_namer.name_clusters_from_data(
-            feature_df, "features", "cluster"
-        )
-
-        # TODO: Kinda stupid to convert back to dataframe here but
-        # it's a temporary measure until we change cluster namer to
-        # work on dataframes too, which it probably should
-        return pl.DataFrame(
-            {
-                "cluster": [int(cluster) for cluster in cluster_names.keys()],
-                "name": cluster_names.values(),
-            }
-        )
+        return self.cluster_namer.name_clusters_from_data(feature_df, "features", "cluster")
 
     def get_cluster_stats(self, dataset):
         """

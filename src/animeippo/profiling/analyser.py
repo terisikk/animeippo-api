@@ -36,6 +36,8 @@ class ProfileAnalyser:
             how="left",
         )
 
+        show_clusters = self.merge_clusters_with_duplicate_names(show_clusters)
+
         return dataset.user_profile, show_clusters, dataset.recommendations
 
     def group_recommendations_by_cluster(self, recommendations, watchlist):
@@ -152,10 +154,28 @@ class ProfileAnalyser:
                 pl.col("cluster"),
                 pl.col("name"),
                 pl.col("id").alias("items"),
+                pl.col("count"),
+                pl.col("mean_score"),
+                pl.col("completion_rate"),
+            )
+            .sort(pl.col("items").list.len(), descending=True)
+        )
+
+    def merge_clusters_with_duplicate_names(self, clusters):
+        return (
+            clusters.group_by("name")
+            .agg(
+                pl.col("cluster").first(),
+                pl.col("items").explode(),
                 # TODO: Could just send these as plain but front requires a nested dict
-                pl.struct(pl.col("count"), pl.col("mean_score"), pl.col("completion_rate")).alias(
-                    "stats"
-                ),
+                pl.struct(
+                    pl.col("count").sum(),
+                    # Need weighted values for merged clusters, otherwise differently sized clusters
+                    # would get distorted stats.
+                    (pl.col("mean_score") * pl.col("count")).sum() / pl.col("count").sum(),
+                    (pl.col("completion_rate") * pl.col("count")).sum() / pl.col("count").sum(),
+                ).alias("stats"),
+                pl.col("recommendations").explode(),
             )
             .sort(pl.col("items").list.len(), descending=True)
         )
