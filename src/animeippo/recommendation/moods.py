@@ -6,7 +6,7 @@ and that the category system can use for mood-based categories.
 
 import polars as pl
 
-MOOD_THRESHOLD = 1.0
+MOOD_THRESHOLD = 100
 MOOD_TAG_RANK_CUTOFF = 60
 
 TIER_SIGNS = {"heavy": 1.0, "light": -1.0, "moderate": 0.5}
@@ -23,66 +23,49 @@ def explode_features(recommendations):
     )
 
 
-def compute_moods(exploded, all_ids):
+def compute_moods(exploded):
     """Compute moods list per show: group mood scores, threshold, collect into list."""
-    mood_scores = (
+    return (
         exploded.filter((pl.col("rank") >= MOOD_TAG_RANK_CUTOFF) & pl.col("mood").is_not_null())
         .group_by("id", "mood")
-        .agg(score=(pl.col("rank").cast(pl.Float64) / 100.0).sum())
+        .agg(score=(pl.col("rank")).sum())
         .filter(pl.col("score") >= MOOD_THRESHOLD)
         .group_by("id")
         .agg(moods=pl.col("mood").sort())
     )
 
-    return (
-        all_ids.join(mood_scores, on="id", how="left")
-        .with_columns(pl.col("moods").fill_null([]).cast(pl.List(pl.Utf8)))
-        .select("id", "moods")
-    )
 
-
-def compute_intensity(exploded, all_ids):
+def compute_intensity(exploded):
     """Compute raw intensity score per show from tag/genre intensity tiers."""
-    scores = (
+    return (
         exploded.with_columns(
             sign=pl.col("intensity").cast(pl.Utf8).replace_strict(TIER_SIGNS, default=0.0)
         )
-        .with_columns(contribution=pl.col("rank").cast(pl.Float64) / 100.0 * pl.col("sign"))
+        .with_columns(contribution=pl.col("rank") * pl.col("sign"))
         .group_by("id")
-        .agg(intensity_score=pl.col("contribution").sum())
-    )
-
-    return (
-        all_ids.join(scores, on="id", how="left")
-        .with_columns(pl.col("intensity_score").fill_null(0.0))
+        .agg(intensity_score=pl.col("contribution").sum().fill_null(0.0))
         .select("id", "intensity_score")
     )
 
 
 def bucket_intensity(df):
     """Bucket intensity scores into thirds: light, moderate, all_in."""
-    scores = df["intensity_score"].sort()
-    n = len(scores)
-    low_cutoff = scores[n // 3]
-    high_cutoff = scores[2 * n // 3]
-
     return df.with_columns(
-        intensity=pl.when(pl.col("intensity_score") <= low_cutoff)
+        intensity=pl.when(pl.col("intensity_score") <= pl.col("intensity_score").quantile(1 / 3))
         .then(pl.lit("light"))
-        .when(pl.col("intensity_score") >= high_cutoff)
+        .when(pl.col("intensity_score") >= pl.col("intensity_score").quantile(2 / 3))
         .then(pl.lit("all_in"))
         .otherwise(pl.lit("moderate"))
-    )
+    ).select("id", "intensity")
 
 
-def add_funnel_metadata(recommendations):
+def add_mood_data(recommendations):
     """Add mood and intensity columns to recommendations DataFrame."""
-    all_ids = recommendations.select("id")
     exploded = explode_features(recommendations)
 
-    moods_df = compute_moods(exploded, all_ids)
-    intensity_df = compute_intensity(exploded, all_ids)
+    moods_df = compute_moods(exploded)
+    intensity_df = bucket_intensity(compute_intensity(exploded))
 
-    result = recommendations.join(moods_df, on="id").join(intensity_df, on="id")
-
-    return bucket_intensity(result)
+    return recommendations.join(moods_df, on="id", how="left").join(
+        intensity_df, on="id", how="left"
+    )

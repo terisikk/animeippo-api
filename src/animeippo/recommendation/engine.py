@@ -3,7 +3,7 @@ import copy
 import polars as pl
 import structlog
 
-from .funnel import add_funnel_metadata
+from .moods import add_mood_data
 from .scoring import ScorerResult
 
 logger = structlog.get_logger()
@@ -50,7 +50,7 @@ class AnimeRecommendationEngine:
             cluster_similarity=predictions["similarity"],
         )
 
-        recommendations = add_funnel_metadata(recommendations)
+        recommendations = add_mood_data(recommendations)
 
         return recommendations.sort("discovery_score", descending=True)
 

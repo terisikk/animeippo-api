@@ -143,12 +143,8 @@ class ClusterNamer:
         self.tag_df = pl.from_dicts(list(TAG_BY_NAME.values()))
 
         self.genre_df = pl.DataFrame(
-            [
-                (key, value.get("mood"), value.get("intensity"))
-                for key, value in self.genres.items()
-            ],
-            schema=["name", "mood", "intensity"],
-            orient="row",
+            list(self.genres.keys()),
+            schema=["name"],
         )
 
         self.classified_features = self.classify_features()
@@ -158,10 +154,8 @@ class ClusterNamer:
             pl.concat(
                 [self.tag_df, self.genre_df.with_columns(category=pl.lit("Genre"))], how="diagonal"
             )
-            .filter(pl.col("category").is_not_null())
             .with_columns(
                 pl.col("category").str.split("-").list.first().alias("category_short"),
-                pl.col("isAdult").fill_null(False),
             )
             .join(self.MODIFIER_PRIORITY, on="category_short", how="left")
             .with_columns(pl.col("priority").fill_null(99))
@@ -200,60 +194,65 @@ class ClusterNamer:
         )
 
         cluster_features = self.drop_substring_features(cluster_features)
-        names = self.select_top_2_features(cluster_features)
+        top_features = self.select_top_2_features(cluster_features)
 
         return (
-            names.group_by("cluster", maintain_order=True)
+            top_features.group_by("cluster", maintain_order=True)
             .agg(
-                pl.col("description"),
+                pl.col("description").first().alias("modifier"),
+                pl.col("description").last().alias("core"),
                 pl.col("adjective_only").all(),
                 pl.col("category"),
             )
             .with_columns(
-                final_name=pl.struct("description", "adjective_only", "category").map_elements(
-                    self.conflict_resolver,
-                    return_dtype=pl.String,
+                name=pl.when((pl.col("modifier") != pl.col("core")) & pl.col("core").is_not_null())
+                .then(
+                    pl.struct("modifier", "core", "adjective_only", "category").map_elements(
+                        self.conflict_resolver,
+                        return_dtype=pl.String,
+                    )
                 )
+                .otherwise(pl.col("modifier"))
             )
             .select(
                 pl.col("cluster"),
-                pl.col("final_name").alias("name"),
+                pl.col("name"),
             )
         )
 
     def select_top_2_features(self, cluster_features):
         first_features = cluster_features.filter(pl.col("row_idx") == 0)
-        first_categories = first_features.select(
-            "cluster",
-            first_category=pl.col("category_short"),
-        )
 
         second_features = (
             cluster_features.filter(pl.col("row_idx") > 0)
             .join(
-                first_categories,
+                first_features.select("cluster", "category_short"),
                 on="cluster",
                 how="left",
                 maintain_order="left",
             )
-            .with_columns(is_same_cat=pl.col("category_short") == pl.col("first_category"))
             # First take from a different category.
             # If not, fall back to the second item of the first category
-            .sort(["cluster", "is_same_cat", "row_idx"])
+            .sort(
+                [
+                    pl.col("cluster"),
+                    pl.col("category_short") == pl.col("category_short_right"),
+                    pl.col("row_idx"),
+                ]
+            )
             .unique(
                 subset=["cluster"],
                 keep="first",
                 maintain_order=True,
             )
-            .select(pl.exclude("is_same_cat", "first_category"))
+            .select(pl.exclude("category_short_right"))
         )
 
-        names = pl.concat([first_features, second_features], how="vertical").sort(
+        return pl.concat([first_features, second_features], how="vertical").sort(
             ["cluster", "adjective_only", "priority"],
             descending=[False, True, False],
             maintain_order=True,
         )
-        return names
 
     def drop_substring_features(self, cluster_features):
         """
@@ -273,7 +272,7 @@ class ClusterNamer:
             )
         )
 
-        cluster_features = cluster_features.join(
+        return cluster_features.join(
             substring_features,
             on=["cluster", "description"],
             how="anti",
@@ -281,21 +280,15 @@ class ClusterNamer:
         ).with_columns(
             row_idx=pl.int_range(0, pl.len()).over("cluster"),
         )
-        return cluster_features
 
     def conflict_resolver(self, row):
         """Apply conflict resolution rules in order to produce the final name string."""
-        descriptions = row["description"]
-        modifier = descriptions[0]
-
-        if len(descriptions) == 1:
-            return f"{modifier}"
-
-        core = descriptions[1]
-        core_category = row["category"][1]
+        modifier = row["modifier"]
+        core = row["core"]
 
         # Both adjective-only: resolve with preferred noun or fallback
         if row["adjective_only"]:
+            core_category = row.get("category", [None])[-1]
             modifier, core = self.resolve_adjective_pair(modifier, core, core_category)
             return f"{modifier} {core}"
 
