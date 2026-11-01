@@ -155,7 +155,7 @@ def get_descriptive_features(  # noqa: PLR0913, PLR0917
         pl.max_horizontal(pl.col(col) for col in cluster_columns) >= min_count
     )
 
-    if len(filtered) > 0:
+    if filtered.height > 0:
         contingency_table = filtered
 
     count_matrix = contingency_table.select(pl.exclude(feature_column)).to_numpy()
@@ -182,17 +182,20 @@ def get_descriptive_features(  # noqa: PLR0913, PLR0917
         )
 
     if not n_features:
-        n_features = len(tfidf_df)
+        n_features = tfidf_df.height
 
     # Unpivot to long format, keep only non-zero scores, pick top N per cluster
     return (
         tfidf_df.unpivot(index=feature_column, variable_name="cluster", value_name="tfidf")
         .filter(pl.col("tfidf") > 0)
-        .sort("tfidf", descending=True)
+        .with_columns(pl.col("cluster").cast(pl.Int32))
         .group_by("cluster", maintain_order=True)
-        .head(n_features)
-        .group_by("cluster", maintain_order=True)
-        .agg(pl.col(feature_column).alias("description"))
+        .agg(
+            pl.col(feature_column)
+            .sort_by(pl.col("tfidf"), descending=True)
+            .head(n_features)
+            .alias("description")
+        )
     )
 
 

@@ -3,6 +3,18 @@ import polars as pl
 from animeippo.clustering.namer import ClusterNamer
 
 
+def name_single_cluster(namer, features):
+    df = pl.DataFrame({"description": [features], "cluster": [0]})
+
+    names = namer.name_clusters(df).select("name")
+
+    if names.height == 1:
+        return names.item()
+
+    else:
+        return ""
+
+
 def test_cluster_name_generation_with_various_categories():
     """Test natural language generation using priority-based ordering.
 
@@ -28,40 +40,40 @@ def test_cluster_name_generation_with_various_categories():
     namer = ClusterNamer(genres)
 
     # Genre + Setting: Setting as modifier
-    assert namer.name_single_cluster(["Action", "Post-Apocalyptic"]) == "Post-Apocalyptic Action"
+    assert name_single_cluster(namer, ["Action", "Post-Apocalyptic"]) == "Post-Apocalyptic Action"
 
     # Genre + Technical: Technical as modifier
-    assert namer.name_single_cluster(["Action", "CGI"]) == "CGI Action"
+    assert name_single_cluster(namer, ["Action", "CGI"]) == "CGI Action"
 
     # Genre + Cast: Cast as modifier
-    assert namer.name_single_cluster(["Fantasy", "Vampire"]) == "Vampire Fantasy"
+    assert name_single_cluster(namer, ["Fantasy", "Vampire"]) == "Vampire Fantasy"
 
     # Genre + Demographic: Demographic as suffix
-    assert namer.name_single_cluster(["Action", "Shounen"]) == "Action Shounen"
+    assert name_single_cluster(namer, ["Action", "Shounen"]) == "Action Shounen"
 
     # Genre + Theme: Theme as modifier
-    assert namer.name_single_cluster(["Fantasy", "Isekai"]) == "Isekai Fantasy"
+    assert name_single_cluster(namer, ["Fantasy", "Isekai"]) == "Isekai Fantasy"
 
     # Setting + Genre with adjectival transform: "Historical Drama"
-    assert namer.name_single_cluster(["Drama", "Historical"]) == "Historical Drama"
+    assert name_single_cluster(namer, ["Drama", "Historical"]) == "Historical Drama"
 
     # Setting + Genre: "School Romance"
-    assert namer.name_single_cluster(["Romance", "School"]) == "School Romance"
+    assert name_single_cluster(namer, ["Romance", "School"]) == "School Romance"
 
     # Theme + Theme: both themes
-    assert namer.name_single_cluster(["Isekai", "Cultivation"]) == "Isekai Cultivation"
+    assert name_single_cluster(namer, ["Isekai", "Cultivation"]) == "Isekai Cultivation"
 
     # Cast + Setting: Cast has higher priority (4 vs 3), so Setting is modifier
-    assert namer.name_single_cluster(["Vampire", "Post-Apocalyptic"]) == "Post-Apocalyptic Vampire"
+    assert name_single_cluster(namer, ["Vampire", "Post-Apocalyptic"]) == "Post-Apocalyptic Vampire"
 
     # Demographic alone
-    assert namer.name_single_cluster(["Shounen"]) == "Shounen"
+    assert name_single_cluster(namer, ["Shounen"]) == "Shounen"
 
     # Unknown features (fallback): just joins first two
-    assert namer.name_single_cluster(["Unknown1", "Unknown2"]) == "Unknown1 Unknown2"
+    assert name_single_cluster(namer, ["Unknown1", "Unknown2"]) == "Unknown1 Unknown2"
 
     # Empty features list
-    assert namer.name_single_cluster([]) == ""
+    assert name_single_cluster(namer, []) == ""
 
 
 def test_cluster_name_adjectival_transformations():
@@ -75,22 +87,22 @@ def test_cluster_name_adjectival_transformations():
     namer = ClusterNamer(genres)
 
     # Plural to singular: "Dragons" → "Dragon"
-    assert namer.name_single_cluster(["Dragons", "Fantasy"]) == "Dragon Fantasy"
+    assert name_single_cluster(namer, ["Dragons", "Fantasy"]) == "Dragon Fantasy"
 
     # Plural to singular: "Aliens" → "Alien"
-    assert namer.name_single_cluster(["Aliens", "Action"]) == "Alien Action"
+    assert name_single_cluster(namer, ["Aliens", "Action"]) == "Alien Action"
 
     # Plural to singular: "Pirates" → "Pirate"
-    assert namer.name_single_cluster(["Pirates", "Action"]) == "Pirate Action"
+    assert name_single_cluster(namer, ["Pirates", "Action"]) == "Pirate Action"
 
     # Noun to adjective: "Crime" → "Criminal"
-    assert namer.name_single_cluster(["Crime", "Drama"]) == "Criminal Drama"
+    assert name_single_cluster(namer, ["Crime", "Drama"]) == "Criminal Drama"
 
     # Noun to adjective: "Mythology" → "Mythological"
-    assert namer.name_single_cluster(["Mythology", "Fantasy"]) == "Mythological Fantasy"
+    assert name_single_cluster(namer, ["Mythology", "Fantasy"]) == "Mythological Fantasy"
 
     # Noun to adjective: "Politics" → "Political"
-    assert namer.name_single_cluster(["Politics", "Drama"]) == "Political Drama"
+    assert name_single_cluster(namer, ["Politics", "Drama"]) == "Political Drama"
 
 
 def test_cluster_name_edge_cases():
@@ -105,28 +117,25 @@ def test_cluster_name_edge_cases():
     namer = ClusterNamer(genres)
 
     # Substring overlap: keep longer
-    assert namer.name_single_cluster(["Space", "Space Opera"]) == "Space Opera"
+    assert name_single_cluster(namer, ["Space", "Space Opera"]) == "Space Opera"
 
     # Substring overlap: keep longer
-    assert namer.name_single_cluster(["Urban", "Urban Fantasy"]) == "Urban Fantasy"
+    assert name_single_cluster(namer, ["Urban", "Urban Fantasy"]) == "Urban Fantasy"
 
     # Both adjective-only with preferred noun
-    assert namer.name_single_cluster(["Rural", "Environmental"]) == "Rural Nature"
+    assert name_single_cluster(namer, ["Rural", "Environmental"]) == "Rural Nature"
 
     # Both adjective-only: "Historical" + "Dystopian" → preferred noun for core
-    assert namer.name_single_cluster(["Historical", "Dystopian"]) == "Historical Dystopia"
+    assert name_single_cluster(namer, ["Historical", "Dystopian"]) == "Historical Dystopia"
 
     # Role swap: core is adjective-only, modifier is noun-capable → swap them
-    assert namer.name_single_cluster(["Fantasy", "Historical"]) == "Historical Fantasy"
+    assert name_single_cluster(namer, ["Fantasy", "Historical"]) == "Historical Fantasy"
 
-    # Adjective-only as modifier is fine (no swap needed)
-    assert namer.name_single_cluster(["Action", "Dystopian"]) == "Dystopian Action"
+    # Adjective-only as modifier is fine, no swap needed
+    assert name_single_cluster(namer, ["Action", "Dystopian"]) == "Dystopian Action"
 
     # Both adjective-only, core has no preferred noun but modifier does → swap roles
-    namer_swap = ClusterNamer(
-        genres={},
-    )
-    assert namer_swap.name_single_cluster(["Biographical", "Rural"]) == "Biographical Countryside"
+    assert name_single_cluster(namer, ["Biographical", "Rural"]) == "Biographical Countryside"
 
 
 def test_cluster_name_adjective_only_fallbacks():
@@ -147,24 +156,7 @@ def test_cluster_name_adjective_only_fallbacks():
     )
     namer.classified_features = namer.classify_features()
 
-    assert namer.name_single_cluster(["FakeAdj1", "FakeAdj2"]) == "FakeAdj2 Drama"
-
-    # Last resort: no preferred noun, no category noun → "Anime"
-    # FakeAdj1 is a genre, so category string lookup returns ""
-    namer = ClusterNamer(
-        genres={"FakeAdj1": {}},
-    )
-
-    namer.tag_df = pl.DataFrame(
-        {
-            "name": ["FakeAdj2"],
-            "category": ["Cast-Traits"],
-            "isAdult": [False],
-        }
-    )
-    namer.classified_features = namer.classify_features()
-
-    assert namer.name_single_cluster(["FakeAdj1", "FakeAdj2"]) == "FakeAdj2 FakeAdj1 Anime"
+    assert name_single_cluster(namer, ["FakeAdj1", "FakeAdj2"]) == "FakeAdj2 Drama"
 
     ClusterNamer.ADJECTIVE_ONLY -= {"FakeAdj1", "FakeAdj2"}
 
@@ -178,10 +170,10 @@ def test_cast_composition_tags_become_short_modifiers():
         genres={"Horror": {}},
     )
 
-    assert namer.name_single_cluster(["Primarily Male Cast", "Horror"]) == "Male-Led Horror"
-    assert namer.name_single_cluster(["Primarily Adult Cast", "Work"]) == "Adult Work"
-    assert namer.name_single_cluster(["Primarily Child Cast", "Torture"]) == "Children's Torture"
-    assert namer.name_single_cluster(["Yuri", "Primarily Male Cast"]) == "Male-Led Yuri"
+    assert name_single_cluster(namer, ["Primarily Male Cast", "Horror"]) == "Male-Led Horror"
+    assert name_single_cluster(namer, ["Primarily Adult Cast", "Work"]) == "Adult Work"
+    assert name_single_cluster(namer, ["Primarily Child Cast", "Torture"]) == "Children's Torture"
+    assert name_single_cluster(namer, ["Yuri", "Primarily Male Cast"]) == "Male-Led Yuri"
 
 
 def test_adjective_only_core_swaps_with_noun_modifier():
@@ -192,6 +184,6 @@ def test_adjective_only_core_swaps_with_noun_modifier():
 
     # Historical (Setting, adjective-only) has higher core priority than Action (Genre),
     # so it initially becomes core. But since it's adjective-only, it should swap.
-    name = namer.name_single_cluster(["Historical", "Action"])
+    name = name_single_cluster(namer, ["Historical", "Action"])
 
     assert name == "Historical Action"

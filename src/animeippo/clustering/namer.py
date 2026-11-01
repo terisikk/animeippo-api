@@ -33,7 +33,6 @@ class ClusterNamer:
         "Gangs": "Gang",
         "Gods": "God",
         "Guns": "Gun",
-        "Kids": "Kid",
         "Maids": "Maid",
         "Mopeds": "Moped",
         "Motorcycles": "Motorcycle",
@@ -56,8 +55,9 @@ class ClusterNamer:
         "Philosophy": "Philosophical",
         "Politics": "Political",
         "Terrorism": "Terrorist",
-        "Drugs": "Drugged",
+        "Drugs": "Drug-Fueled",
         "Super Power": "Super Powered",
+        "Religion": "Religious",
         # Long tag names shortened for readability
         "Cute Boys Doing Cute Things": "Cute Boys",
         "Cute Girls Doing Cute Things": "Cute Girls",
@@ -115,7 +115,7 @@ class ClusterNamer:
         "Dystopian": "Dystopia",
         "Educational": "Academy",
         "Environmental": "Nature",
-        "Historical": "Period",
+        "Historical": "Period Piece",
         "Medieval": "Medieval Era",
         "Post-Apocalyptic": "Wasteland",
         "Rural": "Countryside",
@@ -125,6 +125,7 @@ class ClusterNamer:
 
     # Fallback nouns per tag category when no preferred noun is available
     CATEGORY_NOUNS: ClassVar[dict[str, str]] = {
+        "Cast-Main Cast": "People",
         "Setting-Scene": "World",
         "Setting-Time": "Era",
         "Setting-Universe": "World",
@@ -164,61 +165,8 @@ class ClusterNamer:
             )
             .join(self.MODIFIER_PRIORITY, on="category_short", how="left")
             .with_columns(pl.col("priority").fill_null(99))
+            .with_columns(adjective_only=pl.col("name").is_in(self.ADJECTIVE_ONLY))
         )
-
-    def select_diverse_features(self, features):
-        """Pick top 2 features from different categories, avoiding all-adjective pairs."""
-        features = pl.DataFrame({"name": features})
-        categorized = features.join(self.classified_features, on="name", how="left").select(
-            pl.col("priority").fill_null(99),
-            pl.col("category_short"),
-            pl.col("name"),
-        )
-
-        # Take the best feature, then the best remaining from a different category
-        unique = categorized.unique(subset=["category_short"], keep="first", maintain_order=True)
-        if unique.is_empty():
-            return None
-
-        first_category = None
-        second_category = None
-        if unique.height > 0:
-            first_category = unique.row(0)
-
-        if unique.height > 1:
-            second_category = unique.row(1)
-        elif categorized.height > 1:
-            second_category = categorized.row(1)
-        else:
-            return [first_category]
-
-        return sorted([first_category, second_category], key=lambda x: x[0])
-
-    def assign_roles(self, categorized_features):
-        """Assign modifier and core roles based on priority, swapping if core is adjective-only."""
-        modifier_name = categorized_features[0][2]
-        core_name = categorized_features[1][2]
-        core_cat = categorized_features[1][1]
-
-        if core_name in self.ADJECTIVE_ONLY and modifier_name not in self.ADJECTIVE_ONLY:
-            modifier_name, core_name = core_name, modifier_name
-            core_cat = categorized_features[0][1]
-
-        return modifier_name, core_name, core_cat
-
-    def to_modifier_form(self, feature_name):
-        """Convert feature to its adjectival form when used as modifier."""
-        return self.ADJECTIVE_FORM.get(feature_name, feature_name)
-
-    def get_tag_category_string(self, feature):
-        """Get the raw category string for a tag (e.g. 'Setting-Scene', 'Theme-Other')."""
-        try:
-            return self.classified_features.row(
-                by_predicate=pl.col("name") == feature,
-                named=True,
-            ).get("category", "")
-        except pl.exceptions.NoRowsReturnedError:
-            return ""
 
     def name_clusters_from_data(self, dataframe, feature_column, cluster_column):
         """Extract descriptive features via TF-IDF and generate deduplicated cluster names."""
@@ -233,37 +181,128 @@ class ClusterNamer:
         return self.name_clusters(cluster_features)
 
     def name_clusters(self, cluster_features):
-        """Generate deduplicated names for all clusters.
-
-        Takes a dict of {cluster_id: [features]}, returns {cluster_id: name}.
         """
-        names = {
-            cid: self.name_single_cluster(feats) for cid, feats in cluster_features.iter_rows()
-        }
+        Generate interesting names for all clusters.
+        """
+        cluster_features = (
+            cluster_features.explode("description")
+            .select(
+                pl.col("cluster"),
+                pl.col("description").cast(pl.String),
+            )
+            .join(
+                self.classified_features,
+                left_on="description",
+                right_on="name",
+                how="left",
+                maintain_order="left",
+            )
+        )
 
-        names = pl.DataFrame({"cluster": names.keys(), "name": names.values()})
+        cluster_features = self.drop_substring_features(cluster_features)
+        names = self.select_top_2_features(cluster_features)
 
-        return names.select(pl.col("cluster").cast(pl.Int64), pl.col("name"))
+        return (
+            names.group_by("cluster", maintain_order=True)
+            .agg(
+                pl.col("description"),
+                pl.col("adjective_only").all(),
+                pl.col("category"),
+            )
+            .with_columns(
+                final_name=pl.struct("description", "adjective_only", "category").map_elements(
+                    self.conflict_resolver,
+                    return_dtype=pl.String,
+                )
+            )
+            .select(
+                pl.col("cluster"),
+                pl.col("final_name").alias("name"),
+            )
+        )
 
-    def name_single_cluster(self, features):
-        """Generate a natural language name for a single cluster from its feature list."""
-        if not features:
-            return ""
+    def select_top_2_features(self, cluster_features):
+        first_features = cluster_features.filter(pl.col("row_idx") == 0)
+        first_categories = first_features.select(
+            "cluster",
+            first_category=pl.col("category_short"),
+        )
 
-        categorized_features = self.select_diverse_features(features)
+        second_features = (
+            cluster_features.filter(pl.col("row_idx") > 0)
+            .join(
+                first_categories,
+                on="cluster",
+                how="left",
+                maintain_order="left",
+            )
+            .with_columns(is_same_cat=pl.col("category_short") == pl.col("first_category"))
+            # First take from a different category.
+            # If not, fall back to the second item of the first category
+            .sort(["cluster", "is_same_cat", "row_idx"])
+            .unique(
+                subset=["cluster"],
+                keep="first",
+                maintain_order=True,
+            )
+            .select(pl.exclude("is_same_cat", "first_category"))
+        )
 
-        if not categorized_features:
-            return " ".join(features[:2])
+        names = pl.concat([first_features, second_features], how="vertical").sort(
+            ["cluster", "adjective_only", "priority"],
+            descending=[False, True, False],
+            maintain_order=True,
+        )
+        return names
 
-        if len(categorized_features) == 1:
-            name = categorized_features[0][2]
-        else:
-            modifier_name, core_name, core_cat = self.assign_roles(categorized_features)
-            name = self.resolve_conflicts(modifier_name, core_name, core_cat)
+    def drop_substring_features(self, cluster_features):
+        """
+        Drop features that are just a substring of the other, more specific feature,
+        like Space - Space opera.
+        """
+        substring_features = (
+            cluster_features.select(
+                "cluster",
+                "description",
+                "category_short",
+            )
+            .join(cluster_features, on="cluster", suffix="_other")
+            .filter(
+                (pl.col("description") != pl.col("description_other"))
+                & (pl.col("description_other").str.contains(pl.col("description")))
+            )
+        )
 
-        return name
+        cluster_features = cluster_features.join(
+            substring_features,
+            on=["cluster", "description"],
+            how="anti",
+            maintain_order="left",
+        ).with_columns(
+            row_idx=pl.int_range(0, pl.len()).over("cluster"),
+        )
+        return cluster_features
 
-    def resolve_adjective_pair(self, modifier_name, core_name):
+    def conflict_resolver(self, row):
+        """Apply conflict resolution rules in order to produce the final name string."""
+        descriptions = row["description"]
+        modifier = descriptions[0]
+
+        if len(descriptions) == 1:
+            return f"{modifier}"
+
+        core = descriptions[1]
+        core_category = row["category"][1]
+
+        # Both adjective-only: resolve with preferred noun or fallback
+        if row["adjective_only"]:
+            modifier, core = self.resolve_adjective_pair(modifier, core, core_category)
+            return f"{modifier} {core}"
+
+        modifier = self.to_modifier_form(modifier)
+        return f"{modifier} {core}"
+
+    def resolve_adjective_pair(self, modifier_name, core_name, core_category):
         """Resolve both-adjective-only pairs by finding a suitable noun."""
         if core_name in self.PREFERRED_NOUN:
             return self.to_modifier_form(modifier_name), self.PREFERRED_NOUN[core_name]
@@ -271,30 +310,11 @@ class ClusterNamer:
         if modifier_name in self.PREFERRED_NOUN:
             return self.to_modifier_form(core_name), self.PREFERRED_NOUN[modifier_name]
 
-        core_category = self.get_tag_category_string(core_name)
         if core_category in self.CATEGORY_NOUNS:
             return self.to_modifier_form(modifier_name), self.CATEGORY_NOUNS[core_category]
 
-        return self.to_modifier_form(modifier_name), f"{core_name} Anime"
+        return self.to_modifier_form(modifier_name), f"{core_name}"
 
-    def resolve_conflicts(self, modifier_name, core_name, core_cat):
-        """Apply conflict resolution rules in order to produce the final name string."""
-        mod_lower = modifier_name.lower()
-        core_lower = core_name.lower()
-
-        # Substring overlap — keep the longer/more specific one
-        if mod_lower in core_lower or core_lower in mod_lower:
-            return max(modifier_name, core_name, key=len)
-
-        # Both adjective-only — resolve with preferred noun or fallback
-        if modifier_name in self.ADJECTIVE_ONLY and core_name in self.ADJECTIVE_ONLY:
-            modifier, core = self.resolve_adjective_pair(modifier_name, core_name)
-            return f"{modifier} {core}"
-
-        # Demographics read better as suffixes without adjectival transform
-        if core_cat == "Demographic":
-            return f"{modifier_name} {core_name}"
-
-        # Standard case: apply adjectival transform to modifier
-        modifier = self.to_modifier_form(modifier_name)
-        return f"{modifier} {core_name}"
+    def to_modifier_form(self, feature_name):
+        """Convert feature to its adjectival form when used as modifier."""
+        return self.ADJECTIVE_FORM.get(feature_name, feature_name)

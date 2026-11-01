@@ -33,11 +33,11 @@ def test_extract_features():
     result = {row["cluster"]: row["description"] for row in features.iter_rows(named=True)}
 
     # Top feature per cluster is deterministic; second may vary when TF-IDF scores tie
-    assert result["0"][0] == "Action"
-    assert result["1"][0] == "Shounen"
-    assert result["2"][0] == "Historical"
-    assert len(result["0"]) == 2
-    assert len(result["1"]) == 2
+    assert result[0][0] == "Action"
+    assert result[1][0] == "Shounen"
+    assert result[2][0] == "Historical"
+    assert len(result[0]) == 2
+    assert len(result[1]) == 2
 
 
 def test_extract_features_without_feature_count():
@@ -64,11 +64,11 @@ def test_extract_features_without_feature_count():
     result = {row["cluster"]: row["description"] for row in features.iter_rows(named=True)}
 
     # TF-IDF ranks features by distinctiveness, only non-zero scores included
-    assert result["0"][0] == "Action"
-    assert result["1"][0] == "Shounen"
-    assert result["2"][0] == "Historical"
+    assert result[0][0] == "Action"
+    assert result[1][0] == "Shounen"
+    assert result[2][0] == "Historical"
     # Cluster 0 has more distinctive features than single-item clusters
-    assert len(result["0"]) > len(result["1"])
+    assert len(result[0]) > len(result[1])
 
 
 def test_extract_features_with_prevalence_threshold():
@@ -93,4 +93,4 @@ def test_extract_features_with_prevalence_threshold():
 
     result = {row["cluster"]: row["description"] for row in features.iter_rows(named=True)}
 
-    assert result["0"] == ["Action"]
+    assert result[0] == ["Action"]
