@@ -154,7 +154,7 @@ def test_cluster_name_adjective_only_fallbacks():
             "isAdult": [False, False],
         }
     )
-    namer.classified_features = namer.classify_features()
+    namer.classified_features = namer.fit()
 
     assert name_single_cluster(namer, ["FakeAdj1", "FakeAdj2"]) == "FakeAdj2 Drama"
 

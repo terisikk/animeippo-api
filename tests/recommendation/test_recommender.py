@@ -18,6 +18,9 @@ class EngineStub:
     def get_clusters(self, dataset):
         return [[1, 2, 3]]
 
+    def get_show_descriptions(self, dataset):
+        return pl.DataFrame({"id": [1], "description": [["Stupid", "Funny", "Bleh"]]})
+
 
 class SimpleProviderStub:
     """Provider stub without async context manager methods."""

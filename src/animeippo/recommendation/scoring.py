@@ -60,11 +60,16 @@ class FeatureCorrelationScorer(AbstractScorer):
         scoring_target_df = data.seasonal
         compare_df = data.watchlist
 
-        positive_weights = self.get_positive_weights(compare_df)
-        negative_weights = self.get_negative_weights(compare_df)
-        catalogue_freq = self.get_catalogue_frequency(scoring_target_df)
+        positive_weights = data.user_profile.feature_correlations
+        negative_weights = data.user_profile.status_correlations
 
-        debiased = self.debias_weights(positive_weights, catalogue_freq)
+        # Debias will happen against the seasonal shows to
+        # allow features that are not so trendy to have a chance too.
+        catalogue_freq = statistics.catalogue_frequency(scoring_target_df, "features")
+
+        debiased = statistics.debias_weights(
+            positive_weights, catalogue_freq, self.BETA, self.EPSILON
+        )
         denominator = self.get_denominator(scoring_target_df)
         features_exploded = data.seasonal_explode_cached("features")
 
@@ -72,7 +77,7 @@ class FeatureCorrelationScorer(AbstractScorer):
         negative_signal = (
             self.aggregate_signal(
                 features_exploded,
-                negative_weights.rename({"features": "name"}),
+                negative_weights,
                 fillna=0.0,
             )
             / denominator
@@ -80,7 +85,7 @@ class FeatureCorrelationScorer(AbstractScorer):
         baseline = (
             self.aggregate_signal(
                 features_exploded,
-                catalogue_freq.rename({"pc": "weight", "features": "name"}),
+                catalogue_freq.select("name", pl.col("frequency").alias("weight")),
             )
             / denominator
         )
@@ -97,39 +102,6 @@ class FeatureCorrelationScorer(AbstractScorer):
             statistics.rank_series(clamped_score),
             confidence,
             self.weight,
-        )
-
-    def get_positive_weights(self, compare_df):
-        return statistics.weight_encoded_categoricals_correlation(
-            compare_df, "encoded", header_name="features"
-        )
-
-    def get_negative_weights(self, compare_df):
-        return statistics.weight_encoded_categoricals_correlation(
-            compare_df.with_columns(
-                dropped_or_paused=pl.col("user_status").is_in(["DROPPED", "PAUSED"])
-            ),
-            "encoded",
-            against="dropped_or_paused",
-            header_name="features",
-        )
-
-    def get_catalogue_frequency(self, scoring_target_df):
-        return statistics.catalogue_frequency(scoring_target_df, "features", value_col="features")
-
-    def debias_weights(self, positive_weights, catalogue_freq):
-        return (
-            positive_weights.join(
-                catalogue_freq.with_columns(pl.col("features").cast(pl.Utf8)),
-                on="features",
-                how="left",
-            )
-            .with_columns(
-                pl.col("pc").fill_null(self.EPSILON),
-                debiased_weight=(pl.col("weight") / (pl.col("pc") ** self.BETA + self.EPSILON)),
-            )
-            .select(["features", "debiased_weight"])
-            .rename({"debiased_weight": "weight", "features": "name"})
         )
 
     def get_denominator(self, scoring_target_df):
@@ -154,12 +126,12 @@ class FeatureCorrelationScorer(AbstractScorer):
 
     def get_contested_penalty(self, scoring_target_df, positive_weights, negative_weights):
         """Reduce confidence when features have both strong positive and negative signals."""
-        contested = positive_weights.join(negative_weights, on="features", suffix="_neg").filter(
+        contested = positive_weights.join(negative_weights, on="name", suffix="_neg").filter(
             (pl.col("weight").abs() > self.CONTESTED_THRESHOLD)
             & (pl.col("weight_neg").abs() > self.CONTESTED_THRESHOLD)
         )
 
-        contested_features = set(contested["features"].to_list())
+        contested_features = set(contested["name"].to_list())
         if not contested_features:
             return 1.0
 

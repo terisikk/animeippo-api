@@ -8,7 +8,7 @@ from animeippo.recommendation.model import RecommendationModel
 from .. import cache, providers
 from ..analysis import encoding
 from ..clustering import model, namer
-from . import categories, engine, scoring
+from . import categories, description, engine, scoring
 from .ranking import RankingOrchestrator
 from .recommender import AnimeRecommender
 
@@ -165,6 +165,7 @@ def build_recommender(providername):
                 )
             ),
             cluster_namer=namer.ClusterNamer(genres),
+            describer=description.AnimeDescriber(genres),
         ),
         recommendation_model_cls=RecommendationModel,
         profile_model_cls=UserProfile,

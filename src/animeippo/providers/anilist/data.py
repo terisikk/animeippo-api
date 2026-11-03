@@ -451,7 +451,7 @@ ALL_GENRES = {
     "Thriller": {"mood": "dark", "intensity": "heavy"},
 }
 
-ALL_FEATURES = set(ALL_GENRES.keys()).union(ALL_TAGS.keys())
+ALL_FEATURES = set(ALL_GENRES.keys()).union(TAG_BY_NAME.keys())
 
 GENRE_FEATURE_STRUCTS = {
     name: {

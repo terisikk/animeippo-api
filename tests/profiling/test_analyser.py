@@ -2,9 +2,7 @@ import polars as pl
 import pytest
 
 from animeippo.profiling import analyser
-from animeippo.profiling.model import UserProfile
 from animeippo.recommendation import recommender_builder
-from animeippo.recommendation.model import RecommendationModel
 from tests import test_data, test_provider
 
 
@@ -66,50 +64,6 @@ async def test_profile_analyser_can_run_when_async_loop_is_already_running():
     _, categories, _ = await profiler.analyse("Janiskeisari")
 
     assert len(categories) > 0
-
-
-def test_user_top_genres_and_tags_can_be_categorized(mocker):
-    data = pl.DataFrame(test_data.FORMATTED_ANI_SEASONAL_LIST)
-    data = data.with_columns(score=pl.Series([10.0, 8.0]))
-
-    uprofile = UserProfile("Test", data)
-    dset = RecommendationModel(uprofile, None)
-
-    profiler = analyser.ProfileAnalyser(None)
-
-    categories = profiler.get_profile_top_genre_and_tag_categories(dset)
-
-    assert len(categories) > 0
-
-    uprofile = UserProfile("Test", data)
-    uprofile.genre_correlations = pl.DataFrame(
-        {"weight": [1, 1], "name": ["Absurd", "Nonexisting"]}
-    )
-    dset = RecommendationModel(uprofile, None)
-
-    mocker.patch(
-        "animeippo.analysis.statistics.weight_categoricals_correlation",
-        return_value=pl.DataFrame({"weight": [1, 1], "name": ["Absurd", "Nonexisting"]}),
-    )
-
-    categories = profiler.get_profile_top_genre_and_tag_categories(dset)
-    assert len(categories) > 0
-
-    data = data.drop("genres")
-    uprofile = UserProfile("Test", data)
-
-    dset = RecommendationModel(uprofile, None)
-
-    categories = profiler.get_profile_top_genre_and_tag_categories(dset)
-    assert len(categories) > 0
-
-    data = data.drop("tags")
-    uprofile = UserProfile("Test", data)
-
-    dset = RecommendationModel(uprofile, None)
-
-    categories = profiler.get_profile_top_genre_and_tag_categories(dset)
-    assert len(categories) == 0
 
 
 def test_seasonal_recommendations_added_to_clusters():

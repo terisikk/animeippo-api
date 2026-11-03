@@ -50,7 +50,10 @@ class RankingOrchestrator:
         exclusive_ids = set()
 
         for category, top_n in layout:
-            mask, sorting_info = category.categorize(data)
+            try:
+                mask, sorting_info = category.categorize(data)
+            except pl.exceptions.ColumnNotFoundError:
+                continue
 
             if mask is False:
                 continue

@@ -50,6 +50,7 @@ def test_feature_correlation_scorer():
     scorer = scoring.FeatureCorrelationScorer()
 
     uprofile = UserProfile("Test", source_df)
+    uprofile.fit()
     result = scorer.score(
         RecommendationModel(
             uprofile,
@@ -95,6 +96,7 @@ def test_feature_correlation_scorer_contested_features_reduce_confidence():
 
     scorer = scoring.FeatureCorrelationScorer()
     uprofile = UserProfile("Test", source_df)
+    uprofile.fit()
 
     result = scorer.score(
         RecommendationModel(uprofile, target_df, features=pl.Series(["Action", "Drama"]))
@@ -126,6 +128,7 @@ def test_cluster_similarity_scorer():
     scorer = scoring.ClusterSimilarityScorer()
 
     uprofile = UserProfile("Test", source_df)
+    uprofile.fit()
     data = RecommendationModel(
         uprofile,
         target_df,
@@ -169,6 +172,8 @@ def test_cluster_similarity_scorer_weighted():
     scorer = scoring.ClusterSimilarityScorer()
 
     uprofile = UserProfile("Test", source_df)
+    uprofile.fit()
+
     data = RecommendationModel(
         uprofile,
         target_df,
@@ -205,6 +210,8 @@ def test_cluster_similarity_scorer_single_member_clusters():
 
     scorer = scoring.ClusterSimilarityScorer()
     uprofile = UserProfile("Test", source_df)
+    uprofile.fit()
+
     data = RecommendationModel(uprofile, target_df)
 
     data.similarity_matrix = pl.DataFrame({"3": [0.8, 0.2], "id": [1, 2]})
@@ -238,6 +245,8 @@ def test_studio_correlation_scorer():
     scorer = scoring.StudioCorrelationScorer()
 
     uprofile = UserProfile("Test", source_df)
+    uprofile.fit()
+
     result = scorer.score(
         RecommendationModel(
             uprofile,
@@ -306,6 +315,8 @@ def test_continuation_scorer():
     scorer = scoring.ContinuationScorer()
 
     uprofile = UserProfile("Test", compare)
+    uprofile.fit()
+
     result = scorer.score(RecommendationModel(uprofile, original))
 
     assert [round(a, 1) for a in result.score.to_list()] == [0.8, 0.0, 0.7, 0.0]
@@ -335,6 +346,8 @@ def test_continuation_scorer_null_predecessor_score():
     scorer = scoring.ContinuationScorer()
 
     uprofile = UserProfile("Test", compare)
+    uprofile.fit()
+
     result = scorer.score(RecommendationModel(uprofile, original))
 
     # Null score falls back to user mean (4.33), so id=5 gets 0.433 * 1.0
@@ -364,6 +377,8 @@ def test_continuation_scorer_dropped_sequel_caps_strength():
 
     scorer = scoring.ContinuationScorer()
     uprofile = UserProfile("Test", compare)
+    uprofile.fit()
+
     result = scorer.score(RecommendationModel(uprofile, original))
 
     # S3 has predecessors S1 (completed, 9) and S2 (dropped, 3)
@@ -393,6 +408,8 @@ def test_continuation_scorer_takes_max_of_duplicate_relations():
     scorer = scoring.ContinuationScorer()
 
     uprofile = UserProfile("Test", compare)
+    uprofile.fit()
+
     result = scorer.score(RecommendationModel(uprofile, original))
 
     assert result.score.to_list() == [0.8, 0.0]
@@ -420,6 +437,8 @@ def test_continuation_scorer_penalizes_summaries():
     scorer = scoring.ContinuationScorer()
 
     uprofile = UserProfile("Test", compare)
+    uprofile.fit()
+
     result = scorer.score(RecommendationModel(uprofile, original))
 
     # Normal sequel gets full score, summary gets SUMMARY_FACTOR (0.3) applied
@@ -447,6 +466,8 @@ def test_cluster_similarity_scorer_cohesion():
     scorer = scoring.ClusterSimilarityScorer()
 
     uprofile = UserProfile("Test", source_df)
+    uprofile.fit()
+
     data = RecommendationModel(uprofile, target_df)
 
     # Filtered matrix (seasonal columns only) for scoring
@@ -509,6 +530,8 @@ def test_direct_similarity_scorer():
     scorer = scoring.DirectSimilarityScorer()
 
     uprofile = UserProfile("Test", source_df)
+    uprofile.fit()
+
     data = RecommendationModel(
         uprofile,
         target_df,
@@ -549,8 +572,10 @@ def test_adaptation_scorer():
     )
 
     scorer = scoring.AdaptationScorer()
+    uprofile = UserProfile("Test", compare)
+    uprofile.fit()
 
-    data = RecommendationModel(None, target)
+    data = RecommendationModel(uprofile, target)
 
     result = scorer.score(data)
 
@@ -604,6 +629,8 @@ def test_collaborative_recommendation_scorer_basic():
 
     scorer = scoring.CollaborativeRecommendationScorer()
     uprofile = UserProfile("Test", watchlist)
+    uprofile.fit()
+
     result = scorer.score(RecommendationModel(uprofile, seasonal))
 
     assert len(result.score) == 3
@@ -632,6 +659,8 @@ def test_collaborative_recommendation_scorer_no_recommendations_column():
 
     scorer = scoring.CollaborativeRecommendationScorer()
     uprofile = UserProfile("Test", watchlist)
+    uprofile.fit()
+
     result = scorer.score(RecommendationModel(uprofile, seasonal))
 
     assert (result.score == 0.0).all()
@@ -659,6 +688,8 @@ def test_collaborative_recommendation_scorer_no_matching_links():
 
     scorer = scoring.CollaborativeRecommendationScorer()
     uprofile = UserProfile("Test", watchlist)
+    uprofile.fit()
+
     result = scorer.score(RecommendationModel(uprofile, seasonal))
 
     assert (result.score == 0.0).all()
@@ -686,6 +717,8 @@ def test_collaborative_recommendation_scorer_dropped_show_negative_signal():
 
     scorer = scoring.CollaborativeRecommendationScorer()
     uprofile = UserProfile("Test", watchlist)
+    uprofile.fit()
+
     result = scorer.score(RecommendationModel(uprofile, seasonal))
 
     # Dropped status has -0.5 modifier, so signal should be negative before rank normalization
@@ -715,6 +748,8 @@ def test_collaborative_recommendation_scorer_unrated_show_uses_mean():
 
     scorer = scoring.CollaborativeRecommendationScorer()
     uprofile = UserProfile("Test", watchlist)
+    uprofile.fit()
+
     result = scorer.score(RecommendationModel(uprofile, seasonal))
 
     # Both should have non-zero scores (unrated uses mean score fallback)
@@ -752,6 +787,8 @@ def test_collaborative_recommendation_scorer_confidence_scales_with_link_count()
 
     scorer = scoring.CollaborativeRecommendationScorer()
     uprofile = UserProfile("Test", watchlist)
+    uprofile.fit()
+
     result = scorer.score(RecommendationModel(uprofile, seasonal))
 
     # Candidate 10 has 3 links (>= MIN_LINK_COUNT=3), candidate 11 has 1
@@ -779,6 +816,8 @@ def test_collaborative_recommendation_scorer_zero_total_thumbs():
 
     scorer = scoring.CollaborativeRecommendationScorer()
     uprofile = UserProfile("Test", watchlist)
+    uprofile.fit()
+
     result = scorer.score(RecommendationModel(uprofile, seasonal))
 
     # Zero rating means zero signal, no division by zero

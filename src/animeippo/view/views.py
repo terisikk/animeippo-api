@@ -32,6 +32,7 @@ def recommendations_web_view(dataframe, categories=None, tags_and_genres=None, d
         "format",
         "moods",
         "intensity",
+        "description",
     ]
 
     # In debug mode, include all scorer columns

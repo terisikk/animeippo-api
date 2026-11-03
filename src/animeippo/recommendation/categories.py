@@ -2,6 +2,8 @@ import abc
 
 import polars as pl
 
+from animeippo.providers.anilist.data import ALL_GENRES
+
 from ..meta import meta
 from . import scoring
 
@@ -190,7 +192,7 @@ class StudioCategory(AbstractCategory):
 
         return mask, sorting
 
-    def get_items(self, df, top_n):
+    def get_items(self, df, top_n=None):
         """Sort by best matching studio weight, then discovery score."""
         weights_df = pl.DataFrame(
             {
@@ -210,7 +212,7 @@ class StudioCategory(AbstractCategory):
             .sort("_best_studio_weight", "discovery_score", descending=True)
         )
 
-        if top_n:
+        if top_n is not None:
             result = result.head(top_n)
 
         return result["id"].to_list()
@@ -224,9 +226,15 @@ class GenreCategory(AbstractCategory):
         self.nth_genre = nth_genre
 
     def categorize(self, dataset):
-        genre_correlations = dataset.user_profile.genre_correlations
+        feature_correlations = dataset.user_profile.feature_correlations
 
-        if self.nth_genre < len(genre_correlations):
+        # FIXME: Really should not import all genres here,
+        # should rather include category info and filter based on that
+        genre_correlations = feature_correlations.filter(
+            pl.col("name").is_in(ALL_GENRES.keys())
+        ).sort("weight", descending=True)
+
+        if genre_correlations is not None and self.nth_genre < genre_correlations.height:
             genre = genre_correlations[self.nth_genre]["name"].item()
 
             mask = (
@@ -242,8 +250,13 @@ class GenreCategory(AbstractCategory):
 
         return False, {}
 
-    def get_items(self, df, top_n):
-        return df["id"].to_list()
+    def get_items(self, df, top_n=None):
+        result = df
+
+        if top_n is not None:
+            result = result.head(top_n)
+
+        return result["id"].to_list()
 
 
 class TopReleasedPicksCategory(AbstractCategory):
@@ -375,13 +388,10 @@ class BecauseYouLikedCategory(AbstractCategory):
         ):
             liked_item = last_liked[self.nth_liked]
 
-            try:
-                similarity = dataset.get_similarity_matrix(filtered=False, transposed=True).select(
-                    pl.col("id").cast(pl.UInt32),
-                    pl.col(str(liked_item["id"].item())).alias("gscore"),
-                )
-            except pl.exceptions.ColumnNotFoundError:
-                return False, {}
+            similarity = dataset.get_similarity_matrix(filtered=False, transposed=True).select(
+                pl.col("id").cast(pl.UInt32),
+                pl.col(str(liked_item["id"].item())).alias("gscore"),
+            )
 
             self.description = f"Because You Liked {liked_item['title'].item()}"
 

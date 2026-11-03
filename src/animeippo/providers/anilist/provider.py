@@ -111,6 +111,7 @@ class AniListProvider(abstract_provider.AbstractAnimeProvider):
                             tags {
                                 id
                                 rank
+                                isMediaSpoiler
                             }
                             meanScore
                             duration
@@ -146,6 +147,7 @@ class AniListProvider(abstract_provider.AbstractAnimeProvider):
                             tags {
                                 id
                                 rank
+                                isMediaSpoiler
                             }
                             meanScore
                             duration

@@ -23,10 +23,10 @@ def explode_features(recommendations):
     )
 
 
-def compute_moods(exploded):
+def compute_moods(features):
     """Compute moods list per show: group mood scores, threshold, collect into list."""
     return (
-        exploded.filter((pl.col("rank") >= MOOD_TAG_RANK_CUTOFF) & pl.col("mood").is_not_null())
+        features.filter((pl.col("rank") >= MOOD_TAG_RANK_CUTOFF) & pl.col("mood").is_not_null())
         .group_by("id", "mood")
         .agg(score=(pl.col("rank")).sum())
         .filter(pl.col("score") >= MOOD_THRESHOLD)
@@ -35,10 +35,10 @@ def compute_moods(exploded):
     )
 
 
-def compute_intensity(exploded):
+def compute_intensity(features):
     """Compute raw intensity score per show from tag/genre intensity tiers."""
     return (
-        exploded.with_columns(
+        features.with_columns(
             sign=pl.col("intensity").cast(pl.Utf8).replace_strict(TIER_SIGNS, default=0.0)
         )
         .with_columns(contribution=pl.col("rank") * pl.col("sign"))
@@ -61,10 +61,10 @@ def bucket_intensity(df):
 
 def add_mood_data(recommendations):
     """Add mood and intensity columns to recommendations DataFrame."""
-    exploded = explode_features(recommendations)
+    features = explode_features(recommendations)
 
-    moods_df = compute_moods(exploded)
-    intensity_df = bucket_intensity(compute_intensity(exploded))
+    moods_df = compute_moods(features)
+    intensity_df = bucket_intensity(compute_intensity(features))
 
     return recommendations.join(moods_df, on="id", how="left").join(
         intensity_df, on="id", how="left"

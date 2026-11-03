@@ -1,7 +1,5 @@
 import polars as pl
 
-from animeippo.analysis import statistics
-
 CLUSTERING_DEFAULTS = {
     "distance_metric": "cosine",
     "distance_threshold": 0.63,
@@ -16,9 +14,7 @@ class ProfileAnalyser:
 
     def __init__(self, recommender):
         self.recommender = recommender
-
-        if self.recommender:
-            self.provider = recommender.provider
+        self.provider = recommender.provider
 
     async def analyse(self, user, year=None, season=None):
         # TODO: Should maybe really allow year=None, season=None
@@ -84,50 +80,6 @@ class ProfileAnalyser:
 
     def filter_items_on_watchlist(self, seasonal, watchlist):
         return seasonal.join(watchlist.select("id"), on="id", how="anti")
-
-    def get_profile_top_genre_and_tag_categories(self, profile):
-        """
-        Get top genre and tag highlights for the profile page.
-        Not in use right now, consider removing.
-        """
-        categories = []
-        top_genre_items = []
-        top_tag_items = []
-
-        if (
-            "genres" in profile.watchlist.columns
-            and profile.user_profile.genre_correlations is not None
-        ):
-            top_5_genres = profile.user_profile.genre_correlations[0:5]["name"].to_list()
-
-            for genre in top_5_genres:
-                gdf = profile.watchlist_explode_cached("genres")
-                filtered = gdf.filter(pl.col("genres") == genre).sort("score", descending=True)
-
-                if len(filtered) > 0:
-                    top_genre_items.append(filtered.item(0, "id"))
-
-            categories.append({"name": ", ".join(top_5_genres), "items": top_genre_items})
-
-        if "tags" in profile.watchlist.columns:
-            tag_correlations = statistics.weight_categoricals_correlation(
-                profile.watchlist.explode("tags"), "tags"
-            ).sort(["weight", "name"], descending=True)
-
-            top_5_tags = tag_correlations[0:5]["name"].to_list()
-
-            for tag in top_5_tags:
-                gdf = profile.watchlist.filter(
-                    ~pl.col("id").is_in(pl.Series(top_genre_items.extend(top_tag_items)).implode())
-                ).explode("tags")
-                filtered = gdf.filter(pl.col("tags") == tag).sort("score", descending=True)
-
-                if len(filtered) > 0:
-                    top_tag_items.append(str(filtered.item(0, "id")))
-
-            categories.append({"name": ", ".join(top_5_tags), "items": top_tag_items})
-
-        return categories
 
     def group_watchlist_by_cluster(self, dataset):
         clusters = dataset.clusters

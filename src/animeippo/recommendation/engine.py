@@ -23,6 +23,7 @@ class AnimeRecommendationEngine:
         engagement_scorers=None,
         ranking_orchestrator=None,
         cluster_namer=None,
+        describer=None,
     ):
         self.clustering_model = clustering_model
         self.encoder = encoder
@@ -30,6 +31,8 @@ class AnimeRecommendationEngine:
         self.engagement_scorers = engagement_scorers or []
         self.ranking_orchestrator = ranking_orchestrator
         self.cluster_namer = cluster_namer
+        # TODO: Move to build
+        self.describer = describer
 
         self._cluster_names = None
 
@@ -51,6 +54,9 @@ class AnimeRecommendationEngine:
         )
 
         recommendations = add_mood_data(recommendations)
+
+        if self.describer is not None:
+            self.describer.fit()
 
         return recommendations.sort("discovery_score", descending=True)
 
@@ -186,3 +192,9 @@ class AnimeRecommendationEngine:
             * pl.col("rec_count").log1p()
             * pl.col("mean_similarity")
         )
+
+    def get_show_descriptions(self, dataset):
+        if self.describer is not None:
+            return self.describer.describe_shows(dataset)
+
+        return None

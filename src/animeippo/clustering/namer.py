@@ -147,9 +147,9 @@ class ClusterNamer:
             schema=["name"],
         )
 
-        self.classified_features = self.classify_features()
+        self.classified_features = self.fit()
 
-    def classify_features(self):
+    def fit(self):
         return (
             pl.concat(
                 [self.tag_df, self.genre_df.with_columns(category=pl.lit("Genre"))], how="diagonal"
@@ -268,7 +268,7 @@ class ClusterNamer:
             .join(cluster_features, on="cluster", suffix="_other")
             .filter(
                 (pl.col("description") != pl.col("description_other"))
-                & (pl.col("description_other").str.contains(pl.col("description")))
+                & (pl.col("description_other").str.contains(r"\b" + pl.col("description") + r"\b"))
             )
         )
 

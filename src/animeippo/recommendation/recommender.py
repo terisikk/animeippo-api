@@ -67,6 +67,16 @@ class AnimeRecommender:
         if user:
             dataset.recommendations = self.engine.fit_predict(dataset)
             dataset.clusters = self.engine.get_clusters(dataset)
+
+            descriptions = self.engine.get_show_descriptions(dataset)
+
+            if descriptions is not None:
+                dataset.recommendations = dataset.recommendations.join(
+                    descriptions,
+                    on="id",
+                    how="left",
+                    maintain_order="left",
+                )
         else:
             dataset.recommendations = dataset.seasonal.sort("popularity", descending=True)
 

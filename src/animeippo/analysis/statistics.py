@@ -199,7 +199,7 @@ def get_descriptive_features(  # noqa: PLR0913, PLR0917
     )
 
 
-def catalogue_frequency(df: pl.DataFrame, list_col: str, value_col: str = "value") -> pl.DataFrame:
+def catalogue_frequency(df: pl.DataFrame, list_col: str) -> pl.DataFrame:
     """
     df[list_col] is a list column (e.g. 'genres' or 'features').
     Returns: value, pc (catalogue share in current season, in [0,1])
@@ -210,7 +210,19 @@ def catalogue_frequency(df: pl.DataFrame, list_col: str, value_col: str = "value
         .explode(list_col, empty_as_null=True)
         .group_by(list_col)
         .len()
-        .rename({list_col: value_col, "len": "cnt"})
-        .with_columns((pl.col("cnt") / pl.lit(total)).alias("pc"))
-        .select([value_col, "pc"])
+        .with_columns((pl.col("len") / pl.lit(total)).alias("frequency"))
+        .select([pl.col(list_col).alias("name").cast(pl.Utf8), "frequency"])
+    )
+
+
+def debias_weights(positive_weights, catalogue_freq, beta=0.7, epsilon=1e-6):
+    return positive_weights.join(
+        catalogue_freq,
+        on="name",
+        how="left",
+    ).select(
+        pl.col("name"),
+        (pl.col("weight") / (pl.col("frequency").fill_null(epsilon) ** beta + epsilon)).alias(
+            "weight"
+        ),
     )

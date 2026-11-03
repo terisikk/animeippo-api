@@ -9,21 +9,21 @@ class UserProfile:
         self.watchlist = watchlist
         self.mangalist = mangalist
         self.last_liked = None
-        self.genre_correlations = None
+        self.feature_correlations = None
+        self.status_correlations = None
         self.director_correlations = None
         self.studio_correlations = None
         self.favourite_source = None
 
-        if self.watchlist is not None and "score" in self.watchlist.columns:
-            self.fit()
-
     def fit(self):
-        self.genre_correlations = self.get_genre_correlations()
+        if self.watchlist is not None and "score" in self.watchlist.columns:
+            self.feature_correlations = self.get_feature_correlations()
+            self.status_correlations = self.get_status_correlations()
 
-        self.director_correlations = self.get_director_correlations()
-        self.studio_correlations = self.get_studio_correlations()
-        self.last_liked = self.get_last_liked()
-        self.favourite_source = self.get_favourite_source()
+            self.director_correlations = self.get_director_correlations()
+            self.studio_correlations = self.get_studio_correlations()
+            self.last_liked = self.get_last_liked()
+            self.favourite_source = self.get_favourite_source()
 
     def get_last_liked(self):
         if "user_complete_date" not in self.watchlist.columns:
@@ -35,14 +35,25 @@ class UserProfile:
 
         return self.watchlist.filter(mask).sort("user_complete_date", descending=True).head(10)
 
-    def get_genre_correlations(self):
-        if "genres" not in self.watchlist.columns:
+    def get_feature_correlations(self):
+        if "encoded" not in self.watchlist.columns:
             return None
 
-        gdf = self.watchlist.explode("genres")
+        return statistics.weight_encoded_categoricals_correlation(
+            self.watchlist, "encoded", header_name="name"
+        )
 
-        return statistics.weight_categoricals_correlation(gdf, "genres").sort(
-            "weight", descending=True
+    def get_status_correlations(self):
+        if "encoded" not in self.watchlist.columns or "user_status" not in self.watchlist.columns:
+            return None
+
+        return statistics.weight_encoded_categoricals_correlation(
+            self.watchlist.with_columns(
+                dropped_or_paused=pl.col("user_status").is_in(["DROPPED", "PAUSED"])
+            ),
+            "encoded",
+            against="dropped_or_paused",
+            header_name="name",
         )
 
     def get_studio_correlations(self):

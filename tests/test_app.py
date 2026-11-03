@@ -24,7 +24,7 @@ class MockProfile:
         self.user = "Test"
         self.characteristics = None
         self.user_profile = MagicMock()
-        self.user_profile.genre_correlations = None
+        self.user_profile.feature_correlations = None
 
 
 @pytest.fixture

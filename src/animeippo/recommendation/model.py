@@ -9,9 +9,7 @@ class RecommendationModel:
 
     def __init__(self, user_profile, seasonal, features=None):
         self.user_profile = user_profile
-        self.watchlist = user_profile.watchlist if user_profile is not None else None
         self.seasonal = seasonal
-        self.mangalist = user_profile.mangalist if user_profile is not None else None
         self.recommendations = None
         self.clusters = None
 
@@ -20,6 +18,22 @@ class RecommendationModel:
         self.similarity_matrix = None
         self._explode_cache = {}
         self._sim_matrix_cache = {}
+
+    @property
+    def watchlist(self):
+        return self.user_profile.watchlist if self.user_profile is not None else None
+
+    @watchlist.setter
+    def watchlist(self, value):
+        self.user_profile.watchlist = value
+
+    @property
+    def mangalist(self):
+        return self.user_profile.mangalist if self.user_profile is not None else None
+
+    @mangalist.setter
+    def mangalist(self, value):
+        self.user_profile.mangalist = value
 
     def validate(self):
         is_missing_seasonal = self.seasonal is None
@@ -118,6 +132,8 @@ class RecommendationModel:
             self.seasonal["id"].cast(pl.Utf8),
         ).with_columns(id=self.watchlist["id"])
         # Categories could use unfiltered watchlist, but scoring needs to filter it
+
+        self.user_profile.fit()
 
         # Rechunk to maximize performance, not sure if it has any real effect
         self.seasonal = self.seasonal.rechunk()

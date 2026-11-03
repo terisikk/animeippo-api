@@ -43,6 +43,14 @@ class ProviderStub:
         return []
 
 
+class StubDescriber:
+    def fit(self):
+        return
+
+    def describe_shows(self, *args, **kwargs):
+        return "Cool!"
+
+
 @pytest.mark.asyncio
 async def test_recommend_seasonal_anime_for_user_by_genre():
     provider = ProviderStub()
@@ -53,7 +61,7 @@ async def test_recommend_seasonal_anime_for_user_by_genre():
 
     scorer = scoring.FeatureCorrelationScorer()
     recengine = engine.AnimeRecommendationEngine(
-        clustering.AnimeClustering(), encoding.CategoricalEncoder()
+        clustering.AnimeClustering(), encoding.CategoricalEncoder(), describer=StubDescriber()
     )
 
     recengine.add_scorer(scorer)
@@ -168,7 +176,12 @@ def test_categorize():
         ranking_orchestrator=RankingOrchestrator(categorizers_with_limits),
     )
 
-    uprofile = UserProfile("Test", pl.DataFrame(test_data.FORMATTED_MAL_USER_LIST))
+    watchlist = pl.DataFrame(test_data.FORMATTED_ANI_USER_LIST)
+    watchlist = watchlist.with_columns(encoded={"Action": 1})
+
+    uprofile = UserProfile("Test", watchlist)
+    uprofile.fit()
+
     uprofile.studio_correlations = pl.DataFrame({"name": ["Test Studio 1"], "weight": [0.5]})
 
     data = RecommendationModel(uprofile, None, None)
@@ -234,8 +247,8 @@ def test_get_cluster_stats():
         }
     )
 
-    data = RecommendationModel(None, None, None)
-    data.watchlist = watchlist
+    uprofile = UserProfile("Test", watchlist)
+    data = RecommendationModel(uprofile, None, None)
     data.recommendations = recommendations
 
     stats = recengine.get_cluster_stats(data)
@@ -249,9 +262,11 @@ def test_clusters_without_cluster_column():
         clustering.AnimeClustering(), encoding.CategoricalEncoder()
     )
 
-    data = RecommendationModel(None, None, None)
+    watchlist = pl.DataFrame({"id": [1]})
 
-    data.watchlist = pl.DataFrame({"id": [1]})
+    uprofile = UserProfile("Test", watchlist)
+    data = RecommendationModel(uprofile, None, None)
+
     data.recommendations = pl.DataFrame({"id": [10]})
     assert len(recengine.get_clusters(data)) == 0
 
@@ -274,8 +289,8 @@ def test_rank_clusters():
         {"id": [10, 11, 12], "cluster": [0, 0, 1], "cluster_similarity": [0.8, 0.7, 0.3]}
     )
 
-    data = RecommendationModel(None, None, None)
-    data.watchlist = watchlist
+    uprofile = UserProfile("Test", watchlist)
+    data = RecommendationModel(uprofile, None, None)
     data.recommendations = recs
 
     stats = recengine.get_cluster_stats(data)
@@ -286,3 +301,11 @@ def test_rank_clusters():
         stats.filter(pl.col("cluster") == 0).select("rank_score").item()
         > stats.filter(pl.col("cluster") == 1).select("rank_score").item()
     )
+
+
+def test_describer_is_called():
+    recengine = engine.AnimeRecommendationEngine(
+        clustering.AnimeClustering(), encoding.CategoricalEncoder(), describer=StubDescriber()
+    )
+
+    assert recengine.get_show_descriptions("test") == "Cool!"

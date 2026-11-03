@@ -1,5 +1,6 @@
 import polars as pl
 
+from animeippo.profiling.model import UserProfile
 from animeippo.recommendation import model
 from tests import test_data
 
@@ -28,8 +29,8 @@ def test_continuation_filtering_works():
 
     seasonal = seasonal.with_columns(user_status=pl.lit(None, pl.Utf8))
 
-    dset = model.RecommendationModel(None, seasonal)
-    dset.watchlist = watchlist
+    uprofile = UserProfile("Test", watchlist)
+    dset = model.RecommendationModel(uprofile, seasonal, None)
 
     dset.filter_irrelevant_continuation()
 
@@ -47,8 +48,8 @@ def test_features_can_be_extracted_from_ranks():
         schema_overrides={"features": pl.List(pl.Categorical)},
     )
 
-    dset = model.RecommendationModel(None, seasonal)
-    dset.watchlist = watchlist
+    uprofile = UserProfile("Test", watchlist)
+    dset = model.RecommendationModel(uprofile, seasonal, None)
 
     dset.all_features = dset.extract_features()
 
@@ -56,10 +57,12 @@ def test_features_can_be_extracted_from_ranks():
 
 
 def test_explode_cache_returns_same_object():
-    dset = model.RecommendationModel(None, None)
-    dset.watchlist = pl.DataFrame({"features": [["A", "B"], ["C"]]})
+    watchlist = pl.DataFrame({"features": [["A", "B"], ["C"]]})
+    seasonal = pl.DataFrame({"features": [["Y"]]})
+
+    uprofile = UserProfile("Test", watchlist)
+    dset = model.RecommendationModel(uprofile, seasonal, None)
     dset.recommendations = pl.DataFrame({"features": [["X"]]})
-    dset.seasonal = pl.DataFrame({"features": [["Y"]]})
 
     assert dset.watchlist_explode_cached("features") is dset.watchlist_explode_cached("features")
     assert dset.recommendations_explode_cached("features") is dset.recommendations_explode_cached(
@@ -89,8 +92,8 @@ def test_build_relation_context_tags_summaries():
     )
     seasonal = pl.DataFrame({"id": pl.Series([10, 11, 12, 13], dtype=pl.UInt32)})
 
-    dset = model.RecommendationModel(None, seasonal)
-    dset.watchlist = watchlist
+    uprofile = UserProfile("Test", watchlist)
+    dset = model.RecommendationModel(uprofile, seasonal, None)
     dset.build_relation_context()
 
     result = dict(
@@ -106,8 +109,8 @@ def test_build_relation_context_handles_missing_column():
     watchlist = pl.DataFrame({"id": [1, 2]})
     seasonal = pl.DataFrame({"id": pl.Series([10], dtype=pl.UInt32)})
 
-    dset = model.RecommendationModel(None, seasonal)
-    dset.watchlist = watchlist
+    uprofile = UserProfile("Test", watchlist)
+    dset = model.RecommendationModel(uprofile, seasonal, None)
     dset.build_relation_context()
 
     assert dset.seasonal["is_summary"].to_list() == [False]

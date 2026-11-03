@@ -8,18 +8,19 @@ def test_user_profile_can_be_constructred():
     watchlist = pl.DataFrame(test_data.FORMATTED_MAL_USER_LIST)
 
     user_profile = UserProfile("Test", watchlist)
+    user_profile.fit()
 
     assert user_profile.watchlist is not None
-    assert user_profile.genre_correlations is not None
     assert user_profile.studio_correlations is not None
     assert user_profile.director_correlations is not None
 
 
 def test_user_profile_can_be_constructred_with_no_watchlist():
     user_profile = UserProfile("Test", None)
+    user_profile.fit()
 
     assert user_profile.watchlist is None
-    assert user_profile.genre_correlations is None
+    assert user_profile.feature_correlations is None
     assert user_profile.studio_correlations is None
     assert user_profile.director_correlations is None
 
@@ -29,6 +30,7 @@ def test_correlations_are_consistent():
     data = data.with_columns(score=pl.Series([10.0, 8.0]))
 
     uprofile = UserProfile("Test", data)
+    uprofile.fit()
 
     previous = uprofile.get_director_correlations()
 
@@ -45,6 +47,7 @@ def test_favourite_source_calculation():
     data = data.with_columns(score=pl.Series([10.0, 8.0]))
 
     uprofile = UserProfile("Test", data)
+    uprofile.fit()
 
     assert uprofile.get_favourite_source() == "original"
 
@@ -59,5 +62,6 @@ def test_favourite_source_calculation_defaults_to_manga():
     )
 
     uprofile = UserProfile("Test", data)
+    uprofile.fit()
 
     assert uprofile.get_favourite_source() == "manga"
