@@ -45,6 +45,7 @@ ANI_SEASONAL_SCHEMA = {
     Columns.STATUS: MediaStatus,
     Columns.GENRES: pl.List(pl.Utf8),
     Columns.COVER_IMAGE: pl.Utf8,
+    Columns.BANNER_IMAGE: pl.Utf8,
     Columns.MEAN_SCORE: pl.Float32,
     Columns.POPULARITY: pl.UInt32,
     Columns.DURATION: pl.UInt32,

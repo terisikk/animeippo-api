@@ -59,6 +59,7 @@ class MixedProvider(abstract_provider.AbstractAnimeProvider):
                     seasonYear
                     season
                     coverImage { large }
+                    bannerImage
                     relations { edges { relationType, node { id, idMal }}}
                 }
             }
@@ -106,6 +107,7 @@ class MixedProvider(abstract_provider.AbstractAnimeProvider):
                         relations { edges { relationType, node { id, idMal }}}
                         popularity
                         coverImage { large }
+                        bannerImage
                     }
                 }
             }
@@ -141,6 +143,7 @@ class MixedProvider(abstract_provider.AbstractAnimeProvider):
                         relations { edges { relationType, node { id, idMal }}}
                         popularity
                         coverImage { large }
+                        bannerImage
                     }
                 }
             }

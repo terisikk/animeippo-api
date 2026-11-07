@@ -11,6 +11,7 @@ class Columns(StrEnum):
     GENRES = "genres"
     TAGS = "tags"
     COVER_IMAGE = "cover_image"
+    BANNER_IMAGE = "banner_image"
     SCORE = "score"
     MEAN_SCORE = "mean_score"
     POPULARITY = "popularity"

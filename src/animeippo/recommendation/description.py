@@ -55,6 +55,9 @@ class AnimeDescriber:
         "Achronological Order",
         "POV",
         "Advertisement",
+        "CGI",  # Full CGI important, CGI not
+        "Flash",
+        "Achromatic",
     )
 
     GENRE_THEMES: ClassVar[dict[str, str]] = {

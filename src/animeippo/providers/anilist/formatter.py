@@ -246,6 +246,7 @@ ANILIST_MAPPING = {
     Columns.FORMAT:             DefaultMapper("format"),
     Columns.GENRES:             DefaultMapper("genres"),
     Columns.COVER_IMAGE:        DefaultMapper("coverImage.large"),
+    Columns.BANNER_IMAGE:       DefaultMapper("bannerImage"),
     Columns.MEAN_SCORE:         DefaultMapper("meanScore"),
     Columns.POPULARITY:         DefaultMapper("popularity"),
     Columns.DURATION:           DefaultMapper("duration"),

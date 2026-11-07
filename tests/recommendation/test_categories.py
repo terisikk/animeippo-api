@@ -171,6 +171,7 @@ def test_your_top_picks_category():
             "discovery_score": [2, 3, 1],
             "format": ["TV", "TV", "TV"],
             "duration": [24, 24, 24],
+            "banner_image": ["test", "test", "test"],
         }
     )
 
@@ -220,6 +221,7 @@ def test_hidden_gems_category():
             "discovery_score": [8.0, 7.0, 6.0, 9.0, 10.0, 5.0],
             "popularity": [100, 50000, 500, 200, 10, 300],
             "continuationscore": [0, 0, 0, 0, 0, 0],
+            "banner_image": ["test", "test", "test", "test", "test", "test"],
             "is_summary": [False, False, False, False, False, False],
         }
     )
@@ -246,6 +248,7 @@ def test_top_movies_category():
             "user_status": [None, None, "COMPLETED", None, None],
             "status": ["FINISHED", "FINISHED", "FINISHED", "NOT_YET_RELEASED", "FINISHED"],
             "discovery_score": [8.0, 9.0, 10.0, 11.0, 7.0],
+            "banner_image": ["test", "test", "test", "test", "test"],
             "is_summary": [False, False, False, False, False],
         }
     )
@@ -270,6 +273,7 @@ def test_top_movies_excludes_summaries():
             "status": ["FINISHED", "FINISHED"],
             "discovery_score": [5.0, 10.0],
             "is_summary": [False, True],
+            "banner_image": ["test", "test"],
         }
     )
 

@@ -22,6 +22,7 @@ def recommendations_web_view(dataframe, categories=None, tags_and_genres=None, d
         "id",
         "title",
         "cover_image",
+        "banner_image",
         "genres",
         "tags",
         "status",

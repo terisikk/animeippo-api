@@ -123,6 +123,7 @@ class AniListProvider(abstract_provider.AbstractAnimeProvider):
                             relations { edges { relationType, node { id, idMal }}}
                             popularity
                             coverImage { large }
+                            bannerImage
                     }
                 }
             }
@@ -159,6 +160,7 @@ class AniListProvider(abstract_provider.AbstractAnimeProvider):
                             relations { edges { relationType, node { id, idMal }}}
                             popularity
                             coverImage { large }
+                            bannerImage
                     }
                 }
             }
