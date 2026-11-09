@@ -49,6 +49,7 @@ def get_anilist_mapping(tag_lookup):
                 pl.col("tag_category").alias("category"),
                 pl.col("tag_mood").alias("mood"),
                 pl.col("tag_intensity").alias("intensity"),
+                pl.col("isMediaSpoiler").alias("spoiler"),
             )
         )
 
@@ -59,14 +60,18 @@ def get_anilist_mapping(tag_lookup):
             .with_columns(info=pl.col("genres").replace_strict(GENRE_FEATURE_STRUCTS, default=None))
             .filter(pl.col("info").is_not_null())
             .unnest("info")
-            .with_columns(pl.col("rank").cast(pl.UInt8))
-            .select("anime_id", "name", "rank", "category", "mood", "intensity")
+            .with_columns(pl.col("rank").cast(pl.UInt8), spoiler=False)
+            .select("anime_id", "name", "rank", "category", "mood", "intensity", "spoiler")
         )
 
         combined = (
             pl.concat([tag_info, genre_info])
             .group_by("anime_id", maintain_order=True)
-            .agg(pl.struct(["name", "rank", "category", "mood", "intensity"]).alias("feature_info"))
+            .agg(
+                pl.struct(["name", "rank", "category", "mood", "intensity", "spoiler"]).alias(
+                    "feature_info"
+                )
+            )
         )
 
         return (

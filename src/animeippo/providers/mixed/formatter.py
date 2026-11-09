@@ -33,11 +33,12 @@ def _enrich_mixed_features(df):
             rank=pl.col("tags").struct.field("rank").cast(pl.UInt8),
             category=pl.col("tags").struct.field("category"),
             mood=pl.col("tags").struct.field("name").replace_strict(_TAG_MOOD_MAP, default=None),
+            spoiler=pl.col("tags").struct.field("spoiler"),
             intensity=pl.col("tags")
             .struct.field("name")
             .replace_strict(_TAG_INTENSITY_MAP, default=None),
         )
-        .select("anime_id", "name", "rank", "category", "mood", "intensity")
+        .select("anime_id", "name", "rank", "category", "mood", "intensity", "spoiler")
     )
 
     genre_info = (
@@ -47,14 +48,18 @@ def _enrich_mixed_features(df):
         .with_columns(info=pl.col("genres").replace_strict(GENRE_FEATURE_STRUCTS, default=None))
         .filter(pl.col("info").is_not_null())
         .unnest("info")
-        .with_columns(pl.col("rank").cast(pl.UInt8))
-        .select("anime_id", "name", "rank", "category", "mood", "intensity")
+        .with_columns(pl.col("rank").cast(pl.UInt8), spoiler=False)
+        .select("anime_id", "name", "rank", "category", "mood", "intensity", "spoiler")
     )
 
     combined = (
         pl.concat([tag_info, genre_info])
         .group_by("anime_id", maintain_order=True)
-        .agg(pl.struct(["name", "rank", "category", "mood", "intensity"]).alias("feature_info"))
+        .agg(
+            pl.struct(["name", "rank", "category", "mood", "intensity", "spoiler"]).alias(
+                "feature_info"
+            )
+        )
     )
 
     return (

@@ -131,8 +131,7 @@ class AnimeDescriber:
                 pl.col("rank") >= pl.col("show_dynamic_cutoff"),
                 ~pl.col("name").is_in(self.IGNORE_TAGS),
                 pl.col("category_short").is_in(self.DESCRIPTIVE_CATEGORIES),
-                # TODO: Filter out spoiler tags, but needs new data to provider
-                # ~pl.col("spoiler"),
+                ~pl.col("spoiler"),
             )
             .select(
                 pl.col("id"),

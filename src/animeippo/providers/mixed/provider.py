@@ -34,6 +34,7 @@ class MixedProvider(abstract_provider.AbstractAnimeProvider):
         mal_list = await self.mal_connection.request_anime_list(mal_query, parameters)
         mal_df = formatter.transform_mal_watchlist_data(mal_list)
 
+        # FIXME: For now, tag info must match in watchlist and seasonal query
         ani_query = """
         query ($idMal_in: [Int], $page: Int) {
             Page(page: $page, perPage: 50) {
@@ -50,6 +51,7 @@ class MixedProvider(abstract_provider.AbstractAnimeProvider):
                         rank
                         isAdult
                         category
+                        isMediaSpoiler
                     }
                     meanScore
                     duration
@@ -96,6 +98,7 @@ class MixedProvider(abstract_provider.AbstractAnimeProvider):
                             rank
                             isAdult
                             category
+                            isMediaSpoiler
                         }
                         meanScore
                         duration
@@ -132,6 +135,7 @@ class MixedProvider(abstract_provider.AbstractAnimeProvider):
                             rank
                             isAdult
                             category
+                            isMediaSpoiler
                         }
                         meanScore
                         duration

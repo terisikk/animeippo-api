@@ -23,6 +23,7 @@ class AniListProvider(abstract_provider.AbstractAnimeProvider):
 
         anime_list = {"data": []}
 
+        # FIXME: For now, tag info must match in watchlist and seasonal query
         # fmt: off
         query = """
         query ($userName: String) {
@@ -49,6 +50,7 @@ class AniListProvider(abstract_provider.AbstractAnimeProvider):
                             tags {
                                 id
                                 rank
+                                isMediaSpoiler
                             }
                             meanScore
                             duration

@@ -44,6 +44,7 @@ FeatureInfo = pl.List(
             "category": pl.Utf8,
             "mood": pl.Utf8,
             "intensity": pl.Utf8,
+            "spoiler": pl.Boolean,
         }
     )
 )

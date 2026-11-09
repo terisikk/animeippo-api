@@ -41,6 +41,7 @@ def test_describe_shows_with_various_combinations(describer, recommendation_mode
                         "category": "Theme-Fantasy",
                         "mood": None,
                         "intensity": None,
+                        "spoiler": False,
                     }
                 ],
             ],
