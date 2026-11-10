@@ -1053,7 +1053,10 @@ MIXED_USER_LIST_ANI = {
                         "edges": [{"role": "Director"}],
                         "nodes": [{"id": 12345}],
                     },
-                    "coverImage": {"large": "https://localhost/test.png"},
+                    "coverImage": {
+                        "large": "https://localhost/test.png",
+                        "extraLarge": "https://localhost/test.png",
+                    },
                 },
                 {
                     "id": 1270,
@@ -1081,7 +1084,10 @@ MIXED_USER_LIST_ANI = {
                         "edges": [{"role": "Director"}],
                         "nodes": [{"id": 67890}],
                     },
-                    "coverImage": {"large": "https://localhost/test.png"},
+                    "coverImage": {
+                        "large": "https://localhost/test.png",
+                        "extraLarge": "https://localhost/test.png",
+                    },
                 },
             ],
         }

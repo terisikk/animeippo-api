@@ -250,7 +250,7 @@ ANILIST_MAPPING = {
     Columns.TITLE:              DefaultMapper("title.romaji"),
     Columns.FORMAT:             DefaultMapper("format"),
     Columns.GENRES:             DefaultMapper("genres"),
-    Columns.COVER_IMAGE:        DefaultMapper("coverImage.large"),
+    Columns.COVER_IMAGE:        DefaultMapper("coverImage.extraLarge"),
     Columns.BANNER_IMAGE:       DefaultMapper("bannerImage"),
     Columns.MEAN_SCORE:         DefaultMapper("meanScore"),
     Columns.POPULARITY:         DefaultMapper("popularity"),
