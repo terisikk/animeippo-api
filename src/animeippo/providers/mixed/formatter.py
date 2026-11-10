@@ -33,7 +33,7 @@ def _enrich_mixed_features(df):
             rank=pl.col("tags").struct.field("rank").cast(pl.UInt8),
             category=pl.col("tags").struct.field("category"),
             mood=pl.col("tags").struct.field("name").replace_strict(_TAG_MOOD_MAP, default=None),
-            spoiler=pl.col("tags").struct.field("spoiler"),
+            spoiler=pl.col("tags").struct.field("isMediaSpoiler"),
             intensity=pl.col("tags")
             .struct.field("name")
             .replace_strict(_TAG_INTENSITY_MAP, default=None),

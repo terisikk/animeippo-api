@@ -1038,7 +1038,7 @@ MIXED_USER_LIST_ANI = {
                             "rank": 95,
                             "isAdult": False,
                             "category": "Theme-Other",
-                            "spoiler": False,
+                            "isMediaSpoiler": False,
                         }
                     ],
                     "format": "TV",
@@ -1066,7 +1066,7 @@ MIXED_USER_LIST_ANI = {
                             "rank": 80,
                             "isAdult": False,
                             "category": "Theme-Other",
-                            "spoiler": False,
+                            "isMediaSpoiler": False,
                         }
                     ],
                     "format": "TV",
@@ -1109,7 +1109,7 @@ MIXED_ANI_SEASONAL_LIST = {
                         "rank": 90,
                         "isAdult": False,
                         "category": "Theme-Other",
-                        "spoiler": False,
+                        "isMediaSpoiler": False,
                     }
                 ],
                 "coverImage": {"medium": "https://localhost/test.png"},
@@ -1133,7 +1133,7 @@ MIXED_ANI_SEASONAL_LIST = {
                         "rank": 85,
                         "isAdult": False,
                         "category": "Theme-Action",
-                        "spoiler": False,
+                        "isMediaSpoiler": False,
                     }
                 ],
                 "coverImage": {"medium": "https://localhost/test.png"},
