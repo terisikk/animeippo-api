@@ -152,9 +152,11 @@ class MangaCategory(AbstractCategory):
 
 
 class StudioCategory(AbstractCategory):
-    description = "From Your Favourite Studios"
+    """
+    Pick top n studios and the best scoring item from them
+    """
 
-    TOP_N_STUDIOS = 8
+    description = "From Your Favourite Studios"
 
     def categorize(self, dataset):
         studio_correlations = dataset.user_profile.studio_correlations
@@ -162,31 +164,23 @@ class StudioCategory(AbstractCategory):
         if studio_correlations is None or len(studio_correlations) == 0:
             return False, {}
 
-        top_studios = (
-            studio_correlations.head(self.TOP_N_STUDIOS)
-            .filter(pl.col("weight") > 0)["name"]
-            .to_list()
-        )
+        positive_studios = studio_correlations.filter(pl.col("weight") > 0)
+        self.positive_studios = positive_studios
 
-        if not top_studios:
+        if positive_studios.height == 0:
             return False, {}
 
-        self.studio_weights = dict(
-            zip(
-                studio_correlations.head(self.TOP_N_STUDIOS)
-                .filter(pl.col("weight") > 0)["name"]
-                .to_list(),
-                studio_correlations.head(self.TOP_N_STUDIOS)
-                .filter(pl.col("weight") > 0)["weight"]
-                .to_list(),
-                strict=True,
-            )
-        )
+        studio_list = positive_studios["name"].to_list()
 
         mask = (
-            ~(pl.col("user_status").is_in(["COMPLETED", "DROPPED"]))
-            | (pl.col("user_status").is_null())
-        ) & (pl.col("studios").list.set_intersection(top_studios).list.len() > 0)
+            (
+                ~(pl.col("user_status").is_in(["COMPLETED", "DROPPED"]))
+                | (pl.col("user_status").is_null())
+            )
+            & (pl.col("studios").list.set_intersection(studio_list).list.len() > 0)
+            & substantial_format_filter()
+            & (pl.col("banner_image").is_not_null())
+        )
 
         sorting = {"by": "discovery_score", "descending": True}
 
@@ -194,22 +188,17 @@ class StudioCategory(AbstractCategory):
 
     def get_items(self, df, top_n=None):
         """Sort by best matching studio weight, then discovery score."""
-        weights_df = pl.DataFrame(
-            {
-                "studios": list(self.studio_weights.keys()),
-                "studio_weight": list(self.studio_weights.values()),
-            }
-        )
-
         result = (
             df.explode("studios")
-            .join(weights_df, on="studios", how="left")
+            .join(self.positive_studios, left_on="studios", right_on="name", how="left")
             .group_by("id", maintain_order=True)
             .agg(
-                pl.exclude("studios", "studio_weight").first(),
-                pl.col("studio_weight").max().alias("_best_studio_weight"),
+                pl.exclude("weight").first(),
+                pl.col("weight").max(),
             )
-            .sort("_best_studio_weight", "discovery_score", descending=True)
+            .sort("weight", "discovery_score", descending=True)
+            .group_by("studios", maintain_order=True)
+            .agg(pl.col("id").first())
         )
 
         if top_n is not None:

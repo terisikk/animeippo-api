@@ -203,6 +203,8 @@ def test_categorize():
             "discovery_score": [1],
             "format": ["TV"],
             "is_summary": [False],
+            "duration": [20],
+            "banner_image": [True],
         }
     )
 

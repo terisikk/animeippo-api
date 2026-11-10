@@ -108,7 +108,7 @@ def get_default_categorizers(distance_metric="cosine"):
         (categories.AdaptationCategory(), None),
         (categories.ClusterCategory(nth_cluster=2, **cluster_kwargs), 20),
         (categories.GenreCategory(nth_genre=1, needs_diversity=True, min_items=2), None),
-        (categories.StudioCategory(min_items=2), None),
+        (categories.StudioCategory(exclusive=True, min_items=2), 3),
         (categories.ClusterCategory(nth_cluster=3, **cluster_kwargs), 20),
         (categories.GenreCategory(nth_genre=2, needs_diversity=True, min_items=2), None),
         (categories.MangaCategory(), 25),

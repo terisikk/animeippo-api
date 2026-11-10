@@ -98,6 +98,9 @@ def test_studio_category():
             "discovery_score": [3, 5, 1, 2],
             "title": ["Test 1", "Test 2", "Test 3", "Test 4"],
             "user_status": [None, None, None, None],
+            "format": ["TV", "TV", "TV", "TV"],
+            "duration": [20, 20, 20, 20],
+            "banner_image": [True, True, True, True],
         }
     )
 
@@ -122,12 +125,12 @@ def test_studio_category():
         zip(recommendations["id"].to_list(), recommendations["title"].to_list(), strict=True)
     )
     ordered = [id_to_title[i] for i in items]
-    # MAPPA (0.5) first, then Bones (0.3) by discovery_score
-    assert ordered == ["Test 3", "Test 1", "Test 4"]
+    # MAPPA (0.5) first, then Bones (0.3) by discovery_score. Only one per studio.
+    assert ordered == ["Test 3", "Test 1"]
 
     # top_n=None returns all items
     all_items = cat.get_items(filtered, top_n=None)
-    assert len(all_items) == 3
+    assert len(all_items) == 2
 
 
 def test_studio_category_returns_false_without_correlations():
