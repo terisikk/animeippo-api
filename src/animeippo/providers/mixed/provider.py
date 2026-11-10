@@ -60,7 +60,7 @@ class MixedProvider(abstract_provider.AbstractAnimeProvider):
                     studios { edges { node { name isAnimationStudio } }}
                     seasonYear
                     season
-                    coverImage { large }
+                    coverImage { extraLarge }
                     bannerImage
                     relations { edges { relationType, node { id, idMal }}}
                 }
@@ -109,7 +109,7 @@ class MixedProvider(abstract_provider.AbstractAnimeProvider):
                         season
                         relations { edges { relationType, node { id, idMal }}}
                         popularity
-                        coverImage { large }
+                        coverImage { extraLarge }
                         bannerImage
                     }
                 }
@@ -146,7 +146,7 @@ class MixedProvider(abstract_provider.AbstractAnimeProvider):
                         season
                         relations { edges { relationType, node { id, idMal }}}
                         popularity
-                        coverImage { large }
+                        coverImage { extraLarge }
                         bannerImage
                     }
                 }

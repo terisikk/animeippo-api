@@ -59,7 +59,7 @@ class AniListProvider(abstract_provider.AbstractAnimeProvider):
                             studios { edges { node { name isAnimationStudio } }}
                             seasonYear
                             season
-                            coverImage { large }
+                            coverImage { extraLarge }
                             relations { edges { relationType, node { id, idMal }}}
                             recommendations(sort: RATING_DESC, perPage: 25) {
                                 edges {
@@ -124,7 +124,7 @@ class AniListProvider(abstract_provider.AbstractAnimeProvider):
                             season
                             relations { edges { relationType, node { id, idMal }}}
                             popularity
-                            coverImage { large }
+                            coverImage { extraLarge }
                             bannerImage
                     }
                 }
@@ -161,7 +161,7 @@ class AniListProvider(abstract_provider.AbstractAnimeProvider):
                             season
                             relations { edges { relationType, node { id, idMal }}}
                             popularity
-                            coverImage { large }
+                            coverImage { extraLarge }
                             bannerImage
                     }
                 }
