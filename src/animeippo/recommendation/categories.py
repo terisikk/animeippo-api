@@ -500,12 +500,14 @@ class MoodCategory(AbstractCategory):
 
         top_mood = mood_correlations[0, "name"]
         mask = (
-            pl.col("moods")
+            (pl.col("moods")
             .list.eval(
                 (pl.element().struct.field("mood") == top_mood)
                 & (pl.element().struct.field("score") >= self.MOOD_SCORE_CUTOFF)
             )
-            .list.any()
+            .list.any())
+            & substantial_format_filter()
+            & pl.col("banner_image").is_not_null()
         )
 
         # Or we could instead sort by mood score and select the best?

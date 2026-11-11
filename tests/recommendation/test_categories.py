@@ -664,6 +664,9 @@ def test_mood_category():
                 [{"mood": "hype", "score": 400}],
             ],
             "discovery_score": [1.0, 1.0, 1.0],
+            "format": ["TV", "TV", "TV"],
+            "duration": [24, 24, 24],
+            "banner_image": ["banner1.jpg", "banner2.jpg", "banner3.jpg"],
         }
     )
 
