@@ -653,6 +653,64 @@ def test_cluster_category_returns_false_for_nonexistent_nth():
     assert mask is False
 
 
+def test_mood_category():
+    recommendations = pl.DataFrame(
+        {
+            "id": [1, 2, 3],
+            "title": ["Chill Show", "Dark Show", "Action Show"],
+            "moods": [
+                [{"mood": "chill", "score": 400}],
+                [{"mood": "dark", "score": 400}],
+                [{"mood": "hype", "score": 400}],
+            ],
+            "discovery_score": [1.0, 1.0, 1.0],
+        }
+    )
+
+    user_profile = type("UserProfile", (), {})()
+    user_profile.mood_correlations = pl.DataFrame(
+        {"name": ["chill", "dark", "hype"], "score": [400, 300, 200]}
+    )
+
+    data = RecommendationModel(None, None, None)
+    data.recommendations = recommendations
+    data.user_profile = user_profile
+
+    cat = categories.MoodCategory()
+    mask, sorting_info = cat.categorize(data)
+
+    result = recommendations.filter(mask).sort(**sorting_info)
+    assert "Chill Show" in result["title"].to_list()
+    assert cat.description == "Relax & Unwind"
+
+
+def test_mood_category_returns_empty_without_mood_correlations():
+    recommendations = pl.DataFrame(
+        {
+            "id": [1, 2, 3],
+            "title": ["Chill Show", "Dark Show", "Action Show"],
+            "moods": [
+                [{"mood": "chill", "score": 400}],
+                [{"mood": "dark", "score": 400}],
+                [{"mood": "hype", "score": 400}],
+            ],
+            "discovery_score": [1.0, 1.0, 1.0],
+        }
+    )
+
+    user_profile = type("UserProfile", (), {})()
+    user_profile.mood_correlations = None
+
+    data = RecommendationModel(None, None, None)
+    data.recommendations = recommendations
+    data.user_profile = user_profile
+
+    cat = categories.MoodCategory()
+    mask, _ = cat.categorize(data)
+
+    assert mask is False
+
+
 def test_debug_category_returns_all_recommendations():
     cat = categories.DebugCategory()
 

@@ -40,67 +40,83 @@ def _make_df(feature_info):
 
 def test_mood_chill():
     result = add_mood_data(_make_df([[_tag("Iyashikei", 90), _genre("Slice of Life")]]))
-    assert "chill" in result["moods"][0]
+
+    mood_names = result.select(pl.col("moods").list.eval(pl.element().struct.field("mood")))
+
+    assert "chill" in mood_names[0, "moods"]
 
 
 def test_mood_hype():
     result = add_mood_data(_make_df([[_tag("Martial Arts", 85), _genre("Action")]]))
-    assert "hype" in result["moods"][0]
+
+    mood_names = result.select(pl.col("moods").list.eval(pl.element().struct.field("mood")))
+
+    assert "hype" in mood_names[0, "moods"]
 
 
 def test_mood_emotional():
     result = add_mood_data(_make_df([[_tag("Tragedy", 90), _genre("Drama")]]))
-    assert "emotional" in result["moods"][0]
+    mood_names = result.select(pl.col("moods").list.eval(pl.element().struct.field("mood")))
+    assert "emotional" in mood_names[0, "moods"]
 
 
 def test_mood_dark():
     result = add_mood_data(_make_df([[_tag("Gore", 80), _genre("Horror")]]))
-    assert "dark" in result["moods"][0]
+    mood_names = result.select(pl.col("moods").list.eval(pl.element().struct.field("mood")))
+    assert "dark" in mood_names[0, "moods"]
 
 
 def test_mood_funny():
     result = add_mood_data(_make_df([[_tag("Parody", 70), _genre("Comedy")]]))
-    assert "funny" in result["moods"][0]
+    mood_names = result.select(pl.col("moods").list.eval(pl.element().struct.field("mood")))
+    assert "funny" in mood_names[0, "moods"]
 
 
 def test_mood_cerebral():
     result = add_mood_data(_make_df([[_tag("Conspiracy", 85), _genre("Mystery")]]))
-    assert "cerebral" in result["moods"][0]
+    mood_names = result.select(pl.col("moods").list.eval(pl.element().struct.field("mood")))
+    assert "cerebral" in mood_names[0, "moods"]
 
 
 def test_mood_adventurous():
     result = add_mood_data(_make_df([[_tag("Isekai", 90), _genre("Fantasy")]]))
-    assert "adventurous" in result["moods"][0]
+    mood_names = result.select(pl.col("moods").list.eval(pl.element().struct.field("mood")))
+    assert "adventurous" in mood_names[0, "moods"]
 
 
 def test_mood_sporty():
     result = add_mood_data(_make_df([[_tag("Baseball", 90), _genre("Sports")]]))
-    assert "sporty" in result["moods"][0]
+    mood_names = result.select(pl.col("moods").list.eval(pl.element().struct.field("mood")))
+    assert "sporty" in mood_names[0, "moods"]
 
 
 def test_mood_multiple():
     features = [_tag("Gore", 90), _tag("Martial Arts", 85), _genre("Action"), _genre("Horror")]
     result = add_mood_data(_make_df([features]))
-    moods = result["moods"][0]
+    mood_names = result.select(pl.col("moods").list.eval(pl.element().struct.field("mood")))
+    moods = mood_names[0, "moods"]
     assert "hype" in moods
     assert "dark" in moods
 
 
 def test_mood_below_threshold_excluded():
     result = add_mood_data(_make_df([[_tag("Parody", 10)]]))
-    assert result["moods"].item() is None
+    mood_names = result.select(pl.col("moods").list.eval(pl.element().struct.field("mood")))
+    assert mood_names[0, "moods"] is None
 
 
 def test_mood_genre_without_mood_ignored():
     """Genres like Supernatural have no mood, should not contribute to mood scoring."""
     result = add_mood_data(_make_df([[_genre("Supernatural"), _genre("Action")]]))
-    assert "hype" in result["moods"][0]
+    mood_names = result.select(pl.col("moods").list.eval(pl.element().struct.field("mood")))
+    assert "hype" in mood_names[0, "moods"]
 
 
 def test_mood_tag_without_mood_ignored():
     """Tags without mood (like cast tags) should not contribute to mood scoring."""
     result = add_mood_data(_make_df([[_tag("Male Protagonist", 90), _genre("Action")]]))
-    assert result["moods"][0].to_list() == ["hype"]
+    mood_names = result.select(pl.col("moods").list.eval(pl.element().struct.field("mood")))
+    assert mood_names[0, "moods"].to_list() == ["hype"]
 
 
 def test_no_tag_in_multiple_moods():
@@ -170,5 +186,6 @@ def test_add_mood_data():
 
     assert "moods" in result.columns
     assert "intensity" in result.columns
-    assert "chill" in result["moods"][0]
-    assert "dark" in result["moods"][1]
+    mood_names = result.select(pl.col("moods").list.eval(pl.element().struct.field("mood")))
+    assert "chill" in mood_names[0, "moods"]
+    assert "dark" in mood_names[1, "moods"]

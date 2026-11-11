@@ -1,4 +1,5 @@
 import abc
+from typing import ClassVar
 
 import polars as pl
 
@@ -471,6 +472,46 @@ class ClusterCategory(AbstractCategory):
             "by": pl.col("discovery_score") * 0.5 + pl.col("cluster_similarity") * 0.5,
             "descending": True,
         }
+
+        return mask, sorting
+
+
+class MoodCategory(AbstractCategory):
+    description = ""
+
+    MOOD_SCORE_CUTOFF = 300
+
+    MOOD_DESCRIPTIONS: ClassVar[dict[str, str]] = {
+        "chill": "Relax & Unwind",
+        "hype": "Get Hyped",
+        "emotional": "Emotional Rollercoasters",
+        "dark": "Grim & Gritty Tales",
+        "funny": "Goofy Comedies",
+        "cerebral": "Mind-Bending Mysteries",
+        "adventurous": "Embark on Grand Journeys",
+        "sporty": "Sweat it Out",
+    }
+
+    def categorize(self, dataset):
+        mood_correlations = dataset.user_profile.mood_correlations
+
+        if mood_correlations is None or mood_correlations.is_empty():
+            return False, {}
+
+        top_mood = mood_correlations[0, "name"]
+        mask = (
+            pl.col("moods")
+            .list.eval(
+                (pl.element().struct.field("mood") == top_mood)
+                & (pl.element().struct.field("score") >= self.MOOD_SCORE_CUTOFF)
+            )
+            .list.any()
+        )
+
+        # Or we could instead sort by mood score and select the best?
+        sorting = {"by": "discovery_score", "descending": True}
+
+        self.description = self.MOOD_DESCRIPTIONS.get(top_mood, top_mood.capitalize())
 
         return mask, sorting
 

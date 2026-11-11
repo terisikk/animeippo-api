@@ -31,7 +31,7 @@ def compute_moods(features):
         .agg(score=(pl.col("rank")).sum())
         .filter(pl.col("score") >= MOOD_THRESHOLD)
         .group_by("id")
-        .agg(moods=pl.col("mood").sort())
+        .agg(moods=pl.struct(mood=pl.col("mood"), score=pl.col("score")))
     )
 
 

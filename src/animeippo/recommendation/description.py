@@ -1,20 +1,3 @@
-# TOOD: We could based on features + feature correlation
-# (see feature correlation scorer and cluster namer and moods)
-# select more interesting set of features than just genres
-# to be shown on the frontend.
-# Possible parts:
-# * mood
-# * most important genre
-# * Setting (Time / Universe / Scene)
-# * Theme
-# * Demographic
-# And from these somehow pick the most meaningful ones
-# Maybe passing through categorical correlation, even though it's heavy.
-# User profile could be cached better to redis to overcome.
-# Well, recommendations too but it's no fun.
-# Genre could even be discarded since theme mostly covers the same
-# -> most important theme could be calculated from the same way as moods
-
 from typing import ClassVar
 
 import polars as pl

@@ -14,6 +14,7 @@ class UserProfile:
         self.director_correlations = None
         self.studio_correlations = None
         self.favourite_source = None
+        self.mood_correlations = None
 
     def fit(self):
         if self.watchlist is not None and "score" in self.watchlist.columns:
@@ -24,6 +25,7 @@ class UserProfile:
             self.studio_correlations = self.get_studio_correlations()
             self.last_liked = self.get_last_liked()
             self.favourite_source = self.get_favourite_source()
+            self.mood_correlations = self.get_mood_correlations()
 
     def get_last_liked(self):
         if "user_complete_date" not in self.watchlist.columns:
@@ -42,6 +44,14 @@ class UserProfile:
         return statistics.weight_encoded_categoricals_correlation(
             self.watchlist, "encoded", header_name="name"
         )
+
+    def get_mood_correlations(self):
+        if "moods" not in self.watchlist.columns:
+            return None
+
+        return statistics.weight_categoricals_correlation(
+            self.watchlist.explode("moods").unnest("moods", separator="_"), "moods_mood"
+        ).sort("weight", descending=True)
 
     def get_status_correlations(self):
         if "encoded" not in self.watchlist.columns or "user_status" not in self.watchlist.columns:

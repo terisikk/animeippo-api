@@ -1,5 +1,7 @@
 import polars as pl
 
+from animeippo.recommendation import moods
+
 from ..analysis import similarity
 
 
@@ -124,6 +126,9 @@ class RecommendationModel:
         self.watchlist = self.watchlist.with_columns(
             cluster=clustering_model.cluster_by_features(self.watchlist)
         )
+
+        if "feature_info" in self.watchlist.columns:
+            self.watchlist = moods.add_mood_data(self.watchlist)
 
         self.similarity_matrix = similarity.categorical_similarity(
             self.watchlist["encoded"],

@@ -112,6 +112,7 @@ def get_default_categorizers(distance_metric="cosine"):
         (categories.ClusterCategory(nth_cluster=3, **cluster_kwargs), 20),
         (categories.GenreCategory(nth_genre=2, needs_diversity=True, min_items=2), None),
         (categories.MangaCategory(), 25),
+        (categories.MoodCategory(exclusive=True, min_items=2), 3),
         (categories.BecauseYouLikedCategory(nth_liked=2, distance_metric=distance_metric), 20),
         (categories.ClusterCategory(nth_cluster=4, **cluster_kwargs), 20),
         (categories.GenreCategory(nth_genre=3, needs_diversity=True, min_items=2), None),
