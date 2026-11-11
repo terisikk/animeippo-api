@@ -80,7 +80,9 @@ class RankingOrchestrator:
                     discourage_max=self.DISCOURAGE_MAX,
                 )
 
-            rendered_categories.append({"name": category.description, "items": item_ids})
+            rendered_categories.append(
+                {"name": category.description, "items": item_ids, "exclusive": category.exclusive}
+            )
 
         return rendered_categories
 
