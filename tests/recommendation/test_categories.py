@@ -667,6 +667,7 @@ def test_mood_category():
             "format": ["TV", "TV", "TV"],
             "duration": [24, 24, 24],
             "banner_image": ["banner1.jpg", "banner2.jpg", "banner3.jpg"],
+            "user_status": [None, None, None],
         }
     )
 

@@ -508,6 +508,10 @@ class MoodCategory(AbstractCategory):
                 )
                 .list.any()
             )
+            & (
+                ~(pl.col("user_status").is_in(["COMPLETED", "DROPPED"]))
+                | (pl.col("user_status").is_null())
+            )
             & substantial_format_filter()
             & pl.col("banner_image").is_not_null()
         )
