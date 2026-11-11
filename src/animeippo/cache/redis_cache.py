@@ -17,7 +17,7 @@ class RedisCache:
 
     def __init__(self, mode=CacheMode.READ_WRITE):
         # TODO: Remove this hardcoded server value, add to config
-        self.connection = redis.Redis(host="localhost", port=6379)
+        self.connection = redis.Redis(host="redis-stack-server", port=6379)
         self.mode = mode
 
     def set_json(self, key, value, ttl=timedelta(days=7)):
