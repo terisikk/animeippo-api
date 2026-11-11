@@ -487,7 +487,7 @@ class MoodCategory(AbstractCategory):
         "emotional": "Emotional Rollercoasters",
         "dark": "Grim & Gritty Tales",
         "funny": "Goofy Comedies",
-        "cerebral": "Mind-Bending Mysteries",
+        "cerebral": "Clever and Cunning",
         "adventurous": "Embark on Grand Journeys",
         "sporty": "Sweat it Out",
     }
