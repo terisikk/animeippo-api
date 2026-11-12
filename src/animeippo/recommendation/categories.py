@@ -180,7 +180,6 @@ class StudioCategory(AbstractCategory):
             )
             & (pl.col("studios").list.set_intersection(studio_list).list.len() > 0)
             & substantial_format_filter()
-            & (pl.col("banner_image").is_not_null())
         )
 
         sorting = {"by": "discovery_score", "descending": True}
@@ -274,7 +273,6 @@ class HiddenGemsCategory(AbstractCategory):
             & (pl.col(scoring.ContinuationScorer.name) == 0)
             & (pl.col("status").is_in(["RELEASING", "FINISHED"]))
             & (pl.col("format") != "MOVIE")
-            & (pl.col("banner_image").is_not_null())
             & substantial_format_filter()
             & substantial_relation_filter()
         )
@@ -298,7 +296,6 @@ class MovieNightCategory(AbstractCategory):
             (pl.col("format") == "MOVIE")
             & (pl.col("user_status").ne_missing("COMPLETED"))
             & (pl.col("status").is_in(["RELEASING", "FINISHED"]))
-            & (pl.col("banner_image").is_not_null())
             & substantial_relation_filter()
         )
 
@@ -528,7 +525,6 @@ class MoodCategory(AbstractCategory):
                 | (pl.col("user_status").is_null())
             )
             & substantial_format_filter()
-            & pl.col("banner_image").is_not_null()
         )
 
         # Or we could instead sort by mood score and select the best?

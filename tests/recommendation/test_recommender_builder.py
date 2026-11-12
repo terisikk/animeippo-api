@@ -60,7 +60,7 @@ def test_debug_category_is_included_when_debug_env_is_set(monkeypatch):
     layouts = recommender_builder.get_default_categorizers()
 
     for layout_name, layout in layouts.items():
-        category, top_n = layout[0]
+        category, top_n = layout[1]
         assert isinstance(category, categories.DebugCategory), f"Missing in {layout_name}"
         assert top_n is None
 

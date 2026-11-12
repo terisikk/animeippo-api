@@ -64,34 +64,33 @@ def get_default_categorizers(distance_metric="cosine"):
     )
 
     minimal = [
-        *debug,
         (categories.TopUpcomingCategory(min_items=3), 35),
+        *debug,
         (categories.ContinueWatchingCategory(), None),
         (categories.YourTopPicksCategory(), 10),
         (categories.MostPopularCategory(), 20),
     ]
 
+    cluster_kwargs = {"min_items": 3}
+
     standard = [
+        (categories.TopUpcomingCategory(exclusive=True, min_items=2), 3),
         *debug,
-        (categories.TopReleasedPicksCategory(exclusive=True), 3),
         (categories.ContinueWatchingCategory(), None),
-        (categories.SimulcastsCategory(min_items=3), 40),
         (categories.TopUpcomingCategory(min_items=3), 35),
+        (categories.SimulcastsCategory(min_items=3), 40),
         (categories.PlanningCategory(), None),
-        (categories.MovieNightCategory(exclusive=True), 5),
         (categories.YourTopPicksCategory(), 35),
+        (categories.StudioCategory(exclusive=True, min_items=2), 3),
+        (categories.ClusterCategory(nth_cluster=0, min_items=3), 20),
         (categories.MostPopularCategory(), 20),
-        (categories.HiddenGemsCategory(exclusive=True), 5),
-        (categories.StudioCategory(min_items=2), None),
         (categories.AllMoviesCategory(), None),
         (categories.AdaptationCategory(), None),
     ]
 
-    cluster_kwargs = {"min_items": 3}
-
     full = [
-        *debug,
         (categories.TopReleasedPicksCategory(exclusive=True), 3),
+        *debug,
         (categories.ContinueWatchingCategory(), None),
         (categories.SimulcastsCategory(min_items=3), 40),
         (categories.TopUpcomingCategory(min_items=3), 35),

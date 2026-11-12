@@ -194,6 +194,7 @@ def test_ranking_orchestrator_exclusive_categories_dedupe():
             "title": ["A", "B", "C", "D"],
             "discovery_score": [4.0, 3.0, 2.0, 1.0],
             "popularity": [100, 200, 300, 400],
+            "banner_image": [True, True, True, True],
         }
     )
 

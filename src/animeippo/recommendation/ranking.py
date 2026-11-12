@@ -60,8 +60,10 @@ class RankingOrchestrator:
 
             filtered_sorted = recommendations_df.filter(mask).sort(**sorting_info)
 
-            if category.exclusive and exclusive_ids:
-                filtered_sorted = filtered_sorted.filter(~pl.col("id").is_in(list(exclusive_ids)))
+            if category.exclusive and exclusive_ids is not None:
+                filtered_sorted = filtered_sorted.filter(
+                    ~pl.col("id").is_in(list(exclusive_ids)) & pl.col("banner_image").is_not_null()
+                )
 
             if len(filtered_sorted) < category.min_items:
                 continue
