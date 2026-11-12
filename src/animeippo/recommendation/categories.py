@@ -479,8 +479,6 @@ class ClusterCategory(AbstractCategory):
 class MoodCategory(AbstractCategory):
     description = ""
 
-    MOOD_SCORE_CUTOFF = 300
-
     MOOD_DESCRIPTIONS: ClassVar[dict[str, str]] = {
         "chill": "Relax & Unwind",
         "hype": "Get Hyped",
@@ -492,19 +490,36 @@ class MoodCategory(AbstractCategory):
         "sporty": "Sweat it Out",
     }
 
+    def __init__(self, nth_mood=0, **kwargs):
+        super().__init__(**kwargs)
+        self.nth_mood = nth_mood
+
     def categorize(self, dataset):
         mood_correlations = dataset.user_profile.mood_correlations
 
-        if mood_correlations is None or mood_correlations.is_empty():
+        if mood_correlations is None or self.nth_mood >= mood_correlations.height:
             return False, {}
 
-        top_mood = mood_correlations[0, "name"]
+        top_mood = mood_correlations[self.nth_mood, "name"]
+        mood_means = (
+            dataset.recommendations.select("moods")
+            .explode("moods")
+            .unnest("moods")
+            .group_by("mood")
+            .agg(pl.col("score").mean())
+        )
+
         mask = (
             (
                 pl.col("moods")
                 .list.eval(
                     (pl.element().struct.field("mood") == top_mood)
-                    & (pl.element().struct.field("score") >= self.MOOD_SCORE_CUTOFF)
+                    & (
+                        pl.element().struct.field("score")
+                        >= mood_means.row(by_predicate=(pl.col("mood") == top_mood), named=True)[
+                            "score"
+                        ]
+                    )
                 )
                 .list.any()
             )
