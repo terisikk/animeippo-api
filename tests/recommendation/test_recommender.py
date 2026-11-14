@@ -60,6 +60,37 @@ async def test_recommender_can_return_plain_seasonal_data():
 
 
 @pytest.mark.asyncio
+async def test_recommender_runs_without_descriptions():
+    class FaultyEngineStub:
+        def fit_predict(self, dataset):
+            return dataset.seasonal[::-1]
+
+        def categorize_anime(self, dataset):
+            return [[1, 2, 3]]
+
+        def get_clusters(self, dataset):
+            return [[1, 2, 3]]
+
+        def get_show_descriptions(self, dataset):
+            return None
+
+    seasonal = pl.DataFrame(test_data.FORMATTED_MAL_SEASONAL_LIST)
+
+    provider = ProviderStub()
+    engine = FaultyEngineStub()
+
+    rec = recommender.AnimeRecommender(
+        provider=provider,
+        engine=engine,
+        recommendation_model_cls=RecommendationModel,
+        profile_model_cls=UserProfile,
+    )
+    data = await rec.recommend_seasonal_anime("user", "2013", "winter")
+
+    assert seasonal.item(0, "title") in data.recommendations["title"].to_list()
+
+
+@pytest.mark.asyncio
 async def test_recommender_can_recommend_seasonal_data_for_user():
     seasonal = pl.DataFrame(test_data.FORMATTED_MAL_SEASONAL_LIST)
 

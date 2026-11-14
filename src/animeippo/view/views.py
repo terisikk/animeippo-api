@@ -69,6 +69,7 @@ def profile_cluster_web_view(watchlist, categories, seasonal=None):
         "season",
         "season_year",
         "status",
+        "description",
     }
     filtered_fields = list(set(watchlist.columns).intersection(fields))
 
@@ -90,6 +91,7 @@ def profile_cluster_web_view(watchlist, categories, seasonal=None):
             "season_year",
             "season",
             "format",
+            "description",
         }
         filtered_seasonal = list(set(seasonal.columns).intersection(seasonal_fields))
         data["seasonal"] = seasonal.select(filtered_seasonal).to_dicts()

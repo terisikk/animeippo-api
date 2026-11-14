@@ -196,6 +196,7 @@ def build_analysis_recommender(providername):
             # A different ranker?
             ranking_orchestrator=None,
             cluster_namer=namer.ClusterNamer(genres),
+            describer=description.AnimeDescriber(genres),
         ),
         recommendation_model_cls=RecommendationModel,
         profile_model_cls=UserProfile,

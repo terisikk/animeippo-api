@@ -311,3 +311,11 @@ def test_describer_is_called():
     )
 
     assert recengine.get_show_descriptions("test") == "Cool!"
+
+
+def test_describer_can_be_missing():
+    recengine = engine.AnimeRecommendationEngine(
+        clustering.AnimeClustering(), encoding.CategoricalEncoder(), describer=None
+    )
+
+    assert recengine.get_show_descriptions("test") is None
